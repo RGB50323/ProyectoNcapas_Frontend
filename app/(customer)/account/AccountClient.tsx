@@ -8,6 +8,7 @@ import type { Order, Product } from "@/lib/types";
 import { Icon } from "@/components/Icon";
 import ProductCard from "@/components/ProductCard";
 import { StatusPill, Field } from "@/components/ui";
+import { PageLoader } from "@/components/PageLoader";
 
 const TABS: [string, string, string][] = [
   ["orders", "Mis pedidos", "14"],
@@ -600,7 +601,7 @@ export default function AccountClient({
     if (!loading && !session) router.replace("/login");
   }, [loading, session, router]);
 
-  if (loading || !session) return null;
+  if (loading || !session) return <PageLoader />;
 
   return (
     <div className="container page">

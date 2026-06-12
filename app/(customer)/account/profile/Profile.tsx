@@ -1,5 +1,6 @@
 "use client";
 
+import { PageLoader } from "@/components/PageLoader";
 import { useAuth } from "@/lib/auth";
 import { authFetch } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -15,8 +16,9 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 }
 
 export default function Profile() {
-  const { session, logout } = useAuth();
   const router = useRouter();
+
+  const { session, loading } = useAuth();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,7 +42,11 @@ export default function Profile() {
     }
   }, [session]);
 
-  if (!session) return null;
+  if (loading) return <PageLoader />;
+  if (!session) {
+    router.replace("/login");
+    return null;
+  }
 
   const initials =
     `${session.firstName[0]}${session.lastName?.[0] ?? ""}`.toUpperCase();
