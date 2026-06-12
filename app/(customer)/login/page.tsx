@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, type Session } from "@/lib/auth";
 import { useToast } from "@/hooks/useToast";
+import Link from "next/link";
 
 function destinationFor(session: Session) {
   if (session.role === "ADMIN") return "/admin/dashboard";
@@ -333,6 +334,23 @@ export default function LoginPage() {
                 ? "ENTRAR AL LAB →"
                 : "CREAR CUENTA →"}
           </button>
+
+          {mode === "login" && (
+            <Link
+              href="/forgot-password"
+              className="mono"
+              style={{
+                fontSize: 11,
+                letterSpacing: "0.12em",
+                color: "var(--text-mute)",
+                textAlign: "center",
+                textTransform: "uppercase",
+                marginTop: 4,
+              }}
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          )}
         </form>
       </div>
     </div>

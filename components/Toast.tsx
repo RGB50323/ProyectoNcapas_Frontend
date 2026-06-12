@@ -11,7 +11,7 @@ interface ToastProps {
 }
 
 const config: Record<ToastType, { icon: string; accent: string }> = {
-  success: { icon: "◆", accent: "var(--accent, #e8d5b0)" },
+  success: { icon: "◆", accent: "#22c55e" },
   error: { icon: "✕", accent: "#ef4444" },
   info: { icon: "◇", accent: "var(--accent, #e8d5b0)" },
   warning: { icon: "⚠", accent: "#f59e0b" },
