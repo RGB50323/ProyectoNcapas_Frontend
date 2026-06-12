@@ -1,5 +1,4 @@
 'use client'
-
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 const AUTH_API = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
@@ -30,7 +29,7 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   login: (email: string, password: string) => Promise<Session>
-  register: (data: RegisterData) => Promise<void>
+  register: (data: RegisterData) => Promise<Session>
   logout: () => Promise<void>
 }
 
@@ -78,7 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function register(data: RegisterData) {
-    await postAuth('register', data)
+    const s = await postAuth<Session>('register', data)
+    persist(s)
+    return s
   }
 
   async function logout() {
