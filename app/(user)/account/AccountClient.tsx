@@ -17,7 +17,6 @@ const TABS: [string, string, string | null][] = [
   ["returns", "Devoluciones", "1"],
   ["addresses", "Direcciones", null],
   ["payment", "Métodos de pago", "3"],
-  ["select", "Nivel K-Select", "VAULT"],
 ];
 
 function OrderDetail({ order }: { order: Order }) {
@@ -413,89 +412,6 @@ function PaymentMethodsTab() {
   );
 }
 
-function KSelectTab() {
-  return (
-    <div
-      style={{ padding: 32, background: "var(--bg-1)", color: "var(--text)" }}
-    >
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          letterSpacing: "0.14em",
-          color: "var(--accent-2)",
-        }}
-      >
-        ◆ NIVEL K-SELECT
-      </div>
-      <div
-        className="display"
-        style={{ fontSize: 84, lineHeight: 0.95, marginTop: 8 }}
-      >
-        VAULT
-      </div>
-      <div style={{ marginTop: 8, fontSize: 14, opacity: 0.7 }}>
-        Top 5% de coleccionistas K LAB. Acceso a drops privados. Primera
-        elección en archivo.
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          marginTop: 32,
-          borderTop: "1px solid rgba(255,255,255,0.15)",
-          paddingTop: 24,
-        }}
-      >
-        <div>
-          <div
-            className="mono"
-            style={{ letterSpacing: "0.14em", opacity: 0.6 }}
-          >
-            PIEZAS
-          </div>
-          <div className="display" style={{ fontSize: 36, marginTop: 6 }}>
-            14
-          </div>
-        </div>
-        <div>
-          <div
-            className="mono"
-            style={{ letterSpacing: "0.14em", opacity: 0.6 }}
-          >
-            GASTO TOTAL
-          </div>
-          <div className="display" style={{ fontSize: 36, marginTop: 6 }}>
-            $4,810
-          </div>
-        </div>
-        <div>
-          <div
-            className="mono"
-            style={{ letterSpacing: "0.14em", opacity: 0.6 }}
-          >
-            DROPS PRIVADOS
-          </div>
-          <div className="display" style={{ fontSize: 36, marginTop: 6 }}>
-            8
-          </div>
-        </div>
-        <div>
-          <div
-            className="mono"
-            style={{ letterSpacing: "0.14em", opacity: 0.6 }}
-          >
-            PRÓXIMA INVITACIÓN
-          </div>
-          <div className="display" style={{ fontSize: 36, marginTop: 6 }}>
-            02 JUN
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AccountClient({
   orders,
   wishlist,
@@ -567,9 +483,6 @@ export default function AccountClient({
         }}
       >
         <div>
-          <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
-            ◆ MIEMBRO K-SELECT · ACTIVO
-          </div>
           <h1 className="display" style={{ fontSize: 56, marginTop: 12 }}>
             HOLA, {session.firstName.toUpperCase()}.
           </h1>
@@ -641,7 +554,6 @@ export default function AccountClient({
           {tab === "returns" && <ReturnsTab />}
           {tab === "addresses" && <AddressPage />}
           {tab === "payment" && <PaymentMethodsTab />}
-          {tab === "select" && <KSelectTab />}
         </div>
       </div>
     </div>

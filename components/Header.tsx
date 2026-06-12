@@ -31,6 +31,9 @@ export default function Header({ cartCount = 0, wishCount = 0 }: { cartCount?: n
           {NAV.map(([label, href]) => (
             <Link key={label} href={href} className={pathname === href ? 'active' : ''}>{label}</Link>
           ))}
+          {session?.role === 'SELLER' && (
+            <Link href="/seller/dashboard" className={pathname.startsWith('/seller') ? 'active' : ''}>Mi Tienda</Link>
+          )}
           {session && (
             <Link href="/account" className={pathname === '/account' ? 'active' : ''}>Cuenta</Link>
           )}
