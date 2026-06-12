@@ -8,8 +8,6 @@ import Link from "next/link";
 import { PageLoader } from "@/components/PageLoader";
 
 function destinationFor(session: Session) {
-  if (session.role === "ADMIN") return "/admin/dashboard";
-  if (session.role === "SELLER") return "/seller/dashboard";
   return "/";
 }
 

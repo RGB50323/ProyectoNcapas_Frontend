@@ -1,7 +1,7 @@
 "use client";
 
 import { PageLoader } from "@/components/PageLoader";
-import { useAuth, authFetch } from "@/lib/auth";
+import { useAuth, authFetch, getUserId } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -37,6 +37,15 @@ export default function Profile() {
     phone: (session as any)?.phone ?? "",
   }));
 
+  const [sellerProfile, setSellerProfile] = useState<any>(null);
+  const [editingStore, setEditingStore] = useState(false);
+  const [savingStore, setSavingStore] = useState(false);
+  const [storeEditForm, setStoreEditForm] = useState({
+    storeName: "",
+    storeDescription: "",
+  });
+  const [storeEditError, setStoreEditError] = useState<string | null>(null);
+
   useEffect(() => {
     if (session) {
       setForm({
@@ -46,6 +55,24 @@ export default function Profile() {
         phone: (session as any).phone ?? "",
       });
     }
+  }, [session]);
+
+  useEffect(() => {
+    if (!session || !isSeller) return;
+    const userId = getUserId(session);
+    authFetch("/seller_profiles/", session)
+      .then((r) => r.json())
+      .then((json) => {
+        const profile = json?.data?.find((p: any) => p.user.uuid === userId);
+        if (profile) {
+          setSellerProfile(profile);
+          setStoreEditForm({
+            storeName: profile.storeName,
+            storeDescription: profile.storeDescription,
+          });
+        }
+      })
+      .catch(() => {});
   }, [session]);
 
   if (loading) return <PageLoader />;
@@ -124,6 +151,40 @@ export default function Profile() {
     }
   }
 
+  async function handleSaveStore() {
+    setStoreEditError(null);
+    setSavingStore(true);
+    try {
+      const res = await authFetch(
+        `/seller_profiles/update/${sellerProfile.id}`,
+        session!,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            storeName: storeEditForm.storeName.trim(),
+            storeDescription: storeEditForm.storeDescription.trim(),
+          }),
+        },
+      );
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message;
+        if (typeof msg === "string") throw new Error(msg);
+        if (msg && typeof msg === "object")
+          throw new Error(Object.values(msg).join(". "));
+        throw new Error(`Error ${res.status}`);
+      }
+
+      setSellerProfile(json?.data);
+      setEditingStore(false);
+    } catch (err: any) {
+      setStoreEditError(err.message ?? "Error al guardar los cambios.");
+    } finally {
+      setSavingStore(false);
+    }
+  }
+
   async function handleRegisterStore(e: React.FormEvent) {
     e.preventDefault();
     setModalError(null);
@@ -163,41 +224,13 @@ export default function Profile() {
         throw new Error(`Error ${res.status}`);
       }
 
-      const updatedSession = { ...session };
-      updatedSession.role = "SELLER";
-
-      if (updatedSession.accessToken) {
-        try {
-          const tokenParts = updatedSession.accessToken.split(".");
-          if (tokenParts.length === 3) {
-            const currentPayload = JSON.parse(
-              atob(tokenParts[1].replace(/-/g, "+").replace(/_/g, "/")),
-            );
-
-            if (currentPayload.role) currentPayload.role = "SELLER";
-            if (currentPayload.roles) currentPayload.roles = ["SELLER"];
-            if (currentPayload.authorities)
-              currentPayload.authorities = ["ROLE_SELLER", "SELLER"];
-
-            const newPayloadB64 = btoa(JSON.stringify(currentPayload))
-              .replace(/=/g, "")
-              .replace(/\+/g, "-")
-              .replace(/\//g, "_");
-
-            updatedSession.accessToken = `${tokenParts[0]}.${newPayloadB64}.${tokenParts[2]}`;
-          }
-        } catch (jwtErr) {
-          console.warn(
-            "No se pudo parchear el cuerpo del JWT internamente:",
-            jwtErr,
-          );
-        }
+      const updated = json?.data;
+      if (updated?.accessToken) {
+        const newSession = { ...session, ...updated };
+        localStorage.setItem("klab_session", JSON.stringify(newSession));
+        setIsModalOpen(false);
+        window.location.reload();
       }
-
-      localStorage.setItem("klab_session", JSON.stringify(updatedSession));
-
-      setIsModalOpen(false);
-      window.location.reload();
     } catch (err: any) {
       setModalError(err.message ?? "Error al registrar la tienda.");
     } finally {
@@ -557,22 +590,93 @@ export default function Profile() {
 
             {isSeller ? (
               <div>
-                <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
-                  Tu cuenta comercial está completamente activa. Ya puedes subir
-                  catálogos y gestionar ventas.
-                </p>
-                <button
-                  className="btn"
-                  style={{
-                    width: "100%",
-                    background: "transparent",
-                    border: "1px solid var(--border-bright)",
-                    color: "var(--text)",
-                  }}
-                  onClick={() => router.push("/dashboard/store")}
-                >
-                  Ir al Panel de Tienda →
-                </button>
+                {sellerProfile ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      {!editingStore && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: "8px 14px", fontSize: 11, marginLeft: "auto" }}
+                          onClick={() => setEditingStore(true)}
+                        >
+                          Editar
+                        </button>
+                      )}
+                    </div>
+                    {editingStore ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+                        {([
+                          { label: "NOMBRE DE TIENDA", name: "storeName" },
+                          { label: "DESCRIPCIÓN", name: "storeDescription" },
+                        ] as const).map((f) => (
+                          <div key={f.name}>
+                            <div className="mono mute" style={{ fontSize: 11, marginBottom: 6 }}>{f.label}</div>
+                            <input
+                              className="input"
+                              type="text"
+                              name={f.name}
+                              value={storeEditForm[f.name]}
+                              onChange={(e) => setStoreEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}
+                              disabled={savingStore}
+                            />
+                          </div>
+                        ))}
+                        {storeEditError && (
+                          <p style={{ fontSize: 12, color: "var(--err, #e05252)", fontFamily: "var(--font-mono)", margin: 0 }}>
+                            {storeEditError}
+                          </p>
+                        )}
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: "8px 14px", fontSize: 11 }}
+                            onClick={() => {
+                              setStoreEditForm({ storeName: sellerProfile.storeName, storeDescription: sellerProfile.storeDescription });
+                              setStoreEditError(null);
+                              setEditingStore(false);
+                            }}
+                            disabled={savingStore}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ padding: "8px 20px", fontSize: 11 }}
+                            onClick={handleSaveStore}
+                            disabled={savingStore}
+                          >
+                            {savingStore ? "Guardando..." : "Guardar cambios"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px", marginBottom: 20 }}>
+                        {[
+                          { label: "TIENDA", value: sellerProfile.storeName },
+                          { label: "VENTAS TOTALES", value: sellerProfile.totalSales },
+                          { label: "VERIFICADO", value: sellerProfile.verified ? "Sí" : "No" },
+                          { label: "DESCRIPCIÓN", value: sellerProfile.storeDescription },
+                        ].map((f) => (
+                          <div key={f.label}>
+                            <div className="mono mute" style={{ fontSize: 11, marginBottom: 6 }}>{f.label}</div>
+                            <div style={{ fontSize: 14, color: "var(--text-dim)" }}>{f.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      className="btn"
+                      style={{ width: "100%", background: "transparent", border: "1px solid var(--border-bright)", color: "var(--text)" }}
+                      onClick={() => router.push("/seller/dashboard")}
+                    >
+                      Ir al Panel de Tienda →
+                    </button>
+                  </>
+                ) : (
+                  <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+                    Cargando información de tienda...
+                  </p>
+                )}
               </div>
             ) : (
               <div>
@@ -593,7 +697,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* MODAL REGISTRO DE TIENDA */}
       {isModalOpen && (
         <div
           style={{
