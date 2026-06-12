@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import { useAuth, getUserId, authFetch } from "@/lib/auth";
 import type { Order, Product } from "@/lib/types";
 import { Icon } from "@/components/Icon";
 import ProductCard from "@/components/ProductCard";
@@ -11,11 +11,11 @@ import { StatusPill, Field } from "@/components/ui";
 import { PageLoader } from "@/components/PageLoader";
 import AddressPage from "./addresses/AddressPage";
 
-const TABS: [string, string, string][] = [
+const TABS: [string, string, string | null][] = [
   ["orders", "Mis pedidos", "14"],
   ["wishlist", "Lista de deseos", "8"],
   ["returns", "Devoluciones", "1"],
-  ["addresses", "Direcciones", "2"],
+  ["addresses", "Direcciones", null],
   ["payment", "Métodos de pago", "3"],
   ["select", "Nivel K-Select", "VAULT"],
 ];
@@ -504,14 +504,48 @@ export default function AccountClient({
   wishlist: Product[];
 }) {
   const [tab, setTab] = useState("orders");
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [addressCount, setAddressCount] = useState(0);
   const router = useRouter();
   const { session, loading, logout } = useAuth();
 
-  console.log("SESSION:", session);
+  const tabsWithCounts = TABS.map(([k, label, count]) => {
+    if (k === "addresses") {
+      return [k, label, String(addressCount)];
+    }
+    return [k, label, count ?? ""];
+  });
 
   useEffect(() => {
     if (!loading && !session) router.replace("/login");
   }, [loading, session, router]);
+
+  useEffect(() => {
+    if (!session) return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      const userId = getUserId(session);
+      if (!userId) return;
+
+      const res = await authFetch(`/addresses/user/${userId}`, session);
+      const json = await res.json();
+
+      const data = json?.data ?? [];
+
+      if (!cancelled) {
+        setAddresses(data);
+        setAddressCount(data.length);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   if (loading || !session) return <PageLoader />;
 
@@ -566,7 +600,7 @@ export default function AccountClient({
         style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 48 }}
       >
         <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {TABS.map(([k, l, c]) => (
+          {tabsWithCounts.map(([k, l, c]) => (
             <button
               key={k}
               onClick={() =>
@@ -605,7 +639,7 @@ export default function AccountClient({
           {tab === "orders" && <OrdersTab orders={orders} />}
           {tab === "wishlist" && <WishlistTab items={wishlist} />}
           {tab === "returns" && <ReturnsTab />}
-          {tab === "addresses" && <AddressPage  />}
+          {tab === "addresses" && <AddressPage />}
           {tab === "payment" && <PaymentMethodsTab />}
           {tab === "select" && <KSelectTab />}
         </div>
