@@ -16,7 +16,6 @@ const TABS: [string, string, string][] = [
   ["addresses", "Direcciones", "2"],
   ["payment", "Métodos de pago", "3"],
   ["select", "Nivel K-Select", "VAULT"],
-  ["security", "Seguridad", ""],
 ];
 
 function OrderDetail({ order }: { order: Order }) {
@@ -584,24 +583,6 @@ function KSelectTab() {
   );
 }
 
-function SecurityTab() {
-  return (
-    <div>
-      <div className="display" style={{ fontSize: 24, marginBottom: 24 }}>
-        SEGURIDAD
-      </div>
-      <div className="card" style={{ padding: 24 }}>
-        <Field label="Correo" value="mario@klab.studio" />
-        <Field label="Contraseña actual" value="••••••••••••" />
-        <Field label="Nueva contraseña" placeholder="Mínimo 8 caracteres" />
-        <button className="btn" style={{ marginTop: 12 }}>
-          Actualizar contraseña
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function AccountClient({
   orders,
   wishlist,
@@ -612,6 +593,8 @@ export default function AccountClient({
   const [tab, setTab] = useState("orders");
   const router = useRouter();
   const { session, loading, logout } = useAuth();
+  
+  console.log("SESSION:", session);
 
   useEffect(() => {
     if (!loading && !session) router.replace("/login");
@@ -648,7 +631,12 @@ export default function AccountClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <button className="btn btn-ghost">Editar perfil</button>
+          <button
+            className="btn btn-outline"
+            onClick={() => router.push("/account/profile")}
+          >
+            Ver perfil
+          </button>
           <button
             className="btn btn-ghost"
             onClick={async () => {
@@ -707,7 +695,6 @@ export default function AccountClient({
           {tab === "addresses" && <AddressesTab />}
           {tab === "payment" && <PaymentMethodsTab />}
           {tab === "select" && <KSelectTab />}
-          {tab === "security" && <SecurityTab />}
         </div>
       </div>
     </div>

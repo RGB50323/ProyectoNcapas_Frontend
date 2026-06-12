@@ -13,7 +13,8 @@ export interface Session {
   role: Role
   email: string
   firstName: string
-  lastName: string
+  lastName: string,
+  phone: string
 }
 
 export interface RegisterData {
