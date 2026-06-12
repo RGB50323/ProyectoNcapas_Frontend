@@ -8,6 +8,8 @@ import type { Order, Product } from "@/lib/types";
 import { Icon } from "@/components/Icon";
 import ProductCard from "@/components/ProductCard";
 import { StatusPill, Field } from "@/components/ui";
+import { PageLoader } from "@/components/PageLoader";
+import AddressPage from "./addresses/AddressPage";
 
 const TABS: [string, string, string][] = [
   ["orders", "Mis pedidos", "14"],
@@ -16,7 +18,6 @@ const TABS: [string, string, string][] = [
   ["addresses", "Direcciones", "2"],
   ["payment", "Métodos de pago", "3"],
   ["select", "Nivel K-Select", "VAULT"],
-  ["security", "Seguridad", ""],
 ];
 
 function OrderDetail({ order }: { order: Order }) {
@@ -362,95 +363,6 @@ function ReturnsTab() {
   );
 }
 
-function AddressesTab() {
-  const addrs = [
-    {
-      label: "CASA",
-      primary: true,
-      addr: [
-        "MARIO SANDOVAL",
-        "Calle La Reforma 4012",
-        "Edificio Vortex · Piso 8",
-        "San Salvador, El Salvador 01101",
-      ],
-    },
-    {
-      label: "TRABAJO",
-      primary: false,
-      addr: [
-        "MARIO SANDOVAL",
-        "Av. Juan Pablo II 220",
-        "Torre Telecom 4",
-        "San Salvador, El Salvador 01102",
-      ],
-    },
-  ];
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 24,
-        }}
-      >
-        <div className="display" style={{ fontSize: 24 }}>
-          DIRECCIONES
-        </div>
-        <button className="btn">+ Agregar dirección</button>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {addrs.map((a, i) => (
-          <div key={i} className="card" style={{ padding: 24 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 14,
-              }}
-            >
-              <span
-                className="badge"
-                style={{
-                  background: a.primary ? "var(--text)" : "transparent",
-                  color: a.primary ? "var(--bg-0)" : "var(--text-dim)",
-                  borderColor: a.primary ? "var(--text)" : "var(--border)",
-                }}
-              >
-                {a.label}
-                {a.primary && " · PREDETERMINADA"}
-              </span>
-              <button
-                className="mono mute"
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                EDITAR
-              </button>
-            </div>
-            <div style={{ lineHeight: 1.7, color: "var(--text-dim)" }}>
-              {a.addr.map((l, j) => (
-                <div
-                  key={j}
-                  style={{
-                    fontWeight: j === 0 ? 600 : 400,
-                    color: j === 0 ? "var(--text)" : "",
-                  }}
-                >
-                  {l}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function PaymentMethodsTab() {
   const cards = [
     { brand: "VISA", num: "•••• 4242", exp: "04/28", primary: true },
@@ -584,24 +496,6 @@ function KSelectTab() {
   );
 }
 
-function SecurityTab() {
-  return (
-    <div>
-      <div className="display" style={{ fontSize: 24, marginBottom: 24 }}>
-        SEGURIDAD
-      </div>
-      <div className="card" style={{ padding: 24 }}>
-        <Field label="Correo" value="mario@klab.studio" />
-        <Field label="Contraseña actual" value="••••••••••••" />
-        <Field label="Nueva contraseña" placeholder="Mínimo 8 caracteres" />
-        <button className="btn" style={{ marginTop: 12 }}>
-          Actualizar contraseña
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function AccountClient({
   orders,
   wishlist,
@@ -613,11 +507,13 @@ export default function AccountClient({
   const router = useRouter();
   const { session, loading, logout } = useAuth();
 
+  console.log("SESSION:", session);
+
   useEffect(() => {
     if (!loading && !session) router.replace("/login");
   }, [loading, session, router]);
 
-  if (loading || !session) return null;
+  if (loading || !session) return <PageLoader />;
 
   return (
     <div className="container page">
@@ -648,7 +544,12 @@ export default function AccountClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <button className="btn btn-ghost">Editar perfil</button>
+          <button
+            className="btn btn-outline"
+            onClick={() => router.push("/account/profile")}
+          >
+            Ver perfil
+          </button>
           <button
             className="btn btn-ghost"
             onClick={async () => {
@@ -704,10 +605,9 @@ export default function AccountClient({
           {tab === "orders" && <OrdersTab orders={orders} />}
           {tab === "wishlist" && <WishlistTab items={wishlist} />}
           {tab === "returns" && <ReturnsTab />}
-          {tab === "addresses" && <AddressesTab />}
+          {tab === "addresses" && <AddressPage  />}
           {tab === "payment" && <PaymentMethodsTab />}
           {tab === "select" && <KSelectTab />}
-          {tab === "security" && <SecurityTab />}
         </div>
       </div>
     </div>

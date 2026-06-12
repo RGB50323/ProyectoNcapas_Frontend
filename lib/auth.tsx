@@ -13,7 +13,8 @@ export interface Session {
   role: Role
   email: string
   firstName: string
-  lastName: string
+  lastName: string,
+  phone: string
 }
 
 export interface RegisterData {
@@ -95,6 +96,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+export function getUserId(session: Session): string | null {
+  try {
+    const payload = JSON.parse(atob(session.accessToken.split(".")[1]));
+    return payload.userId ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function useAuth(): AuthContextValue {

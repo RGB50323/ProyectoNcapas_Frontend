@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, type Session } from "@/lib/auth";
 import { useToast } from "@/hooks/useToast";
 import Link from "next/link";
+import { PageLoader } from "@/components/PageLoader";
 
 function destinationFor(session: Session) {
   if (session.role === "ADMIN") return "/admin/dashboard";
@@ -196,7 +197,7 @@ export default function LoginPage() {
     setMode(next);
   }
 
-  if (loading || session) return null;
+  if (loading || session) return <PageLoader />;
 
   return (
     <div
