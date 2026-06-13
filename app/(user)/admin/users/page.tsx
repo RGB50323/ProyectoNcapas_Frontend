@@ -26,7 +26,6 @@ export default function AdminUsersPage() {
   const [roleModal, setRoleModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newRole, setNewRole] = useState("");
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -48,39 +47,6 @@ export default function AdminUsersPage() {
 
   if (loading || fetching) return <PageLoader />;
   if (!session) return null;
-
-  async function handleChangeRole() {
-    if (!selectedUser || !newRole) return;
-    setActionError(null);
-    setActing(true);
-    try {
-      const res = await authFetch(
-        `/users/${selectedUser.uuid}/role`,
-        session!,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ role: newRole }),
-        },
-      );
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = json?.message;
-        if (typeof msg === "string") throw new Error(msg);
-        throw new Error(`Error ${res.status}`);
-      }
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.uuid === selectedUser.uuid ? { ...u, role: newRole } : u,
-        ),
-      );
-      setRoleModal(false);
-      show("Rol actualizado correctamente", "success");
-    } catch (err: any) {
-      setActionError(err.message ?? "Error al cambiar el rol.");
-    } finally {
-      setActing(false);
-    }
-  }
 
   async function handleDeleteUser() {
     if (!selectedUser) return;
@@ -174,23 +140,6 @@ export default function AdminUsersPage() {
                 <td>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button
-                      className="mono accent"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 11,
-                      }}
-                      onClick={() => {
-                        setSelectedUser(u);
-                        setNewRole(u.role);
-                        setActionError(null);
-                        setRoleModal(true);
-                      }}
-                    >
-                      ROL
-                    </button>
-                    <button
                       className="mono"
                       style={{
                         background: "none",
@@ -214,84 +163,6 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
-
-      <Modal
-        open={roleModal}
-        title="CAMBIAR ROL"
-        onClose={() => {
-          setRoleModal(false);
-          setActionError(null);
-        }}
-        width={400}
-      >
-        <p className="mute" style={{ fontSize: 13, marginBottom: 16 }}>
-          Cambiando rol de{" "}
-          <strong style={{ color: "var(--text)" }}>
-            {selectedUser?.firstName} {selectedUser?.lastName}
-          </strong>
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {["BUYER", "SELLER", "ADMIN"].map((role) => (
-            <button
-              key={role}
-              onClick={() => setNewRole(role)}
-              style={{
-                padding: "10px 14px",
-                border: `1px solid ${newRole === role ? "var(--accent)" : "var(--border)"}`,
-                background: newRole === role ? "var(--elev)" : "transparent",
-                color: newRole === role ? "var(--text)" : "var(--text-mute)",
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-                letterSpacing: "0.1em",
-                textAlign: "left",
-              }}
-            >
-              {role}
-            </button>
-          ))}
-        </div>
-        {actionError && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--err, #e05252)",
-              fontFamily: "var(--font-mono)",
-              marginTop: 12,
-            }}
-          >
-            {actionError}
-          </p>
-        )}
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            justifyContent: "flex-end",
-            marginTop: 20,
-          }}
-        >
-          <button
-            className="btn btn-ghost"
-            style={{ padding: "10px 16px", fontSize: 12 }}
-            onClick={() => {
-              setRoleModal(false);
-              setActionError(null);
-            }}
-            disabled={acting}
-          >
-            Cancelar
-          </button>
-          <button
-            className="btn"
-            style={{ padding: "10px 24px", fontSize: 12 }}
-            onClick={handleChangeRole}
-            disabled={acting || newRole === selectedUser?.role}
-          >
-            {acting ? "Guardando..." : "Confirmar"}
-          </button>
-        </div>
-      </Modal>
 
       <Modal
         open={deleteModal}

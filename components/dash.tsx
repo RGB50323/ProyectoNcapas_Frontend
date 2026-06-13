@@ -42,7 +42,6 @@ export function AdminSidebar() {
       <Item href="/admin/users">Clientes</Item>
       <Item href="/admin/sellers">Vendedores</Item>
       <Item href="/admin/addresses">Direcciones</Item>
-      <Item>Roles y accesos</Item>
 
 
       <div className="group">Operaciones</div>
