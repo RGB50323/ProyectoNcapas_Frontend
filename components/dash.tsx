@@ -36,7 +36,14 @@ export function AdminSidebar() {
       <div className="group">Resumen</div>
       <Item href="/admin/dashboard">Panel</Item>
       <Item>Conversión en vivo</Item>
-      <Item>Carritos abandonados <span className="mono accent">12</span></Item>
+      <Item>Carritos abandonados</Item>
+
+      <div className="group">Personas</div>
+      <Item href="/admin/users">Clientes</Item>
+      <Item href="/admin/sellers">Vendedores</Item>
+      <Item href="/admin/addresses">Direcciones</Item>
+      <Item>Roles y accesos</Item>
+
 
       <div className="group">Operaciones</div>
       <Item href="/admin/orders">Pedidos <span className="mono mute">218</span></Item>
@@ -54,11 +61,6 @@ export function AdminSidebar() {
       <Item>Cupones</Item>
       <Item>Alertas de stock <span className="mono" style={{ color: 'var(--danger)' }}>11</span></Item>
       <Item>Campañas de correo</Item>
-
-      <div className="group">Personas</div>
-      <Item>Clientes</Item>
-      <Item>Vendedores</Item>
-      <Item>Roles y accesos</Item>
 
       <div className="group">Datos</div>
       <Item>Exportar a ERP</Item>
