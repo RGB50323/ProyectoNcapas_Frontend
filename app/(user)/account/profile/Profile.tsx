@@ -89,6 +89,7 @@ export default function Profile() {
   const initials =
     `${session.firstName[0]}${session.lastName?.[0] ?? ""}`.toUpperCase();
   const isSeller = session.role === "SELLER";
+  const isAdmin = session.role === "ADMIN";
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -365,43 +366,45 @@ export default function Profile() {
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          marginBottom: 24,
-          border: "1px solid var(--border)",
-          background: "var(--card)",
-        }}
-      >
-        {[
-          { label: "PEDIDOS", value: "14" },
-          { label: "DROPS PRIVADOS", value: "8" },
-          { label: "PRÓXIMO PEDIDO", value: "02 JUN" },
-        ].map((s, i, arr) => (
-          <div
-            key={s.label}
-            style={{
-              padding: "20px 24px",
-              borderRight:
-                i < arr.length - 1 ? "1px solid var(--border)" : "none",
-            }}
-          >
+      {!isAdmin && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            marginBottom: 24,
+            border: "1px solid var(--border)",
+            background: "var(--card)",
+          }}
+        >
+          {[
+            { label: "PEDIDOS", value: "14" },
+            { label: "DROPS PRIVADOS", value: "8" },
+            { label: "PRÓXIMO PEDIDO", value: "02 JUN" },
+          ].map((s, i, arr) => (
             <div
-              className="mono mute"
-              style={{ fontSize: 11, marginBottom: 8 }}
+              key={s.label}
+              style={{
+                padding: "20px 24px",
+                borderRight:
+                  i < arr.length - 1 ? "1px solid var(--border)" : "none",
+              }}
             >
-              {s.label}
+              <div
+                className="mono mute"
+                style={{ fontSize: 11, marginBottom: 8 }}
+              >
+                {s.label}
+              </div>
+              <div
+                className="display"
+                style={{ fontSize: 28, color: "var(--text)" }}
+              >
+                {s.value}
+              </div>
             </div>
-            <div
-              className="display"
-              style={{ fontSize: 28, color: "var(--text)" }}
-            >
-              {s.value}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div
         style={{
@@ -552,212 +555,223 @@ export default function Profile() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="card" style={{ padding: 28 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-                paddingBottom: 16,
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <h2 className="display" style={{ fontSize: 18 }}>
-                {isSeller ? "MI TIENDA" : "CONVERTIRSE EN VENDEDOR"}
-              </h2>
+          {!isAdmin && (
+            <div className="card" style={{ padding: 28 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                  paddingBottom: 16,
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <h2 className="display" style={{ fontSize: 18 }}>
+                  {isSeller ? "MI TIENDA" : "CONVERTIRSE EN VENDEDOR"}
+                </h2>
 
-              <div style={{ display: "flex", gap: 8 }}>
-                {!editingStore && sellerProfile && (
-                  <button
-                    className="btn btn-ghost"
-                    style={{ padding: "8px 14px", fontSize: 11 }}
-                    onClick={() => setEditingStore(true)}
-                  >
-                    Editar
-                  </button>
-                )}
-                {sellerProfile && (
-                  <button
-                    className="btn btn-ghost"
-                    style={{
-                      padding: "8px 14px",
-                      fontSize: 11,
-                      color: "var(--err, #e05252)",
-                      borderColor: "var(--err, #e05252)",
-                    }}
-                    onClick={() => setDeleteModalOpen(true)}
-                  >
-                    Eliminar tienda
-                  </button>
-                )}
+                <div style={{ display: "flex", gap: 8 }}>
+                  {!editingStore && sellerProfile && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: "8px 14px", fontSize: 11 }}
+                      onClick={() => setEditingStore(true)}
+                    >
+                      Editar
+                    </button>
+                  )}
+                  {sellerProfile && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{
+                        padding: "8px 14px",
+                        fontSize: 11,
+                        color: "var(--err, #e05252)",
+                        borderColor: "var(--err, #e05252)",
+                      }}
+                      onClick={() => setDeleteModalOpen(true)}
+                    >
+                      Eliminar tienda
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {isSeller ? (
-              <div>
-                {sellerProfile ? (
-                  <>
-                    {editingStore ? (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 16,
-                          marginBottom: 20,
-                        }}
-                      >
-                        {(
-                          [
-                            { label: "NOMBRE DE TIENDA", name: "storeName" },
-                            { label: "DESCRIPCIÓN", name: "storeDescription" },
-                          ] as const
-                        ).map((f) => (
-                          <div key={f.name}>
-                            <div
-                              className="mono mute"
-                              style={{ fontSize: 11, marginBottom: 6 }}
-                            >
-                              {f.label}
-                            </div>
-                            <input
-                              className="input"
-                              type="text"
-                              name={f.name}
-                              value={storeEditForm[f.name]}
-                              onChange={(e) =>
-                                setStoreEditForm((prev) => ({
-                                  ...prev,
-                                  [e.target.name]: e.target.value,
-                                }))
-                              }
-                              disabled={savingStore}
-                            />
-                          </div>
-                        ))}
-                        {storeEditError && (
-                          <p
-                            style={{
-                              fontSize: 12,
-                              color: "var(--err, #e05252)",
-                              fontFamily: "var(--font-mono)",
-                              margin: 0,
-                            }}
-                          >
-                            {storeEditError}
-                          </p>
-                        )}
+              {isSeller ? (
+                <div>
+                  {sellerProfile ? (
+                    <>
+                      {editingStore ? (
                         <div
                           style={{
                             display: "flex",
-                            gap: 10,
-                            justifyContent: "flex-end",
+                            flexDirection: "column",
+                            gap: 16,
+                            marginBottom: 20,
                           }}
                         >
-                          <button
-                            className="btn btn-ghost"
-                            style={{ padding: "8px 14px", fontSize: 11 }}
-                            onClick={() => {
-                              setStoreEditForm({
-                                storeName: sellerProfile.storeName,
-                                storeDescription:
-                                  sellerProfile.storeDescription,
-                              });
-                              setStoreEditError(null);
-                              setEditingStore(false);
+                          {(
+                            [
+                              { label: "NOMBRE DE TIENDA", name: "storeName" },
+                              {
+                                label: "DESCRIPCIÓN",
+                                name: "storeDescription",
+                              },
+                            ] as const
+                          ).map((f) => (
+                            <div key={f.name}>
+                              <div
+                                className="mono mute"
+                                style={{ fontSize: 11, marginBottom: 6 }}
+                              >
+                                {f.label}
+                              </div>
+                              <input
+                                className="input"
+                                type="text"
+                                name={f.name}
+                                value={storeEditForm[f.name]}
+                                onChange={(e) =>
+                                  setStoreEditForm((prev) => ({
+                                    ...prev,
+                                    [e.target.name]: e.target.value,
+                                  }))
+                                }
+                                disabled={savingStore}
+                              />
+                            </div>
+                          ))}
+                          {storeEditError && (
+                            <p
+                              style={{
+                                fontSize: 12,
+                                color: "var(--err, #e05252)",
+                                fontFamily: "var(--font-mono)",
+                                margin: 0,
+                              }}
+                            >
+                              {storeEditError}
+                            </p>
+                          )}
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              justifyContent: "flex-end",
                             }}
-                            disabled={savingStore}
                           >
-                            Cancelar
-                          </button>
-                          <button
-                            className="btn"
-                            style={{ padding: "8px 20px", fontSize: 11 }}
-                            onClick={handleSaveStore}
-                            disabled={savingStore}
-                          >
-                            {savingStore ? "Guardando..." : "Guardar cambios"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: "16px 24px",
-                          marginBottom: 20,
-                        }}
-                      >
-                        {[
-                          { label: "TIENDA", value: sellerProfile.storeName },
-                          {
-                            label: "VENTAS TOTALES",
-                            value: sellerProfile.totalSales,
-                          },
-                          {
-                            label: "VERIFICADO",
-                            value: sellerProfile.verified ? "Sí" : "No",
-                          },
-                          {
-                            label: "DESCRIPCIÓN",
-                            value: sellerProfile.storeDescription,
-                          },
-                        ].map((f) => (
-                          <div key={f.label}>
-                            <div
-                              className="mono mute"
-                              style={{ fontSize: 11, marginBottom: 6 }}
+                            <button
+                              className="btn btn-ghost"
+                              style={{ padding: "8px 14px", fontSize: 11 }}
+                              onClick={() => {
+                                setStoreEditForm({
+                                  storeName: sellerProfile.storeName,
+                                  storeDescription:
+                                    sellerProfile.storeDescription,
+                                });
+                                setStoreEditError(null);
+                                setEditingStore(false);
+                              }}
+                              disabled={savingStore}
                             >
-                              {f.label}
-                            </div>
-                            <div
-                              style={{ fontSize: 14, color: "var(--text-dim)" }}
+                              Cancelar
+                            </button>
+                            <button
+                              className="btn"
+                              style={{ padding: "8px 20px", fontSize: 11 }}
+                              onClick={handleSaveStore}
+                              disabled={savingStore}
                             >
-                              {f.value}
-                            </div>
+                              {savingStore ? "Guardando..." : "Guardar cambios"}
+                            </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                    <button
-                      className="btn"
-                      style={{
-                        width: "100%",
-                        background: "transparent",
-                        border: "1px solid var(--border-bright)",
-                        color: "var(--text)",
-                      }}
-                      onClick={() => router.push("/seller/dashboard")}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "16px 24px",
+                            marginBottom: 20,
+                          }}
+                        >
+                          {[
+                            { label: "TIENDA", value: sellerProfile.storeName },
+                            {
+                              label: "VENTAS TOTALES",
+                              value: sellerProfile.totalSales,
+                            },
+                            {
+                              label: "VERIFICADO",
+                              value: sellerProfile.verified ? "Sí" : "No",
+                            },
+                            {
+                              label: "DESCRIPCIÓN",
+                              value: sellerProfile.storeDescription,
+                            },
+                          ].map((f) => (
+                            <div key={f.label}>
+                              <div
+                                className="mono mute"
+                                style={{ fontSize: 11, marginBottom: 6 }}
+                              >
+                                {f.label}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  color: "var(--text-dim)",
+                                }}
+                              >
+                                {f.value}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        className="btn"
+                        style={{
+                          width: "100%",
+                          background: "transparent",
+                          border: "1px solid var(--border-bright)",
+                          color: "var(--text)",
+                        }}
+                        onClick={() => router.push("/seller/dashboard")}
+                      >
+                        Ir al Panel de Tienda →
+                      </button>
+                    </>
+                  ) : (
+                    <p
+                      className="mute"
+                      style={{ fontSize: 13, marginBottom: 20 }}
                     >
-                      Ir al Panel de Tienda →
-                    </button>
-                  </>
-                ) : (
+                      Cargando información de tienda...
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
                   <p
                     className="mute"
                     style={{ fontSize: 13, marginBottom: 20 }}
                   >
-                    Cargando información de tienda...
+                    Abre tu propio espacio comercial en nuestra plataforma,
+                    publica inventario propio y expande tus utilidades.
                   </p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
-                  Abre tu propio espacio comercial en nuestra plataforma,
-                  publica inventario propio y expande tus utilidades.
-                </p>
-                <button
-                  className="btn"
-                  style={{ width: "100%" }}
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  Registrar mi tienda
-                </button>
-              </div>
-            )}
-          </div>
+                  <button
+                    className="btn"
+                    style={{ width: "100%" }}
+                    onClick={() => setIsModalOpen(true)}
+                  >
+                    Registrar mi tienda
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="card" style={{ padding: 28 }}>
             <div
               style={{

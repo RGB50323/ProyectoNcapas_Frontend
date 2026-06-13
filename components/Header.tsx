@@ -34,6 +34,9 @@ export default function Header({ cartCount = 0, wishCount = 0 }: { cartCount?: n
           {session?.role === 'SELLER' && (
             <Link href="/seller/dashboard" className={pathname.startsWith('/seller') ? 'active' : ''}>Mi Tienda</Link>
           )}
+          {session?.role === 'ADMIN' && (
+            <Link href="/admin/dashboard" className={pathname.startsWith('/admin') ? 'active' : ''}>Panel</Link>
+          )}
           {session && (
             <Link href="/account" className={pathname === '/account' ? 'active' : ''}>Cuenta</Link>
           )}
