@@ -4,6 +4,7 @@ import { PageLoader } from "@/components/PageLoader";
 import { useAuth, authFetch, getUserId } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Modal from "@/components/Modal";
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
@@ -45,6 +46,10 @@ export default function Profile() {
     storeDescription: "",
   });
   const [storeEditError, setStoreEditError] = useState<string | null>(null);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingStore, setDeletingStore] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session) {
@@ -235,6 +240,39 @@ export default function Profile() {
       setModalError(err.message ?? "Error al registrar la tienda.");
     } finally {
       setSubmittingStore(false);
+    }
+  }
+
+  async function handleDeleteStore() {
+    setDeleteError(null);
+    setDeletingStore(true);
+    try {
+      const res = await authFetch(
+        `/seller_profiles/${sellerProfile.id}`,
+        session!,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message;
+        if (typeof msg === "string") throw new Error(msg);
+        throw new Error(`Error ${res.status}`);
+      }
+
+      const updated = json?.data;
+      if (updated?.accessToken) {
+        const newSession = { ...session, ...updated };
+        localStorage.setItem("klab_session", JSON.stringify(newSession));
+        setDeleteModalOpen(false);
+        window.location.reload();
+      }
+    } catch (err: any) {
+      setDeleteError(err.message ?? "Error al eliminar la tienda.");
+    } finally {
+      setDeletingStore(false);
     }
   }
 
@@ -526,6 +564,212 @@ export default function Profile() {
               }}
             >
               <h2 className="display" style={{ fontSize: 18 }}>
+                {isSeller ? "MI TIENDA" : "CONVERTIRSE EN VENDEDOR"}
+              </h2>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                {!editingStore && sellerProfile && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: "8px 14px", fontSize: 11 }}
+                    onClick={() => setEditingStore(true)}
+                  >
+                    Editar
+                  </button>
+                )}
+                {sellerProfile && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{
+                      padding: "8px 14px",
+                      fontSize: 11,
+                      color: "var(--err, #e05252)",
+                      borderColor: "var(--err, #e05252)",
+                    }}
+                    onClick={() => setDeleteModalOpen(true)}
+                  >
+                    Eliminar tienda
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {isSeller ? (
+              <div>
+                {sellerProfile ? (
+                  <>
+                    {editingStore ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 16,
+                          marginBottom: 20,
+                        }}
+                      >
+                        {(
+                          [
+                            { label: "NOMBRE DE TIENDA", name: "storeName" },
+                            { label: "DESCRIPCIÓN", name: "storeDescription" },
+                          ] as const
+                        ).map((f) => (
+                          <div key={f.name}>
+                            <div
+                              className="mono mute"
+                              style={{ fontSize: 11, marginBottom: 6 }}
+                            >
+                              {f.label}
+                            </div>
+                            <input
+                              className="input"
+                              type="text"
+                              name={f.name}
+                              value={storeEditForm[f.name]}
+                              onChange={(e) =>
+                                setStoreEditForm((prev) => ({
+                                  ...prev,
+                                  [e.target.name]: e.target.value,
+                                }))
+                              }
+                              disabled={savingStore}
+                            />
+                          </div>
+                        ))}
+                        {storeEditError && (
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: "var(--err, #e05252)",
+                              fontFamily: "var(--font-mono)",
+                              margin: 0,
+                            }}
+                          >
+                            {storeEditError}
+                          </p>
+                        )}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            justifyContent: "flex-end",
+                          }}
+                        >
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: "8px 14px", fontSize: 11 }}
+                            onClick={() => {
+                              setStoreEditForm({
+                                storeName: sellerProfile.storeName,
+                                storeDescription:
+                                  sellerProfile.storeDescription,
+                              });
+                              setStoreEditError(null);
+                              setEditingStore(false);
+                            }}
+                            disabled={savingStore}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ padding: "8px 20px", fontSize: 11 }}
+                            onClick={handleSaveStore}
+                            disabled={savingStore}
+                          >
+                            {savingStore ? "Guardando..." : "Guardar cambios"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "16px 24px",
+                          marginBottom: 20,
+                        }}
+                      >
+                        {[
+                          { label: "TIENDA", value: sellerProfile.storeName },
+                          {
+                            label: "VENTAS TOTALES",
+                            value: sellerProfile.totalSales,
+                          },
+                          {
+                            label: "VERIFICADO",
+                            value: sellerProfile.verified ? "Sí" : "No",
+                          },
+                          {
+                            label: "DESCRIPCIÓN",
+                            value: sellerProfile.storeDescription,
+                          },
+                        ].map((f) => (
+                          <div key={f.label}>
+                            <div
+                              className="mono mute"
+                              style={{ fontSize: 11, marginBottom: 6 }}
+                            >
+                              {f.label}
+                            </div>
+                            <div
+                              style={{ fontSize: 14, color: "var(--text-dim)" }}
+                            >
+                              {f.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      className="btn"
+                      style={{
+                        width: "100%",
+                        background: "transparent",
+                        border: "1px solid var(--border-bright)",
+                        color: "var(--text)",
+                      }}
+                      onClick={() => router.push("/seller/dashboard")}
+                    >
+                      Ir al Panel de Tienda →
+                    </button>
+                  </>
+                ) : (
+                  <p
+                    className="mute"
+                    style={{ fontSize: 13, marginBottom: 20 }}
+                  >
+                    Cargando información de tienda...
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+                  Abre tu propio espacio comercial en nuestra plataforma,
+                  publica inventario propio y expande tus utilidades.
+                </p>
+                <button
+                  className="btn"
+                  style={{ width: "100%" }}
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Registrar mi tienda
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="card" style={{ padding: 28 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+                paddingBottom: 16,
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <h2 className="display" style={{ fontSize: 18 }}>
                 SEGURIDAD
               </h2>
               <span
@@ -556,143 +800,6 @@ export default function Profile() {
                 Actualizar contraseña
               </button>
             </div>
-          </div>
-
-          <div className="card" style={{ padding: 28 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-                paddingBottom: 16,
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <h2 className="display" style={{ fontSize: 18 }}>
-                {isSeller ? "MI TIENDA" : "CONVERTIRSE EN VENDEDOR"}
-              </h2>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  letterSpacing: "0.12em",
-                  color: isSeller ? "var(--ok)" : "var(--text-mute)",
-                  border: isSeller
-                    ? "1px solid var(--ok)"
-                    : "1px solid var(--border)",
-                  padding: "2px 8px",
-                }}
-              >
-                {isSeller ? "● SELLER" : "○ BUYER"}
-              </span>
-            </div>
-
-            {isSeller ? (
-              <div>
-                {sellerProfile ? (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                      {!editingStore && (
-                        <button
-                          className="btn btn-ghost"
-                          style={{ padding: "8px 14px", fontSize: 11, marginLeft: "auto" }}
-                          onClick={() => setEditingStore(true)}
-                        >
-                          Editar
-                        </button>
-                      )}
-                    </div>
-                    {editingStore ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
-                        {([
-                          { label: "NOMBRE DE TIENDA", name: "storeName" },
-                          { label: "DESCRIPCIÓN", name: "storeDescription" },
-                        ] as const).map((f) => (
-                          <div key={f.name}>
-                            <div className="mono mute" style={{ fontSize: 11, marginBottom: 6 }}>{f.label}</div>
-                            <input
-                              className="input"
-                              type="text"
-                              name={f.name}
-                              value={storeEditForm[f.name]}
-                              onChange={(e) => setStoreEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))}
-                              disabled={savingStore}
-                            />
-                          </div>
-                        ))}
-                        {storeEditError && (
-                          <p style={{ fontSize: 12, color: "var(--err, #e05252)", fontFamily: "var(--font-mono)", margin: 0 }}>
-                            {storeEditError}
-                          </p>
-                        )}
-                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                          <button
-                            className="btn btn-ghost"
-                            style={{ padding: "8px 14px", fontSize: 11 }}
-                            onClick={() => {
-                              setStoreEditForm({ storeName: sellerProfile.storeName, storeDescription: sellerProfile.storeDescription });
-                              setStoreEditError(null);
-                              setEditingStore(false);
-                            }}
-                            disabled={savingStore}
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            className="btn"
-                            style={{ padding: "8px 20px", fontSize: 11 }}
-                            onClick={handleSaveStore}
-                            disabled={savingStore}
-                          >
-                            {savingStore ? "Guardando..." : "Guardar cambios"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px", marginBottom: 20 }}>
-                        {[
-                          { label: "TIENDA", value: sellerProfile.storeName },
-                          { label: "VENTAS TOTALES", value: sellerProfile.totalSales },
-                          { label: "VERIFICADO", value: sellerProfile.verified ? "Sí" : "No" },
-                          { label: "DESCRIPCIÓN", value: sellerProfile.storeDescription },
-                        ].map((f) => (
-                          <div key={f.label}>
-                            <div className="mono mute" style={{ fontSize: 11, marginBottom: 6 }}>{f.label}</div>
-                            <div style={{ fontSize: 14, color: "var(--text-dim)" }}>{f.value}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <button
-                      className="btn"
-                      style={{ width: "100%", background: "transparent", border: "1px solid var(--border-bright)", color: "var(--text)" }}
-                      onClick={() => router.push("/seller/dashboard")}
-                    >
-                      Ir al Panel de Tienda →
-                    </button>
-                  </>
-                ) : (
-                  <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
-                    Cargando información de tienda...
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
-                  Abre tu propio espacio comercial en nuestra plataforma,
-                  publica inventario propio y expande tus utilidades.
-                </p>
-                <button
-                  className="btn"
-                  style={{ width: "100%" }}
-                  onClick={() => setIsModalOpen(true)}
-                >
-                  Registrar mi tienda
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -829,6 +936,62 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={deleteModalOpen}
+        title="ELIMINAR TIENDA"
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeleteError(null);
+        }}
+        width={440}
+      >
+        <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+          ¿Estás seguro que deseas eliminar tu tienda{" "}
+          <strong style={{ color: "var(--text)" }}>
+            {sellerProfile?.storeName}
+          </strong>
+          ? Esta acción cambiará tu rol a BUYER y no se puede deshacer.
+        </p>
+        {deleteError && (
+          <p
+            style={{
+              fontSize: 12,
+              color: "var(--err, #e05252)",
+              fontFamily: "var(--font-mono)",
+              marginBottom: 16,
+            }}
+          >
+            {deleteError}
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button
+            className="btn btn-ghost"
+            style={{ padding: "10px 16px", fontSize: 12 }}
+            onClick={() => {
+              setDeleteModalOpen(false);
+              setDeleteError(null);
+            }}
+            disabled={deletingStore}
+          >
+            Cancelar
+          </button>
+          <button
+            className="btn"
+            style={{
+              padding: "10px 24px",
+              fontSize: 12,
+              background: "var(--err, #e05252)",
+              borderColor: "var(--err, #e05252)",
+            }}
+            onClick={handleDeleteStore}
+            disabled={deletingStore}
+          >
+            {deletingStore ? "Eliminando..." : "Confirmar eliminación"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
