@@ -70,7 +70,7 @@ type ProductSeed =
 const SEED: ProductSeed[] = [
   {
     id: 'p01', sku: 'KL-SR01-BLK', name: 'Sombra Runner 01', brand: 'LABWORKS',
-    category: 'sneakers', price: 240, condition: 'NEW', auth: 'VERIFIED',
+    category: 'sneakers', price: 240, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['LIMITADO', 'VERIFICADO'], featured: true, isNew: true, limited: true,
     images: mkImages('SR01', 4),
     sizes: SIZES_SNEAKER, colors: [{ name: 'Ónix', hex: '#0c0c0e' }, { name: 'Hueso', hex: '#e8e3d6' }],
@@ -79,7 +79,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p02', sku: 'KL-AL02-CRM', name: 'Archivo Baja Crema', brand: 'ARCHIVE',
-    category: 'sneakers', price: 320, condition: 'NEW', auth: 'VERIFIED',
+    category: 'sneakers', price: 320, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['VERIFICADO'], featured: true,
     images: mkImages('AL02', 4),
     sizes: SIZES_SNEAKER, colors: [{ name: 'Crema', hex: '#e9dfc8' }, { name: 'Arena', hex: '#c9b896' }],
@@ -88,7 +88,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p03', sku: 'KL-VH03-BLK', name: 'Bóveda Alta Negra', brand: 'VAULT.STD',
-    category: 'sneakers', price: 410, condition: 'NEW', auth: 'VERIFIED',
+    category: 'sneakers', price: 410, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['LIMITADO', 'DROP PRIVADO', 'VERIFICADO'], privateDrop: true, limited: true,
     images: mkImages('VH03', 4),
     sizes: SIZES_SNEAKER, colors: [{ name: 'Negro', hex: '#0a0a0a' }],
@@ -97,7 +97,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p04', sku: 'KL-LR04-VLT', name: 'Lab Runner Volt', brand: 'LABWORKS',
-    category: 'sneakers', price: 220, condition: 'NEW', auth: 'VERIFIED',
+    category: 'sneakers', price: 220, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['NUEVO'], isNew: true,
     images: mkImages('LR04', 3),
     sizes: SIZES_SNEAKER, colors: [{ name: 'Volt', hex: '#cfd62f' }, { name: 'Humo', hex: '#3a3a3e' }],
@@ -106,7 +106,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p05', sku: 'KL-MC05-BLK', name: 'Pantalón Cargo Monocromo', brand: 'MONOCHROME',
-    category: 'streetwear', price: 180, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'streetwear', price: 180, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['NUEVO'], isNew: true,
     images: mkImages('MC05', 3),
     sizes: SIZES_APPAREL, colors: [{ name: 'Negro', hex: '#0a0a0a' }, { name: 'Piedra', hex: '#7a766c' }],
@@ -115,7 +115,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p06', sku: 'KL-ET06-WHT', name: 'Camiseta Oversize Esencial', brand: 'K-SELECT',
-    category: 'tees', price: 60, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'tees', price: 60, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: [],
     images: mkImages('ET06', 2),
     sizes: SIZES_APPAREL, colors: [{ name: 'Hueso', hex: '#e8e3d6' }, { name: 'Negro', hex: '#0a0a0a' }, { name: 'Humo', hex: '#3a3a3e' }],
@@ -124,7 +124,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p07', sku: 'KL-CH07-WSH', name: 'Sudadera Lavada Coleccionista', brand: 'ARCHIVE',
-    category: 'hoodies', price: 220, condition: 'PRE_OWNED_EXCELLENT', auth: 'VERIFIED',
+    category: 'hoodies', price: 220, condition: 'USED', auth: 'AUTHENTICATED',
     badges: ['SEMINUEVO', 'VERIFICADO'],
     images: mkImages('CH07', 3),
     sizes: SIZES_APPAREL, colors: [{ name: 'Negro lavado', hex: '#1d1c1a' }],
@@ -133,7 +133,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p08', sku: 'KL-PD08-CAP', name: 'Gorra Drop Privado', brand: 'K-SELECT',
-    category: 'caps', price: 80, condition: 'NEW', auth: 'VERIFIED',
+    category: 'caps', price: 80, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['DROP PRIVADO', 'LIMITADO'], privateDrop: true, limited: true,
     images: mkImages('PD08', 2),
     sizes: SIZES_CAP, colors: [{ name: 'Negro', hex: '#0a0a0a' }, { name: 'Rojo', hex: '#d92626' }],
@@ -142,7 +142,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p09', sku: 'KL-UC09-BAG', name: 'Bolso Cruzado Utility', brand: 'UTILITY DIV.',
-    category: 'accessories', price: 140, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'accessories', price: 140, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['POCO STOCK'],
     images: mkImages('UC09', 3),
     sizes: SIZES_CAP, colors: [{ name: 'Negro', hex: '#0a0a0a' }],
@@ -151,7 +151,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p10', sku: 'KL-HT10-HV', name: 'Camiseta Pesada K Lab', brand: 'K-SELECT',
-    category: 'tees', price: 75, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'tees', price: 75, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['NUEVO'], isNew: true,
     images: mkImages('HT10', 2),
     sizes: SIZES_APPAREL, colors: [{ name: 'Hueso', hex: '#e8e3d6' }, { name: 'Negro', hex: '#0a0a0a' }],
@@ -160,7 +160,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p11', sku: 'KL-DJ11-IND', name: 'Chaqueta Denim Archivo', brand: 'ARCHIVE',
-    category: 'streetwear', price: 280, condition: 'PRE_OWNED_GOOD', auth: 'VERIFIED',
+    category: 'streetwear', price: 280, condition: 'USED', auth: 'AUTHENTICATED',
     badges: ['SEMINUEVO', 'VERIFICADO'],
     images: mkImages('DJ11', 3),
     sizes: SIZES_APPAREL, colors: [{ name: 'Índigo', hex: '#1f2a3a' }],
@@ -169,7 +169,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p12', sku: 'KL-CC12-CRM', name: 'Court Crema Baja', brand: 'LABWORKS',
-    category: 'sneakers', price: 195, condition: 'NEW', auth: 'VERIFIED',
+    category: 'sneakers', price: 195, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: [],
     images: mkImages('CC12', 3),
     sizes: SIZES_SNEAKER, colors: [{ name: 'Crema', hex: '#e9dfc8' }, { name: 'Goma', hex: '#9b6a3e' }],
@@ -178,7 +178,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p13', sku: 'KL-SR13-PRO', name: 'Humo Runner Pro', brand: 'SHADOW CO.',
-    category: 'sneakers', price: 260, condition: 'NEW', auth: 'VERIFIED',
+    category: 'sneakers', price: 260, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: ['POCO STOCK', 'VERIFICADO'],
     images: mkImages('SR13', 4),
     sizes: SIZES_SNEAKER, colors: [{ name: 'Humo', hex: '#3a3a3e' }, { name: 'Hueso', hex: '#e8e3d6' }],
@@ -187,7 +187,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p14', sku: 'KL-LC14-CAP', name: 'Gorra Logo Lab', brand: 'K-SELECT',
-    category: 'caps', price: 55, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'caps', price: 55, condition: 'NEW', auth: 'AUTHENTICATED',
     badges: [],
     images: mkImages('LC14', 2),
     sizes: SIZES_CAP, colors: [{ name: 'Negro', hex: '#0a0a0a' }, { name: 'Piedra', hex: '#7a766c' }, { name: 'Crema', hex: '#e9dfc8' }],
@@ -196,7 +196,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p15', sku: 'KL-WH15-BLK', name: 'Sudadera Negra Lavada', brand: 'MONOCHROME',
-    category: 'hoodies', price: 170, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'hoodies', price: 170, condition: 'NEW', auth: 'NOT_SUBMITTED',
     badges: [],
     images: mkImages('WH15', 2),
     sizes: SIZES_APPAREL, colors: [{ name: 'Negro lavado', hex: '#1d1c1a' }],
@@ -205,7 +205,7 @@ const SEED: ProductSeed[] = [
   },
   {
     id: 'p16', sku: 'KL-TN16-NYL', name: 'Pantalón Nylon Técnico', brand: 'UTILITY DIV.',
-    category: 'streetwear', price: 210, condition: 'NEW', auth: 'NOT_REQUIRED',
+    category: 'streetwear', price: 210, condition: 'NEW', auth: 'NOT_SUBMITTED',
     badges: ['NUEVO'], isNew: true,
     images: mkImages('TN16', 3),
     sizes: SIZES_APPAREL, colors: [{ name: 'Negro', hex: '#0a0a0a' }, { name: 'Oliva', hex: '#3c3d24' }],

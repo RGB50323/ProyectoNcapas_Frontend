@@ -86,7 +86,7 @@ const availableColors = useMemo(() => {
     let arr = [...products]
     if (chip === 'DROP LAB') arr = arr.filter((p) => p.privateDrop || p.limited)
     if (chip === 'K-SELECT') arr = arr.filter((p) => p.featured)
-    if (chip === 'VERIFICADO') arr = arr.filter((p) => p.auth === 'VERIFIED')
+    if (chip === 'VERIFICADO') arr = arr.filter((p) => p.auth === 'AUTHENTICATED')
     if (chip === 'SEMINUEVO' || chip === 'ARCHIVO') arr = arr.filter((p) => p.condition.startsWith('PRE_OWNED'))
     if (chip === 'DROP PRIVADO') arr = arr.filter((p) => p.privateDrop)
     if (filters.category.length) arr = arr.filter((p) => filters.category.includes(p.category))

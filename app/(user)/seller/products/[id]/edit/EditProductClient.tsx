@@ -273,7 +273,7 @@ async function handleSave() {
           brandId: form.brandId,
           sku: form.sku,
           name: form.name,
-          slug: slugify(form.name),
+          slug: `${slugify(form.name)}-${Date.now()}`,
           description: form.description,
           price: Number(form.price),
           condition: form.condition,
