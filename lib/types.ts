@@ -1,5 +1,9 @@
-export type Condition = 'NEW' | 'PRE_OWNED_EXCELLENT' | 'PRE_OWNED_GOOD' | 'COLLECTOR_ITEM'
-export type AuthStatus = 'VERIFIED' | 'PENDING' | 'NOT_REQUIRED'
+export type Condition = 'NEW' | 'LIKE_NEW' | 'USED' | 'REFURBISHED'
+export type AuthStatus =
+  | 'NOT_SUBMITTED'
+  | 'PENDING'
+  | 'AUTHENTICATED'
+  | 'REJECTED'
 export type DiscountType = 'PERCENT' | 'FIXED' | 'SHIPPING' | 'BOGO'
 export type OrderStatus =
   | 'NEW' | 'PAID' | 'PREPARING' | 'SHIPPED' | 'DELIVERED'
@@ -11,11 +15,22 @@ export interface ProductColor {
 }
 
 export interface Variant {
+  id?: string
+  productId?: string
   size: string
   color: string
   colorHex: string
   stock: number
   priceDelta: number
+}
+
+export interface ProductImage {
+  id: string
+  productId: string
+  url: string
+  altText?: string
+  primaryImage: boolean
+  sortOrder: number
 }
 
 export interface Product {
@@ -42,6 +57,12 @@ export interface Product {
   totalStock: number
   lowStock: number
   soldOut: boolean
+  imageId?: string
+  categoryId?: string
+  brandId?: string
+  sellerId?: string
+  slug?: string
+  productImages?: ProductImage[]
 }
 
 export interface Category {
@@ -98,4 +119,11 @@ export interface CartLine {
   qty: number
   size: string
   color: string
+}
+
+export interface BrandOption {
+  id: string
+  name: string
+  slug: string
+  logoUrl: string
 }

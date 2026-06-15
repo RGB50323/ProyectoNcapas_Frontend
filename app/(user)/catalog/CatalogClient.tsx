@@ -59,6 +59,22 @@ export default function CatalogClient({ products, categories, brands }: { produc
   const [sort, setSort] = useState('limited')
   const [chip, setChip] = useState('TODO')
 
+  const availableSizes = useMemo(() => {
+  return Array.from(
+    new Set(products.flatMap((p) => p.variants.map((v) => v.size)))
+  )
+}, [products])
+
+const availableColors = useMemo(() => {
+  const map = new Map<string, string>()
+
+  products.forEach((p) => {
+    p.colors.forEach((c) => map.set(c.name, c.hex))
+  })
+
+  return Array.from(map.entries())
+}, [products])
+
   const toggle = (k: keyof Filters, v: string) => {
     setFilters((f) => {
       const cur = f[k]
@@ -80,7 +96,11 @@ export default function CatalogClient({ products, categories, brands }: { produc
     if (filters.auth.length) arr = arr.filter((p) => filters.auth.includes(p.auth))
     if (filters.drop.length) arr = arr.filter((p) => filters.drop.some((d) => (d === 'limited' && p.limited) || (d === 'privateDrop' && p.privateDrop)))
     if (filters.stock.length) arr = arr.filter((p) => filters.stock.some((s) => (s === 'soldout' && p.soldOut) || (s === 'lowstock' && !p.soldOut && p.lowStock > 0) || (s === 'instock' && !p.soldOut)))
-    if (filters.size.length) arr = arr.filter((p) => p.variants.some((v) => filters.size.includes(v.size.replace('US ', ''))))
+    if (filters.size.length) {
+  arr = arr.filter((p) =>
+    p.variants.some((v) => filters.size.includes(v.size))
+  )
+}
     if (sort === 'price-asc') arr.sort((a, b) => a.price - b.price)
     if (sort === 'price-desc') arr.sort((a, b) => b.price - a.price)
     if (sort === 'newest') arr.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
@@ -142,7 +162,7 @@ export default function CatalogClient({ products, categories, brands }: { produc
 
           <FilterGroup title="Talla">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-              {['7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '12'].map((s) => (
+              {availableSizes.map((s) =>(
                 <button key={s} className={'tag' + (filters.size.includes(s) ? ' active' : '')} onClick={() => toggle('size', s)} style={{ justifyContent: 'center', padding: '8px 0' }}>{s}</button>
               ))}
             </div>
@@ -150,7 +170,7 @@ export default function CatalogClient({ products, categories, brands }: { produc
 
           <FilterGroup title="Color">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {COLORS.map(([n, hex]) => (
+              {availableColors.map(([n, hex]) => (
                 <button key={n} title={n} aria-label={n} onClick={() => toggle('color', n)} style={{
                   width: 28, height: 28, borderRadius: 0, background: hex,
                   border: filters.color.includes(n) ? '2px solid var(--text)' : '1px solid var(--border)',
@@ -161,7 +181,7 @@ export default function CatalogClient({ products, categories, brands }: { produc
           </FilterGroup>
 
           <FilterGroup title="Condición">
-            {[['NEW', 'Nuevo'], ['PRE_OWNED_EXCELLENT', 'Seminuevo · Excelente'], ['PRE_OWNED_GOOD', 'Seminuevo · Bueno'], ['COLLECTOR_ITEM', 'Pieza de colección']].map(([v, l]) => (
+            {[['NEW', 'Nuevo'], ['LIKE_NEW', 'Como nuevo'], ['USED', 'Usado'], ['REFURBISHED', 'Reacondicionado']].map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.condition.includes(v)} onClick={() => toggle('condition', v)} />
             ))}
           </FilterGroup>

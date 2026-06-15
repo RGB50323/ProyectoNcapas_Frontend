@@ -69,7 +69,19 @@ export function AdminSidebar() {
   )
 }
 
-export function SellerSidebar() {
+export function SellerSidebar({
+  totalProducts = 0,
+  drafts = 0,
+  pendingAuth = 0,
+  soldOut = 0,
+  stockAlerts = 0,
+}: {
+  totalProducts?: number
+  drafts?: number
+  pendingAuth?: number
+  soldOut?: number
+  stockAlerts?: number
+}) {
   return (
     <aside className="side">
       <div className="group">Resumen</div>
@@ -77,10 +89,10 @@ export function SellerSidebar() {
       <Item>Este mes</Item>
 
       <div className="group">Mis piezas</div>
-      <Item>Todos los productos <span className="mono mute">14</span></Item>
-      <Item>Borradores <span className="mono mute">2</span></Item>
-      <Item>Autenticación pendiente <span className="mono" style={{ color: 'var(--accent-2)' }}>3</span></Item>
-      <Item>Agotados <span className="mono" style={{ color: 'var(--danger)' }}>2</span></Item>
+      <Item>Todos los productos <span className="mono mute">{totalProducts}</span></Item>
+      <Item>Borradores <span className="mono mute">{drafts}</span></Item>
+      <Item>Autenticación pendiente <span className="mono" style={{ color: 'var(--accent-2)' }}>{pendingAuth}</span></Item>
+      <Item>Agotados <span className="mono" style={{ color: 'var(--danger)' }}>{soldOut}</span></Item>
 
       <div className="group">Pedidos</div>
       <Item>Por preparar <span className="mono" style={{ color: 'var(--accent-2)' }}>6</span></Item>
@@ -90,7 +102,7 @@ export function SellerSidebar() {
       <div className="group">Marketing</div>
       <Item>Promociones</Item>
       <Item>Cupones</Item>
-      <Item>Alertas de stock <span className="mono" style={{ color: 'var(--danger)' }}>3</span></Item>
+      <Item>Alertas de stock <span className="mono" style={{ color: 'var(--danger)' }}>{stockAlerts}</span></Item>
 
       <div className="group">Cuenta</div>
       <Item>Perfil de tienda</Item>

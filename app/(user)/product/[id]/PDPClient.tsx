@@ -8,27 +8,121 @@ import ProductCard from '@/components/ProductCard'
 
 const REVIEW_PHOTO_PALETTE = ['#f4f1ea', '#efe9df', '#e8eaed']
 
-function Gallery({ images, name }: { images: string[]; name: string }) {
+function Gallery({
+  images,
+  name,
+  badges,
+}: {
+  images: string[]
+  name: string
+  badges: string[]
+}) {
   const [active, setActive] = useState(0)
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '80px 1fr',
+        gap: 16,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
         {images.map((src, i) => (
-          <button key={i} onClick={() => setActive(i)} style={{
-            padding: 0, background: 'var(--card)', border: '1px solid ' + (i === active ? 'var(--accent)' : 'var(--border)'),
-            aspectRatio: '1/1', overflow: 'hidden', cursor: 'pointer', borderRadius: 0,
-          }}>
-            <img src={src} alt={`${name} ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <button
+            key={i}
+            onClick={() => setActive(i)}
+            style={{
+              padding: 0,
+              background: 'var(--card)',
+              border:
+                '1px solid ' +
+                (i === active ? 'var(--accent)' : 'var(--border)'),
+              aspectRatio: '1/1',
+              overflow: 'hidden',
+              cursor: 'pointer',
+              borderRadius: 0,
+            }}
+          >
+            <img
+              src={src}
+              alt={`${name} ${i + 1}`}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
           </button>
         ))}
       </div>
-      <div style={{ position: 'relative', aspectRatio: '4/5', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)' }}>
-        <img src={images[active]} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', top: 20, left: 20, display: 'flex', gap: 8 }}>
-          <span className="badge verified">✓ VERIFICADO</span>
-          <span className="badge limited">LIMITADO</span>
+
+      <div
+        style={{
+          position: 'relative',
+          aspectRatio: '4/5',
+          overflow: 'hidden',
+          border: '1px solid var(--border)',
+          background: 'var(--card)',
+        }}
+      >
+        <img
+          src={images[active]}
+          alt={name}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+
+        <div
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: 20,
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
+          {badges.map((badge) => (
+            <span
+              key={badge}
+              className={
+                'badge ' +
+                (badge.toLowerCase().includes('verificado')
+                  ? 'verified'
+                  : badge.toLowerCase().includes('limitado')
+                    ? 'limited'
+                    : '')
+              }
+            >
+              {badge.toUpperCase()}
+            </span>
+          ))}
         </div>
-        <div style={{ position: 'absolute', bottom: 20, left: 20, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--text)', background: 'var(--bg-0)', padding: '6px 10px', border: '1px solid var(--border)' }}>
+
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            left: 20,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            letterSpacing: '0.14em',
+            color: 'var(--text)',
+            background: 'var(--bg-0)',
+            padding: '6px 10px',
+            border: '1px solid var(--border)',
+          }}
+        >
           0{active + 1} / 0{images.length}
         </div>
       </div>
@@ -121,7 +215,7 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 64, alignItems: 'start' }}>
-        <Gallery images={product.images} name={product.name} />
+        <Gallery images={product.images} name={product.name} badges={product.badges} />
 
         <div style={{ position: 'sticky', top: 120 }}>
           <div className="mono" style={{ color: 'var(--text-mute)', letterSpacing: '0.14em' }}>{product.brand} · SKU {product.sku}</div>

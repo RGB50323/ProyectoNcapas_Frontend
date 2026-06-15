@@ -1,0 +1,567 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import type { BrandOption, Category } from '@/lib/types'
+import { useAuth } from '@/lib/auth'
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
+
+type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
+
+type NewVariant = {
+  size: string
+  color: string
+  colorHex: string
+  stock: number
+  priceDelta: number
+}
+
+type NewImage = {
+  url: string
+  altText: string
+  primaryImage: boolean
+  sortOrder: number
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+}
+
+function getUserIdFromToken(accessToken: string): string | null {
+  try {
+    const payload = JSON.parse(atob(accessToken.split('.')[1]))
+
+    return (
+      payload.sellerId ??
+      payload.sellerProfileId ??
+      payload.userId ??
+      payload.sub ??
+      null
+    )
+  } catch {
+    return null
+  }
+}
+
+async function postJson(
+  path: string,
+  token: string,
+  body: Record<string, unknown>
+) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  const json = await res.json().catch(() => null)
+
+  if (!res.ok) {
+    const message =
+      json?.message ||
+      json?.error ||
+      `Error ${res.status} al crear registro`
+
+    throw new Error(
+      typeof message === 'string'
+        ? message
+        : Object.values(message).join('. ')
+    )
+  }
+
+  return json
+}
+
+async function getSellerProfileIdByUserId(
+  token: string,
+  userId: string
+): Promise<string | null> {
+  const res = await fetch(`${API_BASE_URL}/seller_profiles/`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  })
+
+  const json = await res.json().catch(() => null)
+
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || 'No se pudo obtener el perfil de seller.')
+  }
+
+  const profiles = json?.data ?? []
+
+  const profile = profiles.find(
+    (item: any) => item?.user?.uuid === userId
+  )
+
+  return profile?.id ?? null
+}
+
+export default function NewProductClient({
+  categories,
+  brandOptions,
+}: {
+  categories: Category[]
+  brandOptions: BrandOption[]
+}) {
+  const router = useRouter()
+  const { session } = useAuth()
+
+  const [status, setStatus] = useState<SaveStatus>('idle')
+  const [error, setError] = useState('')
+
+  const [form, setForm] = useState({
+    name: '',
+    sku: '',
+    price: '',
+    description: '',
+    categoryId: categories[0]?.id ?? '',
+    brandId: brandOptions[0]?.id ?? '',
+    condition: 'NEW',
+    conditionScore: '5.0',
+    featured: false,
+    newProduct: true,
+    limited: false,
+    privateDrop: false,
+  })
+
+  const [variants, setVariants] = useState<NewVariant[]>([
+    {
+      size: '',
+      color: '',
+      colorHex: '#000000',
+      stock: 1,
+      priceDelta: 0,
+    },
+  ])
+
+  const [images, setImages] = useState<NewImage[]>([
+    {
+      url: '',
+      altText: '',
+      primaryImage: true,
+      sortOrder: 1,
+    },
+  ])
+
+  function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function updateVariant(index: number, field: keyof NewVariant, value: string | number) {
+    setVariants((prev) =>
+      prev.map((variant, i) =>
+        i === index ? { ...variant, [field]: value } : variant
+      )
+    )
+  }
+
+  function addVariant() {
+    setVariants((prev) => [
+      ...prev,
+      {
+        size: '',
+        color: '',
+        colorHex: '#000000',
+        stock: 1,
+        priceDelta: 0,
+      },
+    ])
+  }
+
+  function removeVariant(index: number) {
+    setVariants((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function updateImage(index: number, field: keyof NewImage, value: string | number | boolean) {
+    setImages((prev) =>
+      prev.map((image, i) =>
+        i === index ? { ...image, [field]: value } : image
+      )
+    )
+  }
+
+  function addImage() {
+    setImages((prev) => [
+      ...prev,
+      {
+        url: '',
+        altText: form.name,
+        primaryImage: prev.length === 0,
+        sortOrder: prev.length + 1,
+      },
+    ])
+  }
+
+  function removeImage(index: number) {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function markPrimaryImage(index: number) {
+    setImages((prev) =>
+      prev.map((image, i) => ({
+        ...image,
+        primaryImage: i === index,
+      }))
+    )
+  }
+
+  async function handleSave() {
+    if (!session?.accessToken) {
+      setStatus('error')
+      setError('Debes iniciar sesión como SELLER o ADMIN para crear productos.')
+      return
+    }
+
+    const userId = getUserIdFromToken(session.accessToken)
+
+    if (!userId) {
+      setStatus('error')
+      setError('No se pudo obtener el userId desde la sesión.')
+      return
+    }
+
+    if (!form.name.trim() || !form.price || !form.categoryId || !form.brandId) {
+      setStatus('error')
+      setError('Completa nombre, precio, categoría y marca.')
+      return
+    }
+
+    const sellerId = await getSellerProfileIdByUserId(
+    session.accessToken,
+    userId
+    )
+
+    if (!sellerId) {
+    setStatus('error')
+    setError('No se encontró un perfil de seller asociado a este usuario.')
+    return
+    }
+
+    const validVariants = variants.filter(
+      (variant) => variant.size.trim() && variant.color.trim()
+    )
+
+    const validImages = images.filter(
+      (image) => image.url.trim()
+    )
+
+    if (validVariants.length === 0) {
+      setStatus('error')
+      setError('Agrega al menos una variante válida.')
+      return
+    }
+
+    if (validImages.length === 0) {
+      setStatus('error')
+      setError('Agrega al menos una imagen válida.')
+      return
+    }
+
+    setStatus('saving')
+    setError('')
+
+    try {
+      const totalStock = validVariants.reduce(
+        (sum, variant) => sum + Number(variant.stock),
+        0
+      )
+
+      const sku =
+        form.sku.trim() ||
+        `PRD-${Date.now()}`
+
+      const productRes = await postJson(
+        '/products/create',
+        session.accessToken,
+        {
+          sellerId,
+          categoryId: form.categoryId,
+          brandId: form.brandId,
+          sku,
+          name: form.name,
+          slug: `${slugify(form.name)}-${Date.now()}`,
+          description: form.description,
+          price: Number(form.price),
+          condition: form.condition,
+          conditionScore: Number(form.conditionScore),
+          authStatus: 'NOT_SUBMITTED',
+          featured: form.featured,
+          newProduct: form.newProduct,
+          limited: form.limited,
+          privateDrop: form.privateDrop,
+          totalStock,
+        }
+      )
+
+      const productId = productRes?.data?.id
+
+      if (!productId) {
+        throw new Error('El backend no devolvió el ID del producto creado.')
+      }
+
+      await Promise.all(
+        validVariants.map((variant) =>
+          postJson('/product-variants/create', session.accessToken, {
+            productId,
+            size: variant.size,
+            colorName: variant.color,
+            colorHex: variant.colorHex,
+            stock: Number(variant.stock),
+            priceDelta: Number(variant.priceDelta),
+          })
+        )
+      )
+
+      await Promise.all(
+        validImages.map((image, index) =>
+          postJson('/product-images/create', session.accessToken, {
+            productId,
+            url: image.url,
+            altText: image.altText || form.name,
+            primaryImage: image.primaryImage,
+            sortOrder: Number(image.sortOrder || index + 1),
+          })
+        )
+      )
+
+      setStatus('success')
+
+      setTimeout(() => {
+        router.push('/seller/dashboard')
+        router.refresh()
+      }, 900)
+    } catch (err) {
+      setStatus('error')
+      setError(err instanceof Error ? err.message : 'No se pudo crear la pieza.')
+    }
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24 }}>
+        <div>
+          <div className="eyebrow accent">◇ NUEVA PIEZA</div>
+          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+            Crear producto
+          </h1>
+        </div>
+
+        <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')}>
+          Volver al panel
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 24 }}>
+        <div style={{ display: 'grid', gap: 24 }}>
+          <div className="card" style={{ padding: 24 }}>
+            <div className="display" style={{ fontSize: 20, marginBottom: 20 }}>
+              Información del producto
+            </div>
+
+            <div style={{ display: 'grid', gap: 16 }}>
+              <label>
+                <div className="label">Nombre</div>
+                <input className="input" value={form.name} onChange={(e) => update('name', e.target.value)} />
+              </label>
+
+              <label>
+                <div className="label">SKU</div>
+                <input className="input" value={form.sku} onChange={(e) => update('sku', e.target.value)} placeholder="Opcional: se genera automático" />
+              </label>
+
+              <label>
+                <div className="label">Precio</div>
+                <input className="input" type="number" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} />
+              </label>
+
+              <label>
+                <div className="label">Descripción</div>
+                <textarea className="input" value={form.description} onChange={(e) => update('description', e.target.value)} rows={4} />
+              </label>
+
+              <label>
+                <div className="label">Categoría</div>
+                <select className="select" value={form.categoryId} onChange={(e) => update('categoryId', e.target.value)}>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <div className="label">Marca</div>
+                <select className="select" value={form.brandId} onChange={(e) => update('brandId', e.target.value)}>
+                  {brandOptions.map((brand) => (
+                    <option key={brand.id} value={brand.id}>{brand.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <div className="label">Condición</div>
+                <select className="select" value={form.condition} onChange={(e) => update('condition', e.target.value)}>
+                  <option value="NEW">Nuevo</option>
+                  <option value="LIKE_NEW">Como nuevo</option>
+                  <option value="USED">Usado</option>
+                  <option value="REFURBISHED">Reacondicionado</option>
+                </select>
+              </label>
+
+              <label>
+                <div className="label">Condition score</div>
+                <input className="input" type="number" min={0} max={5} step="0.1" value={form.conditionScore} onChange={(e) => update('conditionScore', e.target.value)} />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <label className="mono"><input type="checkbox" checked={form.featured} onChange={(e) => update('featured', e.target.checked)} /> Destacado</label>
+                <label className="mono"><input type="checkbox" checked={form.newProduct} onChange={(e) => update('newProduct', e.target.checked)} /> Nuevo</label>
+                <label className="mono"><input type="checkbox" checked={form.limited} onChange={(e) => update('limited', e.target.checked)} /> Limitado</label>
+                <label className="mono"><input type="checkbox" checked={form.privateDrop} onChange={(e) => update('privateDrop', e.target.checked)} /> Drop privado</label>
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div className="display" style={{ fontSize: 20 }}>Variantes iniciales</div>
+              <button className="btn btn-ghost" onClick={addVariant}>+ Agregar variante</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: 12 }}>
+              {variants.map((variant, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto',
+                    gap: 10,
+                    alignItems: 'end',
+                    border: '1px solid var(--border)',
+                    padding: 12,
+                  }}
+                >
+                  <label>
+                    <div className="label">Talla</div>
+                    <input className="input" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} />
+                  </label>
+
+                  <label>
+                    <div className="label">Color</div>
+                    <input className="input" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} />
+                  </label>
+
+                  <label>
+                    <div className="label">HEX</div>
+                    <input className="input" value={variant.colorHex} onChange={(e) => updateVariant(index, 'colorHex', e.target.value)} />
+                  </label>
+
+                  <label>
+                    <div className="label">Stock</div>
+                    <input className="input" type="number" min={0} value={variant.stock} onChange={(e) => updateVariant(index, 'stock', Number(e.target.value))} />
+                  </label>
+
+                  <label>
+                    <div className="label">Price delta</div>
+                    <input className="input" type="number" step="0.01" value={variant.priceDelta} onChange={(e) => updateVariant(index, 'priceDelta', Number(e.target.value))} />
+                  </label>
+
+                  <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => removeVariant(index)}>
+                    Eliminar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div className="display" style={{ fontSize: 20 }}>Imágenes iniciales</div>
+              <button className="btn btn-ghost" onClick={addImage}>+ Agregar imagen</button>
+            </div>
+
+            <div style={{ display: 'grid', gap: 14 }}>
+              {images.map((image, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '80px 1fr',
+                    gap: 12,
+                    border: '1px solid var(--border)',
+                    padding: 12,
+                  }}
+                >
+                  <div style={{ width: 80, height: 80, border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--card)' }}>
+                    <img src={image.url || '/placeholder.svg'} alt={image.altText || form.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    <label>
+                      <div className="label">URL</div>
+                      <input className="input" value={image.url} onChange={(e) => updateImage(index, 'url', e.target.value)} />
+                    </label>
+
+                    <label>
+                      <div className="label">Texto alternativo</div>
+                      <input className="input" value={image.altText} onChange={(e) => updateImage(index, 'altText', e.target.value)} />
+                    </label>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                      <label>
+                        <div className="label">Orden</div>
+                        <input className="input" type="number" min={0} value={image.sortOrder} onChange={(e) => updateImage(index, 'sortOrder', Number(e.target.value))} />
+                      </label>
+
+                      <button className={image.primaryImage ? 'btn' : 'btn btn-ghost'} onClick={() => markPrimaryImage(index)}>
+                        {image.primaryImage ? 'Principal' : 'Marcar principal'}
+                      </button>
+
+                      <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => removeImage(index)}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {status === 'error' && (
+            <div className="card" style={{ padding: 16, borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+              {error}
+            </div>
+          )}
+
+          {status === 'success' && (
+            <div className="card" style={{ padding: 16, borderColor: 'var(--ok)', color: 'var(--ok)' }}>
+              Producto creado correctamente. Volviendo al panel...
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>
+              Cancelar
+            </button>
+
+            <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+              {status === 'saving' ? 'Creando...' : 'Crear pieza'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
