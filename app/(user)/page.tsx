@@ -67,9 +67,10 @@ function ThreeUp({ items }: { items: Array<{ image: string; label: string; href:
 }
 
 /* ─── Product section ─── */
-function HomeSection({ title, eyebrow, meta, products }: {
-  title: string; eyebrow: string; meta: string; products: Product[]
+function HomeSection({ title, eyebrow, meta, products, href }: {
+  title: string; eyebrow: string; meta: string; products: Product[]; href: string
 }) {
+  if (products.length === 0) return null
   return (
     <section style={{ borderTop: '1px solid var(--border)' }}>
       <div className="container" style={{ paddingTop: 64, paddingBottom: 72 }}>
@@ -83,7 +84,7 @@ function HomeSection({ title, eyebrow, meta, products }: {
           </div>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0 }}>
             <span className="mono mute">{meta}</span>
-            <Link href="/catalog" className="btn btn-ghost">Ver todo <Icon.ArrowR /></Link>
+            <Link href={href} className="btn btn-ghost">Ver todo <Icon.ArrowR /></Link>
           </div>
         </div>
         <div className="grid-products">
@@ -178,9 +179,11 @@ export default async function HomePage() {
     },
   ]
 
-  const newArrivals = products.filter((p) => p.privateDrop || p.limited).slice(0, 4)
-  const select = products.filter((p) => p.featured).slice(0, 4)
-  const archive = products.filter((p) => p.condition.startsWith('PRE_OWNED')).slice(0, 4)
+  const take = (arr: Product[]) => (arr.length ? arr : products).slice(0, 4)
+  const byPopularity = (a: Product, b: Product) => b.rating - a.rating || b.reviews - a.reviews
+  const newArrivals = take(products.filter((p) => p.isNew || p.limited || p.privateDrop))
+  const select = [...products].sort(byPopularity).slice(0, 4)
+  const archive = take(products.filter((p) => p.condition !== 'NEW'))
 
   return (
     <>
@@ -212,15 +215,17 @@ export default async function HomePage() {
       <HomeSection
         eyebrow="◇ NUEVOS INGRESOS"
         title="NUEVOS INGRESOS"
-        meta="04 PIEZAS · ESTA SEMANA"
+        meta={`${String(newArrivals.length).padStart(2, '0')} PIEZAS · ESTA SEMANA`}
         products={newArrivals}
+        href="/catalog"
       />
 
       <HomeSection
         eyebrow="◇ SELECCIÓN K"
         title="SELECCIÓN K"
-        meta="ELEGIDOS A MANO · SEM. 22"
+        meta="ELEGIDOS A MANO"
         products={select}
+        href="/catalog?chip=K-SELECT"
       />
 
       <EditorialBlock />
@@ -228,8 +233,9 @@ export default async function HomePage() {
       <HomeSection
         eyebrow="◆ PIEZAS SEMINUEVAS · CONDICIÓN CALIFICADA"
         title="ARCHIVO"
-        meta="VERIFICADAS · CALIFICADAS 8.0+"
+        meta="VERIFICADAS"
         products={archive}
+        href="/catalog?chip=ARCHIVO"
       />
 
       <TrustBanner />
