@@ -35,36 +35,24 @@ export function AdminSidebar() {
     <aside className="side">
       <div className="group">Resumen</div>
       <Item href="/admin/dashboard">Panel</Item>
-      <Item>Conversión en vivo</Item>
-      <Item>Carritos abandonados</Item>
 
       <div className="group">Personas</div>
-      <Item href="/admin/users">Clientes</Item>
-      <Item href="/admin/sellers">Vendedores</Item>
+      <Item href="/admin/users">Usuarios</Item>
+      <Item href="/admin/sellers">Tiendas</Item>
       <Item href="/admin/addresses">Direcciones</Item>
 
+      <div className="group">Catálogo</div>
+      <Item href="/admin/products">Productos</Item>
+      <Item href="/admin/categories">Categorías</Item>
+      <Item href="/admin/brands">Marcas</Item>
+
+      <div className="group">Ventas</div>
+      <Item href="/admin/shipping">Métodos de envío</Item>
+      <Item href="/admin/coupons">Cupones</Item>
+      <Item href="/admin/drops">Drops</Item>
 
       <div className="group">Operaciones</div>
-      <Item href="/admin/orders">Pedidos <span className="mono mute">218</span></Item>
-      <Item>Devoluciones <span className="mono" style={{ color: 'var(--accent-2)' }}>4</span></Item>
-      <Item>Reembolsos</Item>
-      <Item>Envíos</Item>
-
-      <div className="group">Catálogo</div>
-      <Item>Todos los productos</Item>
-      <Item>Verificación pendiente <span className="mono" style={{ color: 'var(--accent-2)' }}>8</span></Item>
-      <Item>Categorías</Item>
-      <Item>Calendario de drops</Item>
-
-      <div className="group">Marketing</div>
-      <Item>Cupones</Item>
-      <Item>Alertas de stock <span className="mono" style={{ color: 'var(--danger)' }}>11</span></Item>
-      <Item>Campañas de correo</Item>
-
-      <div className="group">Datos</div>
-      <Item>Exportar a ERP</Item>
-      <Item>Facturas · XML/PDF</Item>
-      <Item>Analítica</Item>
+      <Item href="/admin/orders">Pedidos</Item>
     </aside>
   )
 }

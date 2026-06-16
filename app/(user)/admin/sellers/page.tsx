@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth, authFetch } from "@/lib/auth";
 import { PageLoader } from "@/components/PageLoader";
 import Modal from "@/components/Modal";
+import { useToast } from "@/hooks/useToast";
 
 type SellerProfile = {
   id: string;
@@ -30,9 +32,13 @@ export default function AdminSellersPage() {
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [fetching, setFetching] = useState(true);
   const [deleteModal, setDeleteModal] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [verifyModal, setVerifyModal] = useState(false);
+  const [editForm, setEditForm] = useState({ storeName: "", storeDescription: "" });
   const [selected, setSelected] = useState<SellerProfile | null>(null);
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { show, ToastContainer } = useToast();
 
   useEffect(() => {
     if (!loading && !session) router.replace("/login");
@@ -50,6 +56,60 @@ export default function AdminSellersPage() {
 
   if (loading || fetching) return <PageLoader />;
   if (!session) return null;
+
+  async function handleVerify() {
+    if (!selected) return;
+    setActionError(null);
+    setActing(true);
+    try {
+      const res = await authFetch(`/seller_profiles/${selected.id}/verify`, session!, {
+        method: "PATCH",
+        body: JSON.stringify({ verified: !selected.verified }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message;
+        if (typeof msg === "string") throw new Error(msg);
+        throw new Error(`Error ${res.status}`);
+      }
+      const newVerified = !selected.verified;
+      setSellers((prev) => prev.map((s) => (s.id === selected.id ? { ...s, verified: newVerified } : s)));
+      setVerifyModal(false);
+      show(newVerified ? "Tienda verificada" : "Verificación retirada", "success");
+    } catch (err: any) {
+      setActionError(err.message ?? "Error al actualizar la verificación.");
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleEdit() {
+    if (!selected) return;
+    setActionError(null);
+    setActing(true);
+    try {
+      const res = await authFetch(`/seller_profiles/update/${selected.id}`, session!, {
+        method: "PUT",
+        body: JSON.stringify({
+          storeName: editForm.storeName.trim(),
+          storeDescription: editForm.storeDescription.trim(),
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = json?.message;
+        if (typeof msg === "string") throw new Error(msg);
+        throw new Error(`Error ${res.status}`);
+      }
+      setSellers((prev) => prev.map((s) => (s.id === selected.id ? { ...s, ...json?.data } : s)));
+      setEditModal(false);
+      show("Tienda actualizada", "success");
+    } catch (err: any) {
+      setActionError(err.message ?? "Error al actualizar la tienda.");
+    } finally {
+      setActing(false);
+    }
+  }
 
   async function handleDelete() {
     if (!selected) return;
@@ -76,12 +136,13 @@ export default function AdminSellersPage() {
 
   return (
     <div>
+      <ToastContainer />
       <div style={{ marginBottom: 24 }}>
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE PERSONAS
         </div>
         <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
-          VENDEDORES
+          TIENDAS
         </h1>
       </div>
 
@@ -135,16 +196,36 @@ export default function AdminSellersPage() {
                     {s.verified ? "SÍ" : "NO"}
                   </span>
                 </td>
-                <td>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                   <button
                     className="mono"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontSize: 11,
-                      color: "var(--err, #e05252)",
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: s.verified ? "var(--text-mute)" : "var(--ok)" }}
+                    onClick={() => {
+                      setSelected(s);
+                      setActionError(null);
+                      setVerifyModal(true);
                     }}
+                  >
+                    {s.verified ? "QUITAR VERIF." : "VERIFICAR"}
+                  </button>
+                  <Link className="mono mute" style={{ fontSize: 11, marginLeft: 16 }} href={`/admin/products?seller=${s.id}`}>
+                    PRODUCTOS
+                  </Link>
+                  <button
+                    className="mono accent"
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, marginLeft: 16 }}
+                    onClick={() => {
+                      setSelected(s);
+                      setEditForm({ storeName: s.storeName, storeDescription: s.storeDescription });
+                      setActionError(null);
+                      setEditModal(true);
+                    }}
+                  >
+                    EDITAR
+                  </button>
+                  <button
+                    className="mono"
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--danger)", marginLeft: 16 }}
                     onClick={() => {
                       setSelected(s);
                       setActionError(null);
@@ -168,6 +249,51 @@ export default function AdminSellersPage() {
         </div>
       )}
 
+
+      <Modal
+        open={verifyModal}
+        title={selected?.verified ? "QUITAR VERIFICACIÓN" : "VERIFICAR TIENDA"}
+        onClose={() => { setVerifyModal(false); setActionError(null); }}
+        width={440}
+      >
+        <p className="mute" style={{ fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
+          {selected?.verified ? (
+            <>¿Quitar la verificación de <strong style={{ color: "var(--text)" }}>{selected?.storeName}</strong>?</>
+          ) : (
+            <>¿Marcar <strong style={{ color: "var(--text)" }}>{selected?.storeName}</strong> como tienda verificada?</>
+          )}
+        </p>
+        {actionError && (
+          <p style={{ fontSize: 12, color: "var(--danger)", fontFamily: "var(--font-mono)", marginBottom: 12 }}>{actionError}</p>
+        )}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button className="btn btn-ghost" style={{ padding: "10px 16px", fontSize: 12 }} onClick={() => { setVerifyModal(false); setActionError(null); }} disabled={acting}>Cancelar</button>
+          <button className="btn" style={{ padding: "10px 24px", fontSize: 12 }} onClick={handleVerify} disabled={acting}>{acting ? "Guardando..." : "Confirmar"}</button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={editModal}
+        title="EDITAR TIENDA"
+        onClose={() => { setEditModal(false); setActionError(null); }}
+        width={480}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <div className="label">Nombre de tienda</div>
+            <input className="input" value={editForm.storeName} onChange={(e) => setEditForm((f) => ({ ...f, storeName: e.target.value }))} />
+          </div>
+          <div>
+            <div className="label">Descripción</div>
+            <textarea className="input" value={editForm.storeDescription} onChange={(e) => setEditForm((f) => ({ ...f, storeDescription: e.target.value }))} style={{ minHeight: 80, resize: "vertical" }} />
+          </div>
+          {actionError && <p style={{ fontSize: 12, color: "var(--danger)", fontFamily: "var(--font-mono)", margin: 0 }}>{actionError}</p>}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button className="btn btn-ghost" style={{ padding: "10px 16px", fontSize: 12 }} onClick={() => { setEditModal(false); setActionError(null); }} disabled={acting}>Cancelar</button>
+            <button className="btn" style={{ padding: "10px 24px", fontSize: 12 }} onClick={handleEdit} disabled={acting}>{acting ? "Guardando..." : "Guardar"}</button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={deleteModal}

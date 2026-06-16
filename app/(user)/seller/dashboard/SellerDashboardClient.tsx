@@ -179,8 +179,6 @@ if (sellerLoading) {
       </div>
 
       <div className="kpi-grid">
-        <KPI label="VENTAS DEL MES" value="$28,440" delta="+22.4%" />
-        <KPI label="PEDIDOS" value="32" delta="+9" />
         <KPI label="PIEZAS ACTIVAS" value={String(activePieces)} />
         <KPI label="POCO STOCK" value={String(lowStockPieces).padStart(2, '0')} neg />
       </div>
@@ -271,29 +269,11 @@ if (sellerLoading) {
         </div>
 
         <div className="card" style={{ padding: 24 }}>
-          <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ POR PREPARAR · 6 PENDIENTES</div>
+          <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ POR PREPARAR</div>
           <div className="display" style={{ fontSize: 20, marginTop: 6, marginBottom: 16 }}>NUEVOS PEDIDOS</div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {([
-              ['KL-24218', 'Mario S.', 'Sombra Runner 01', 'US 9', '$240'],
-              ['KL-24217', 'L. Hassan', 'Bóveda Alta Negra', 'US 10', '$410'],
-              ['KL-24216', 'A. Cervantes', 'Lab Runner Volt', 'US 11', '$220'],
-              ['KL-24215', 'K. Romero', 'Court Crema Baja', 'US 8.5', '$195'],
-            ] as [string, string, string, string, string][]).map((o, i) => (
-              <div key={i} style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 2 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="display" style={{ fontSize: 13 }}>{o[0]}</span>
-                  <span className="mono accent">{o[4]}</span>
-                </div>
-                <div style={{ fontSize: 12, marginTop: 6, color: 'var(--text-dim)' }}>{o[2]} · {o[3]}</div>
-                <div className="mono mute" style={{ marginTop: 2 }}>PARA {o[1].toUpperCase()}</div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                  <button className="btn" style={{ padding: '6px 10px', fontSize: 11 }}>Marcar preparado</button>
-                  <button className="btn btn-ghost" style={{ padding: '6px 10px', fontSize: 11 }}>Imprimir guía</button>
-                </div>
-              </div>
-            ))}
+          <div className="mono mute" style={{ fontSize: 12, padding: '24px 0', textAlign: 'center', lineHeight: 1.6 }}>
+            Aún no hay pedidos nuevos.
           </div>
         </div>
       </div>

@@ -66,11 +66,11 @@ export default function Modal({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              padding: "14px 16px",
+              padding: "18px 24px",
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <div className="display" style={{ fontSize: 14 }}>
+            <div className="display" style={{ fontSize: 18 }}>
               {title}
             </div>
 
@@ -84,7 +84,7 @@ export default function Modal({
           </div>
         )}
 
-        <div style={{ padding: 16 }}>{children}</div>
+        <div style={{ padding: 24 }}>{children}</div>
       </div>
     </div>
   );

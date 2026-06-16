@@ -23,6 +23,7 @@ import {
   DROPS,
   ORDERS,
   REVIEWS,
+  stripeImg,
 } from './mock-data'
 
 const API_BASE_URL =
@@ -327,16 +328,60 @@ export async function findCoupon(code: string): Promise<Coupon | undefined> {
   )
 }
 
+type BackendShipping = {
+  id: string
+  name: string
+  fee: number
+  eta: string
+  active: boolean
+}
+
+type BackendDrop = {
+  id: string
+  title: string
+  slug: string
+  dropDate: string
+  units: number
+  type: 'PUBLIC' | 'PRIVATE'
+  coverImageUrl: string
+  active: boolean
+}
+
+const DROP_MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
+
+function formatDropDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${d.getDate()} ${DROP_MONTHS[d.getMonth()]} · ${hh}:${mm}`
+}
+
 export async function getShippingMethods(): Promise<ShippingMethod[]> {
   if (USE_MOCK) return SHIPPING
 
-  return SHIPPING
+  const response = await apiGet<ApiResponse<BackendShipping[]>>('/shipping-methods/')
+
+  return response.data
+    .filter((m) => m.active)
+    .map((m) => ({ id: m.id, name: m.name, fee: Number(m.fee), eta: m.eta }))
 }
 
 export async function getDrops(): Promise<Drop[]> {
   if (USE_MOCK) return DROPS
 
-  return DROPS
+  const response = await apiGet<ApiResponse<BackendDrop[]>>('/drops/')
+
+  return response.data
+    .filter((d) => d.active)
+    .map((d) => ({
+      id: d.id,
+      title: d.title,
+      date: formatDropDate(d.dropDate),
+      units: d.units ?? 0,
+      type: d.type === 'PRIVATE' ? 'DROP PRIVADO' : 'PÚBLICO',
+      img: d.coverImageUrl || stripeImg(d.title, '#1b1b1b', '#111111', '#e8e3d6'),
+    }))
 }
 
 export async function getOrders(): Promise<Order[]> {

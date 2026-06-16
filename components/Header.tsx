@@ -1,26 +1,35 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Icon } from './Icon'
 import { useAuth } from '@/lib/auth'
+import { useCart } from '@/lib/cart'
+import { useWishlist } from '@/lib/wishlist'
+import SearchOverlay from './SearchOverlay'
 
 const NAV: [string, string][] = [
   ['Inicio', '/'],
   ['Catálogo', '/catalog'],
   ['Drops', '/drops'],
-  ['K·Select', '/catalog'],
+  ['K·Select', '/catalog?chip=K-SELECT'],
   ['Comparar', '/compare'],
 ]
 
-export default function Header({ cartCount = 0, wishCount = 0 }: { cartCount?: number; wishCount?: number }) {
+export default function Header() {
   const pathname = usePathname()
-  const { session, loading } = useAuth()
+  const router = useRouter()
+  const { session, loading, logout } = useAuth()
+  const { count: cartCount } = useCart()
+  const { count: wishCount } = useWishlist()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const isAdmin = session?.role === 'ADMIN'
 
   return (
     <div className="header">
       <div className="header-inner">
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+        <Link href={isAdmin ? '/admin/dashboard' : '/'} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <img
             src="/logo.png"
             alt="Mister K"
@@ -28,32 +37,46 @@ export default function Header({ cartCount = 0, wishCount = 0 }: { cartCount?: n
           />
         </Link>
         <nav className="nav-main">
-          {NAV.map(([label, href]) => (
-            <Link key={label} href={href} className={pathname === href ? 'active' : ''}>{label}</Link>
-          ))}
-          {session?.role === 'SELLER' && (
-            <Link href="/seller/dashboard" className={pathname.startsWith('/seller') ? 'active' : ''}>Mi Tienda</Link>
-          )}
-          {session?.role === 'ADMIN' && (
-            <Link href="/admin/dashboard" className={pathname.startsWith('/admin') ? 'active' : ''}>Panel</Link>
-          )}
-          {session && (
-            <Link href="/account" className={pathname === '/account' ? 'active' : ''}>Cuenta</Link>
+          {isAdmin ? (
+            <span className="mono mute" style={{ letterSpacing: '0.18em' }}>CONSOLA · ADMINISTRACIÓN</span>
+          ) : (
+            <>
+              {NAV.map(([label, href]) => (
+                <Link key={label} href={href} className={pathname === href ? 'active' : ''}>{label}</Link>
+              ))}
+              {session?.role === 'SELLER' && (
+                <Link href="/seller/dashboard" className={pathname.startsWith('/seller') ? 'active' : ''}>Mi Tienda</Link>
+              )}
+            </>
           )}
         </nav>
         <div className="header-right">
-          <button className="icon-btn" title="Buscar" aria-label="Buscar"><Icon.Search /></button>
-          {!loading && session && (
+          {isAdmin ? (
+            <button
+              className="mono"
+              onClick={async () => { await logout(); router.replace('/login') }}
+              style={{ textTransform: 'uppercase', color: 'var(--text-dim)', background: 'none', border: '1px solid var(--border-bright)', padding: '8px 14px', whiteSpace: 'nowrap', cursor: 'pointer' }}
+            >
+              Cerrar sesión
+            </button>
+          ) : (
             <>
-              <Link href="/account" className="icon-btn" title="Favoritos" aria-label="Favoritos">
-                <Icon.Heart />
-                {wishCount > 0 && <span className="bubble">{wishCount}</span>}
-              </Link>
-              <Link href="/account" className="icon-btn" title="Cuenta" aria-label="Cuenta"><Icon.User /></Link>
-              <Link href="/cart" className="icon-btn" title="Bolsa" aria-label="Bolsa">
-                <Icon.Bag />
-                {cartCount > 0 && <span className="bubble">{cartCount}</span>}
-              </Link>
+              <button className="icon-btn" title="Buscar" aria-label="Buscar" onClick={() => setSearchOpen(true)}>
+                <Icon.Search />
+              </button>
+              {!loading && session && (
+                <>
+                  <Link href="/account?tab=wishlist" className="icon-btn" title="Favoritos" aria-label="Favoritos">
+                    <Icon.Heart />
+                    {wishCount > 0 && <span className="bubble">{wishCount}</span>}
+                  </Link>
+                  <Link href="/account" className="icon-btn" title="Cuenta" aria-label="Cuenta"><Icon.User /></Link>
+                  <Link href="/cart" className="icon-btn" title="Bolsa" aria-label="Bolsa">
+                    <Icon.Bag />
+                    {cartCount > 0 && <span className="bubble">{cartCount}</span>}
+                  </Link>
+                </>
+              )}
             </>
           )}
           {!loading && !session && (
@@ -73,6 +96,7 @@ export default function Header({ cartCount = 0, wishCount = 0 }: { cartCount?: n
           )}
         </div>
       </div>
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   )
 }

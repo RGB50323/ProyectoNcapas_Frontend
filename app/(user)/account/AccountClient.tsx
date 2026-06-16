@@ -2,21 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, getUserId, authFetch } from "@/lib/auth";
+import { useWishlist } from "@/lib/wishlist";
 import type { Order, Product } from "@/lib/types";
-import { Icon } from "@/components/Icon";
 import ProductCard from "@/components/ProductCard";
-import { StatusPill, Field } from "@/components/ui";
+import { StatusPill } from "@/components/ui";
 import { PageLoader } from "@/components/PageLoader";
 import AddressPage from "./addresses/AddressPage";
 
 const TABS: [string, string, string | null][] = [
-  ["orders", "Mis pedidos", "14"],
-  ["wishlist", "Lista de deseos", "8"],
-  ["returns", "Devoluciones", "1"],
+  ["orders", "Mis pedidos", null],
+  ["wishlist", "Lista de deseos", null],
   ["addresses", "Direcciones", null],
-  ["payment", "Métodos de pago", "3"],
 ];
 
 function OrderDetail({ order }: { order: Order }) {
@@ -179,29 +177,6 @@ function OrderDetail({ order }: { order: Order }) {
           paddingTop: 24,
         }}
       >
-        <div>
-          <div
-            className="display"
-            style={{
-              fontSize: 12,
-              letterSpacing: "0.14em",
-              color: "var(--text-mute)",
-              marginBottom: 10,
-            }}
-          >
-            ENVIAR A
-          </div>
-          <div
-            style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-dim)" }}
-          >
-            MARIO SANDOVAL
-            <br />
-            Calle La Reforma 4012
-            <br />
-            Edificio Vortex · Piso 8<br />
-            San Salvador, El Salvador 01101
-          </div>
-        </div>
         <div
           style={{ display: "flex", gap: 8, flexWrap: "wrap", flexShrink: 0 }}
         >
@@ -282,153 +257,53 @@ function OrdersTab({ orders }: { orders: Order[] }) {
   );
 }
 
-function WishlistTab({ items }: { items: Product[] }) {
+function WishlistTab({ products }: { products: Product[] }) {
+  const { items } = useWishlist();
+  const wished = products.filter((p) => items.some((w) => w.productId === p.id));
   return (
     <div>
       <div className="display" style={{ fontSize: 24, marginBottom: 24 }}>
-        LISTA DE DESEOS · {items.length} PIEZAS
+        LISTA DE DESEOS · {wished.length} PIEZAS
       </div>
-      <div className="grid-products">
-        {items.map((p) => (
-          <ProductCard key={p.id} p={p} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ReturnsTab() {
-  return (
-    <div>
-      <div className="display" style={{ fontSize: 24, marginBottom: 24 }}>
-        DEVOLUCIONES Y REEMBOLSOS
-      </div>
-      <div className="card" style={{ padding: 24 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
-            gap: 16,
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <div className="mono mute">DEVOLUCIÓN</div>
-            <div className="display" style={{ fontSize: 14, marginTop: 4 }}>
-              RT-118
-            </div>
-          </div>
-          <div>
-            <div className="mono mute">PEDIDO</div>
-            <div style={{ marginTop: 4, fontSize: 13 }}>KL-24102</div>
-          </div>
-          <div>
-            <div className="mono mute">MOTIVO</div>
-            <div style={{ marginTop: 4, fontSize: 13 }}>Talla</div>
-          </div>
-          <div>
-            <div className="mono mute">ESTADO</div>
-            <div style={{ marginTop: 4 }}>
-              <span className="pill yellow">
-                <Icon.Dot /> EN REVISIÓN
-              </span>
-            </div>
-          </div>
-          <button className="btn btn-ghost" style={{ padding: "8px 14px" }}>
-            Ver
-          </button>
+      {wished.length === 0 ? (
+        <div className="card" style={{ padding: 48, textAlign: "center" }}>
+          <div className="display" style={{ fontSize: 20 }}>Aún no tienes favoritos.</div>
+          <Link href="/catalog" className="btn" style={{ marginTop: 16 }}>Explorar el catálogo</Link>
         </div>
-        <div
-          style={{
-            marginTop: 24,
-            padding: 16,
-            background: "var(--bg-0)",
-            borderRadius: 2,
-            border: "1px dashed var(--border)",
-          }}
-        >
-          <div className="mono accent" style={{ marginBottom: 6 }}>
-            ◇ PROGRESO DEL REEMBOLSO
-          </div>
-          <div className="mute" style={{ fontSize: 13 }}>
-            El reembolso de{" "}
-            <strong style={{ color: "var(--text)" }}>$240.00</strong> se
-            procesará en 24h una vez que el laboratorio complete la inspección.
-            Recibirás una nota de crédito en factura XML cuando se finalice.
-          </div>
+      ) : (
+        <div className="grid-products">
+          {wished.map((p) => (
+            <ProductCard key={p.id} p={p} />
+          ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function PaymentMethodsTab() {
-  const cards = [
-    { brand: "VISA", num: "•••• 4242", exp: "04/28", primary: true },
-    { brand: "MASTERCARD", num: "•••• 8821", exp: "11/27", primary: false },
-    { brand: "BANCO", num: "BANCO AGRÍCOLA", exp: "—", primary: false },
-  ];
-  return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 24,
-        }}
-      >
-        <div className="display" style={{ fontSize: 24 }}>
-          MÉTODOS DE PAGO
-        </div>
-        <button className="btn">+ Agregar método</button>
-      </div>
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}
-      >
-        {cards.map((c, i) => (
-          <div key={i} className="card" style={{ padding: 20 }}>
-            <div className="mono mute">{c.brand}</div>
-            <div
-              className="display"
-              style={{ fontSize: 18, marginTop: 12, letterSpacing: "0.08em" }}
-            >
-              {c.num}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 16,
-              }}
-            >
-              <span className="mono mute">VENCE {c.exp}</span>
-              {c.primary && <span className="mono accent">PREDETERMINADA</span>}
-            </div>
-          </div>
-        ))}
-      </div>
+      )}
     </div>
   );
 }
 
 export default function AccountClient({
   orders,
-  wishlist,
+  products,
 }: {
   orders: Order[];
-  wishlist: Product[];
+  products: Product[];
 }) {
-  const [tab, setTab] = useState("orders");
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab") ?? "";
+  const [tab, setTab] = useState(
+    ["orders", "wishlist", "addresses"].includes(requestedTab)
+      ? requestedTab
+      : "orders",
+  );
   const [addresses, setAddresses] = useState<any[]>([]);
   const [addressCount, setAddressCount] = useState(0);
   const router = useRouter();
   const { session, loading, logout } = useAuth();
+  const { count: wishCount } = useWishlist();
 
   const tabsWithCounts = TABS.map(([k, label, count]) => {
-    if (k === "addresses") {
-      return [k, label, String(addressCount)];
-    }
+    if (k === "addresses") return [k, label, String(addressCount)];
+    if (k === "wishlist") return [k, label, String(wishCount)];
     return [k, label, count ?? ""];
   });
 
@@ -487,7 +362,7 @@ export default function AccountClient({
             HOLA, {session.firstName.toUpperCase()}.
           </h1>
           <p className="mute" style={{ marginTop: 8, fontSize: 14 }}>
-            {session.email} · Rol <span className="accent">{session.role}</span>
+            {session.email}
           </p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
@@ -550,10 +425,8 @@ export default function AccountClient({
 
         <div>
           {tab === "orders" && <OrdersTab orders={orders} />}
-          {tab === "wishlist" && <WishlistTab items={wishlist} />}
-          {tab === "returns" && <ReturnsTab />}
+          {tab === "wishlist" && <WishlistTab products={products} />}
           {tab === "addresses" && <AddressPage />}
-          {tab === "payment" && <PaymentMethodsTab />}
         </div>
       </div>
     </div>

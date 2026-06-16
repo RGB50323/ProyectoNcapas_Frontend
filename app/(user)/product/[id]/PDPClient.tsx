@@ -2,9 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Product, Review } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import ProductCard from '@/components/ProductCard'
+import { useAuth } from '@/lib/auth'
+import { useCart } from '@/lib/cart'
+import { useWishlist } from '@/lib/wishlist'
+import { useToast } from '@/hooks/useToast'
 
 const REVIEW_PHOTO_PALETTE = ['#f4f1ea', '#efe9df', '#e8eaed']
 
@@ -192,6 +197,38 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
   const [size, setSize] = useState(product.sizes[Math.min(4, product.sizes.length - 1)])
   const [color, setColor] = useState(product.colors[0].name)
   const [openDetails, setOpenDetails] = useState<Set<number>>(new Set([0]))
+  const [adding, setAdding] = useState(false)
+
+  const router = useRouter()
+  const { session } = useAuth()
+  const { add } = useCart()
+  const wishlist = useWishlist()
+  const { show, ToastContainer } = useToast()
+
+  const variantId = product.variants.find((v) => v.size === size && v.color === color)?.id
+
+  const addToBag = async () => {
+    if (!session) { router.push('/login'); return }
+    if (!variantId) { show('Selecciona una talla y color disponibles.', 'error'); return }
+    setAdding(true)
+    try {
+      await add(product.id, variantId, 1)
+      show('Agregado a la bolsa.', 'success')
+    } catch (e) {
+      show(e instanceof Error ? e.message : 'No se pudo agregar a la bolsa.', 'error')
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  const toggleWish = async () => {
+    if (!session) { router.push('/login'); return }
+    try {
+      await wishlist.toggle(product.id)
+    } catch (e) {
+      show(e instanceof Error ? e.message : 'No se pudo guardar el favorito.', 'error')
+    }
+  }
 
   const toggleDetail = (i: number) => setOpenDetails((prev) => {
     const next = new Set(prev)
@@ -238,8 +275,8 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
           <Variants product={product} size={size} setSize={setSize} color={color} setColor={setColor} />
 
           <div style={{ display: 'flex', gap: 8, marginTop: 32 }}>
-            <button className="btn btn-lg" style={{ flex: 1 }} disabled={product.soldOut}>Añadir a la bolsa · ${product.price}</button>
-            <button className="btn btn-ghost btn-lg" title="Favorito" aria-label="Favorito" style={{ padding: '16px' }}><Icon.Heart /></button>
+            <button className="btn btn-lg" style={{ flex: 1 }} disabled={product.soldOut || adding} onClick={addToBag}>{adding ? 'Agregando…' : `Añadir a la bolsa · $${product.price}`}</button>
+            <button className="btn btn-ghost btn-lg" title="Favorito" aria-label="Favorito" style={{ padding: '16px' }} onClick={toggleWish}><Icon.Heart filled={wishlist.has(product.id)} /></button>
             <Link href="/compare" className="btn btn-ghost btn-lg" title="Comparar" aria-label="Comparar" style={{ padding: '16px' }}><Icon.Compare /></Link>
           </div>
           <button className="btn btn-outline btn-lg" style={{ width: '100%', marginTop: 10 }}>Reservar este par · 24H</button>
@@ -320,6 +357,7 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
           {similar.map((p) => <ProductCard key={p.id} p={p} />)}
         </div>
       </div>
+      <ToastContainer />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { PageLoader } from "@/components/PageLoader";
 import { useAuth, authFetch, getUserId } from "@/lib/auth";
+import { formatSvPhone, cleanPhone, isValidPhone, hasLocalNumber } from "@/lib/phone";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Modal from "@/components/Modal";
@@ -121,11 +122,16 @@ export default function Profile() {
       if (!userId)
         throw new Error("No se pudo obtener el ID de usuario del token.");
 
+      const phoneProvided = hasLocalNumber(form.phone);
+      if (phoneProvided && !isValidPhone(form.phone)) {
+        throw new Error("Teléfono inválido. Formato: +503 XXXX-XXXX");
+      }
+
       const body = {
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
-        ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
+        ...(phoneProvided ? { phone: cleanPhone(form.phone) } : {}),
       };
 
       const res = await authFetch(`/users/update/${userId}`, session!, {
@@ -283,9 +289,17 @@ export default function Profile() {
 
   return (
     <div className="container" style={{ paddingBlock: 48 }}>
-      <div className="mono mute" style={{ marginBottom: 32, fontSize: 12 }}>
+      <div className="mono mute" style={{ marginBottom: 16, fontSize: 12 }}>
         Cuenta / Perfil
       </div>
+
+      <button
+        className="btn btn-ghost"
+        style={{ marginBottom: 24, padding: "8px 14px", fontSize: 11 }}
+        onClick={() => router.push("/account")}
+      >
+        ← Cuenta
+      </button>
 
       <div
         className="card"
@@ -299,8 +313,7 @@ export default function Profile() {
         <div
           style={{
             height: 3,
-            background:
-              "linear-gradient(90deg, var(--accent-2) 0%, var(--border-bright) 100%)",
+            background: "var(--accent-2)",
           }}
         />
         <div
@@ -358,59 +371,15 @@ export default function Profile() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-            <button className="btn" onClick={() => router.push("/account")}>
-              ← Cuenta
-            </button>
-          </div>
         </div>
       </div>
-
-      {!isAdmin && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            marginBottom: 24,
-            border: "1px solid var(--border)",
-            background: "var(--card)",
-          }}
-        >
-          {[
-            { label: "PEDIDOS", value: "14" },
-            { label: "DROPS PRIVADOS", value: "8" },
-            { label: "PRÓXIMO PEDIDO", value: "02 JUN" },
-          ].map((s, i, arr) => (
-            <div
-              key={s.label}
-              style={{
-                padding: "20px 24px",
-                borderRight:
-                  i < arr.length - 1 ? "1px solid var(--border)" : "none",
-              }}
-            >
-              <div
-                className="mono mute"
-                style={{ fontSize: 11, marginBottom: 8 }}
-              >
-                {s.label}
-              </div>
-              <div
-                className="display"
-                style={{ fontSize: 28, color: "var(--text)" }}
-              >
-                {s.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)",
           gap: 16,
+          alignItems: "start",
         }}
       >
         <div className="card" style={{ padding: 28 }}>
@@ -431,7 +400,13 @@ export default function Profile() {
               <button
                 className="btn btn-ghost"
                 style={{ padding: "8px 14px", fontSize: 11 }}
-                onClick={() => setEditing(true)}
+                onClick={() => {
+                  setForm((prev) => ({
+                    ...prev,
+                    phone: prev.phone ? formatSvPhone(prev.phone) : "+503 ",
+                  }));
+                  setEditing(true);
+                }}
               >
                 Editar
               </button>
@@ -471,8 +446,16 @@ export default function Profile() {
                       type={f.type}
                       name={f.name}
                       value={form[f.name]}
-                      onChange={handleChange}
-                      placeholder={f.label}
+                      onChange={
+                        f.name === "phone"
+                          ? (e) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                phone: formatSvPhone(e.target.value),
+                              }))
+                          : handleChange
+                      }
+                      placeholder={f.name === "phone" ? "+503 XXXX-XXXX" : f.label}
                       disabled={saving}
                     />
                   </div>
@@ -514,13 +497,7 @@ export default function Profile() {
               </div>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "20px 32px",
-              }}
-            >
+            <div>
               {[
                 { label: "NOMBRE", value: session.firstName },
                 { label: "APELLIDO", value: session.lastName },
@@ -535,17 +512,28 @@ export default function Profile() {
                     </span>
                   ),
                 },
-                { label: "ROL", value: session.role },
-                { label: "MIEMBRO DESDE", value: "2024" },
-              ].map((f) => (
-                <div key={f.label}>
+              ].map((f, i, arr) => (
+                <div
+                  key={f.label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 24,
+                    padding: "16px 0",
+                    borderBottom:
+                      i < arr.length - 1 ? "1px solid var(--border)" : "none",
+                  }}
+                >
                   <div
                     className="mono mute"
-                    style={{ fontSize: 11, marginBottom: 6 }}
+                    style={{ fontSize: 11, letterSpacing: "0.12em" }}
                   >
                     {f.label}
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--text-dim)" }}>
+                  <div
+                    style={{ fontSize: 14, color: "var(--text)", textAlign: "right" }}
+                  >
                     {f.value}
                   </div>
                 </div>

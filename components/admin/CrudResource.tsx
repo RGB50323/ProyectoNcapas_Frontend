@@ -1,0 +1,250 @@
+'use client'
+
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useAuth, type Session } from '@/lib/auth'
+import Modal from '@/components/Modal'
+import { Select } from '@/components/Select'
+import { useToast } from '@/hooks/useToast'
+
+export type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'datetime' | 'select'
+
+export interface Field {
+  name: string
+  label: string
+  type?: FieldType
+  required?: boolean
+  options?: { value: string; label: string }[]
+  step?: string
+  placeholder?: string
+  hidden?: (form: Record<string, any>) => boolean
+}
+
+export interface Column<T> {
+  header: string
+  cell: (item: T) => ReactNode
+}
+
+interface Props<T> {
+  title: string
+  eyebrow?: string
+  noun: string
+  getId: (item: T) => string
+  columns: Column<T>[]
+  fields: Field[]
+  load: (s: Session) => Promise<T[]>
+  create?: (s: Session, body: any) => Promise<unknown>
+  update?: (s: Session, id: string, body: any) => Promise<unknown>
+  remove?: (s: Session, id: string) => Promise<unknown>
+  toForm?: (item: T) => Record<string, any>
+  toBody?: (form: Record<string, any>) => any
+  rowLabel?: (item: T) => string
+  filter?: (item: T) => boolean
+  extraHeader?: ReactNode
+  toolbar?: ReactNode
+}
+
+function defaultForm(fields: Field[]): Record<string, any> {
+  const f: Record<string, any> = {}
+  for (const fl of fields) f[fl.name] = fl.type === 'checkbox' ? false : ''
+  return f
+}
+
+function defaultToForm(item: any, fields: Field[]): Record<string, any> {
+  const f: Record<string, any> = {}
+  for (const fl of fields) {
+    const v = item[fl.name]
+    if (fl.type === 'checkbox') f[fl.name] = !!v
+    else if (fl.type === 'datetime') f[fl.name] = v ? String(v).slice(0, 16) : ''
+    else f[fl.name] = v == null ? '' : String(v)
+  }
+  return f
+}
+
+function defaultToBody(form: Record<string, any>, fields: Field[]): any {
+  const body: Record<string, any> = {}
+  for (const fl of fields) {
+    const v = form[fl.name]
+    if (fl.type === 'checkbox') { body[fl.name] = !!v; continue }
+    const empty = v === '' || v == null
+    if (fl.type === 'number') {
+      if (!empty) body[fl.name] = Number(v)
+      else if (fl.required) body[fl.name] = 0
+      continue
+    }
+    if (fl.type === 'datetime') {
+      if (!empty) body[fl.name] = v.length === 16 ? `${v}:00` : v
+      continue
+    }
+    if (!empty) body[fl.name] = v
+  }
+  return body
+}
+
+export default function CrudResource<T>({
+  title, eyebrow, noun, getId, columns, fields,
+  load, create, update, remove, toForm, toBody, rowLabel, filter, extraHeader, toolbar,
+}: Props<T>) {
+  const { session } = useAuth()
+  const { show, ToastContainer } = useToast()
+  const [items, setItems] = useState<T[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<T | 'new' | null>(null)
+  const [form, setForm] = useState<Record<string, any>>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [toDelete, setToDelete] = useState<T | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const refresh = useMemo(() => async () => {
+    if (!session) return
+    setLoading(true)
+    try { setItems(await load(session)) } catch { setItems([]) } finally { setLoading(false) }
+  }, [session, load])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const openNew = () => { setForm(defaultForm(fields)); setFormError(null); setEditing('new') }
+  const openEdit = (item: T) => {
+    setForm(toForm ? toForm(item) : defaultToForm(item, fields))
+    setFormError(null)
+    setEditing(item)
+  }
+
+  async function submit() {
+    if (!session) return
+    for (const fl of fields) {
+      if (fl.required && fl.type !== 'checkbox' && !fl.hidden?.(form)) {
+        const v = form[fl.name]
+        if (v === '' || v == null) { setFormError(`${fl.label} es requerido.`); return }
+      }
+    }
+    setSaving(true)
+    setFormError(null)
+    try {
+      const body = toBody ? toBody(form) : defaultToBody(form, fields)
+      if (editing === 'new') await create!(session, body)
+      else await update!(session, getId(editing as T), body)
+      show(`${noun} guardada correctamente`, 'success')
+      setEditing(null)
+      await refresh()
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : 'No se pudo guardar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!session || !toDelete) return
+    setDeleting(true)
+    try {
+      await remove!(session, getId(toDelete))
+      show(`${noun} eliminada`, 'success')
+      setToDelete(null)
+      await refresh()
+    } catch (e) {
+      show(e instanceof Error ? e.message : 'No se pudo eliminar.', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const shown = filter ? items.filter(filter) : items
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 28 }}>
+        <div>
+          {eyebrow && <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>{eyebrow}</div>}
+          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{title}</h1>
+          <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>{shown.length} REGISTRO{shown.length === 1 ? '' : 'S'}</div>
+          {extraHeader}
+        </div>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {toolbar}
+          {create && <button className="btn" onClick={openNew}>+ Nuevo</button>}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+        <table className="table">
+          <thead>
+            <tr>
+              {columns.map((c) => <th key={c.header}>{c.header}</th>)}
+              {(update || remove) && <th style={{ textAlign: 'right' }}>Acciones</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((item) => (
+              <tr key={getId(item)}>
+                {columns.map((c) => <td key={c.header}>{c.cell(item)}</td>)}
+                {(update || remove) && (
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {update && (
+                      <button className="mono accent" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => openEdit(item)}>EDITAR</button>
+                    )}
+                    {remove && (
+                      <button className="mono" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', marginLeft: 16 }} onClick={() => setToDelete(item)}>ELIMINAR</button>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!loading && shown.length === 0 && (
+          <div className="mono mute" style={{ padding: 32, textAlign: 'center', fontSize: 13 }}>Sin registros.</div>
+        )}
+        {loading && (
+          <div className="mono mute" style={{ padding: 32, textAlign: 'center', fontSize: 13 }}>Cargando…</div>
+        )}
+      </div>
+
+      <Modal open={editing !== null} title={editing === 'new' ? `Nuevo ${noun}` : `Editar ${noun}`} onClose={() => setEditing(null)} width={520}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {fields.filter((fl) => !fl.hidden?.(form)).map((fl) => (
+            <div key={fl.name}>
+              {fl.type !== 'checkbox' && <div className="label">{fl.label}{fl.required ? ' *' : ''}</div>}
+              {fl.type === 'textarea' ? (
+                <textarea className="input" value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: e.target.value }))} style={{ minHeight: 80, resize: 'vertical' }} />
+              ) : fl.type === 'select' ? (
+                <Select
+                  value={form[fl.name] ?? ''}
+                  options={fl.options ?? []}
+                  onChange={(v) => setForm((f) => ({ ...f, [fl.name]: v }))}
+                  width="100%"
+                  placeholder="— Seleccionar —"
+                  ariaLabel={fl.label}
+                />
+              ) : fl.type === 'checkbox' ? (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--text-dim)' }}>
+                  <input type="checkbox" checked={!!form[fl.name]} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: e.target.checked }))} />
+                  {fl.label}
+                </label>
+              ) : (
+                <input className="input" type={fl.type === 'number' ? 'number' : fl.type === 'datetime' ? 'datetime-local' : 'text'} step={fl.step} value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: e.target.value }))} />
+              )}
+            </div>
+          ))}
+          {formError && <div className="mono" style={{ color: 'var(--danger)', fontSize: 12 }}>{formError}</div>}
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+            <button className="btn btn-ghost" onClick={() => setEditing(null)} disabled={saving}>Cancelar</button>
+            <button className="btn" onClick={submit} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={toDelete !== null} title={`Eliminar ${noun}`} onClose={() => setToDelete(null)} width={420}>
+        <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+          ¿Eliminar <strong style={{ color: 'var(--text)' }}>{toDelete && (rowLabel ? rowLabel(toDelete) : getId(toDelete))}</strong>? Esta acción no se puede deshacer.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost" onClick={() => setToDelete(null)} disabled={deleting}>Cancelar</button>
+          <button className="btn" style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={confirmDelete} disabled={deleting}>{deleting ? 'Eliminando…' : 'Eliminar'}</button>
+        </div>
+      </Modal>
+
+      <ToastContainer />
+    </div>
+  )
+}

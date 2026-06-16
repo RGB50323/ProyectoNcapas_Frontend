@@ -45,7 +45,7 @@ export default async function ComparePage() {
           <div style={{ padding: 24, background: 'var(--bg-1)' }} />
           {products.map((p) => (
             <div key={p.id} style={{ padding: 20, borderLeft: '1px solid var(--border)' }}>
-              <div style={{ aspectRatio: '4/5', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16, background: 'var(--card)' }}>
+              <div style={{ height: 260, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16, background: 'var(--card)' }}>
                 <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <div className="mono mute">{p.brand}</div>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, authFetch } from "@/lib/auth";
 import { PageLoader } from "@/components/PageLoader";
 import Modal from "@/components/Modal";
+import { Icon } from "@/components/Icon";
+import { Select } from "@/components/Select";
 import { useToast } from "@/hooks/useToast";
 
 type User = {
@@ -14,6 +16,7 @@ type User = {
   email: string;
   phone: string | null;
   role: string;
+  createdAt?: string;
 };
 
 export default function AdminUsersPage() {
@@ -23,7 +26,29 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [fetching, setFetching] = useState(true);
 
-  const [roleModal, setRoleModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [sort, setSort] = useState("recent");
+
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const name = (u: User) => `${u.firstName} ${u.lastName}`.toLowerCase();
+    const time = (u: User) => (u.createdAt ? new Date(u.createdAt).getTime() : 0);
+    return users
+      .filter(
+        (u) =>
+          (!q || `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(q)) &&
+          (!roleFilter || u.role === roleFilter),
+      )
+      .sort((a, b) => {
+        if (sort === "recent") return time(b) - time(a);
+        if (sort === "oldest") return time(a) - time(b);
+        if (sort === "az") return name(a).localeCompare(name(b));
+        if (sort === "za") return name(b).localeCompare(name(a));
+        return 0;
+      });
+  }, [users, search, roleFilter, sort]);
+
   const [deleteModal, setDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [acting, setActing] = useState(false);
@@ -40,7 +65,7 @@ export default function AdminUsersPage() {
     if (!session) return;
     authFetch("/users/", session)
       .then((r) => r.json())
-      .then((json) => setUsers((json?.data ?? []).filter((u: User) => u.role !== "ADMIN")))
+      .then((json) => setUsers(json?.data ?? []))
       .catch(() => {})
       .finally(() => setFetching(false));
   }, [session]);
@@ -90,7 +115,7 @@ export default function AdminUsersPage() {
           ◆ GESTIÓN DE PERSONAS
         </div>
         <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
-          CLIENTES
+          USUARIOS
         </h1>
       </div>
 
@@ -102,10 +127,46 @@ export default function AdminUsersPage() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
           }}
         >
           <div className="mono mute" style={{ fontSize: 11 }}>
-            {users.length} USUARIOS
+            {shown.length} USUARIO{shown.length === 1 ? "" : "S"}
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              className="input"
+              placeholder="Buscar nombre o email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 240, height: 38 }}
+            />
+            <Select
+              value={roleFilter}
+              onChange={setRoleFilter}
+              width={150}
+              placeholder="Todos los roles"
+              ariaLabel="Filtrar por rol"
+              options={[
+                { value: "", label: "Todos los roles" },
+                { value: "ADMIN", label: "ADMIN" },
+                { value: "SELLER", label: "SELLER" },
+                { value: "BUYER", label: "BUYER" },
+              ]}
+            />
+            <Select
+              value={sort}
+              onChange={setSort}
+              width={190}
+              ariaLabel="Ordenar"
+              options={[
+                { value: "recent", label: "Más recientes" },
+                { value: "oldest", label: "Más antiguos" },
+                { value: "az", label: "Nombre · A–Z" },
+                { value: "za", label: "Nombre · Z–A" },
+              ]}
+            />
           </div>
         </div>
         <table className="table">
@@ -119,7 +180,7 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {shown.map((u) => (
               <tr key={u.uuid}>
                 <td>
                   <div
@@ -137,26 +198,27 @@ export default function AdminUsersPage() {
                     {u.role}
                   </span>
                 </td>
-                <td>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      className="mono"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 11,
-                        color: "var(--err, #e05252)",
-                      }}
-                      onClick={() => {
-                        setSelectedUser(u);
-                        setActionError(null);
-                        setDeleteModal(true);
-                      }}
-                    >
-                      ELIMINAR
-                    </button>
-                  </div>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  <button
+                    className="icon-btn"
+                    title="Ver detalle"
+                    aria-label="Ver detalle"
+                    style={{ verticalAlign: "middle" }}
+                    onClick={() => router.push(`/admin/users/${u.uuid}`)}
+                  >
+                    <Icon.Eye />
+                  </button>
+                  <button
+                    className="mono"
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--danger)", marginLeft: 16, verticalAlign: "middle" }}
+                    onClick={() => {
+                      setSelectedUser(u);
+                      setActionError(null);
+                      setDeleteModal(true);
+                    }}
+                  >
+                    ELIMINAR
+                  </button>
                 </td>
               </tr>
             ))}

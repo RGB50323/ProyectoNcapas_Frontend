@@ -1,9 +1,11 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Product, Category } from '@/lib/types'
 import { Icon } from '@/components/Icon'
+import { Select } from '@/components/Select'
 import ProductCard from '@/components/ProductCard'
 
 type Filters = {
@@ -19,45 +21,47 @@ type Filters = {
 
 const EMPTY: Filters = { category: [], brand: [], size: [], color: [], condition: [], auth: [], stock: [], drop: [] }
 
-const COLORS: [string, string][] = [
-  ['Negro', '#0a0a0a'], ['Hueso', '#e8e3d6'], ['Crema', '#e9dfc8'], ['Humo', '#3a3a3e'],
-  ['Rojo', '#d92626'], ['Índigo', '#1f2a3a'], ['Oliva', '#3c3d24'], ['Goma', '#9b6a3e'],
-]
-
 const CHIPS = ['TODO', 'DROP LAB', 'K-SELECT', 'VERIFICADO', 'SEMINUEVO', 'ARCHIVO', 'DROP PRIVADO']
 
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+const CONDITIONS: [string, string][] = [['NEW', 'Nuevo'], ['LIKE_NEW', 'Como nuevo'], ['USED', 'Usado'], ['REFURBISHED', 'Reacondicionado']]
+const AUTHS: [string, string][] = [['VERIFIED', '✓ Verificado'], ['PENDING', 'Pendiente'], ['NOT_REQUIRED', 'No requerida']]
+const STOCKS: [string, string][] = [['instock', 'En stock'], ['lowstock', 'Poco stock'], ['soldout', 'Agotado']]
+const DROPS: [string, string][] = [['limited', 'Limitado'], ['privateDrop', 'Drop privado']]
+
+function FilterGroup({ n, title, active = 0, children }: { n: number; title: string; active?: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true)
   return (
-    <div style={{ padding: '20px 0', borderBottom: '1px solid var(--border)' }}>
-      <div className="label" style={{ marginBottom: 14 }}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
+    <div className="fgroup">
+      <button type="button" className="fgroup-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span className="fgroup-name">
+          <span className="fgroup-num">{String(n).padStart(2, '0')}</span>
+          {title}
+          {active > 0 && <span className="fgroup-badge">{active}</span>}
+        </span>
+        <span className="fgroup-toggle">{open ? <Icon.Minus /> : <Icon.Plus />}</span>
+      </button>
+      {open && <div className="fgroup-body">{children}</div>}
     </div>
   )
 }
 
 function FilterCheck({ label, count, checked, onClick }: { label: string; count?: number; checked: boolean; onClick: () => void }) {
   return (
-    <label onClick={onClick} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 13 }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{
-          width: 14, height: 14, borderRadius: 2,
-          border: '1px solid ' + (checked ? 'var(--text)' : 'var(--border)'),
-          background: checked ? 'var(--text)' : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-0)',
-        }}>
-          {checked && <Icon.Check />}
-        </span>
-        <span style={{ color: checked ? 'var(--text)' : 'var(--text-dim)' }}>{label}</span>
+    <button type="button" className={'fcheck' + (checked ? ' on' : '')} aria-pressed={checked} onClick={onClick}>
+      <span className="fcheck-l">
+        <span className="fbox">{checked && <Icon.Check />}</span>
+        <span>{label}</span>
       </span>
-      {count !== undefined && <span className="mono mute">{count}</span>}
-    </label>
+      {count !== undefined && <span className="fcheck-n">{count}</span>}
+    </button>
   )
 }
 
 export default function CatalogClient({ products, categories, brands }: { products: Product[]; categories: Category[]; brands: string[] }) {
+  const initialChip = useSearchParams().get('chip') ?? 'TODO'
   const [filters, setFilters] = useState<Filters>(EMPTY)
   const [sort, setSort] = useState('limited')
-  const [chip, setChip] = useState('TODO')
+  const [chip, setChip] = useState(CHIPS.includes(initialChip) ? initialChip : 'TODO')
 
   const availableSizes = useMemo(() => {
   return Array.from(
@@ -82,12 +86,14 @@ const availableColors = useMemo(() => {
     })
   }
 
+  const q = (useSearchParams().get('q') ?? '').trim().toLowerCase()
+
   const items = useMemo(() => {
     let arr = [...products]
+    if (q) arr = arr.filter((p) => `${p.name} ${p.brand} ${p.sku}`.toLowerCase().includes(q))
     if (chip === 'DROP LAB') arr = arr.filter((p) => p.privateDrop || p.limited)
-    if (chip === 'K-SELECT') arr = arr.filter((p) => p.featured)
     if (chip === 'VERIFICADO') arr = arr.filter((p) => p.auth === 'AUTHENTICATED')
-    if (chip === 'SEMINUEVO' || chip === 'ARCHIVO') arr = arr.filter((p) => p.condition.startsWith('PRE_OWNED'))
+    if (chip === 'SEMINUEVO' || chip === 'ARCHIVO') arr = arr.filter((p) => p.condition !== 'NEW')
     if (chip === 'DROP PRIVADO') arr = arr.filter((p) => p.privateDrop)
     if (filters.category.length) arr = arr.filter((p) => filters.category.includes(p.category))
     if (filters.brand.length) arr = arr.filter((p) => filters.brand.includes(p.brand))
@@ -101,12 +107,26 @@ const availableColors = useMemo(() => {
     p.variants.some((v) => filters.size.includes(v.size))
   )
 }
-    if (sort === 'price-asc') arr.sort((a, b) => a.price - b.price)
-    if (sort === 'price-desc') arr.sort((a, b) => b.price - a.price)
-    if (sort === 'newest') arr.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
-    if (sort === 'limited') arr.sort((a, b) => (b.limited ? 1 : 0) - (a.limited ? 1 : 0))
+    if (chip === 'K-SELECT') {
+      arr.sort((a, b) => b.rating - a.rating || b.reviews - a.reviews)
+    } else {
+      if (sort === 'price-asc') arr.sort((a, b) => a.price - b.price)
+      if (sort === 'price-desc') arr.sort((a, b) => b.price - a.price)
+      if (sort === 'newest') arr.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))
+      if (sort === 'limited') arr.sort((a, b) => (b.limited ? 1 : 0) - (a.limited ? 1 : 0))
+    }
     return arr
-  }, [products, chip, sort, filters])
+  }, [products, chip, sort, filters, q])
+
+  const active = (Object.keys(filters) as (keyof Filters)[]).flatMap((k) => filters[k].map((v) => ({ k, v })))
+  const pillLabel = (k: keyof Filters, v: string): string => {
+    if (k === 'category') return categories.find((c) => c.id === v)?.name ?? v
+    if (k === 'condition') return CONDITIONS.find((p) => p[0] === v)?.[1] ?? v
+    if (k === 'auth') return (AUTHS.find((p) => p[0] === v)?.[1] ?? v).replace('✓ ', '')
+    if (k === 'stock') return STOCKS.find((p) => p[0] === v)?.[1] ?? v
+    if (k === 'drop') return DROPS.find((p) => p[0] === v)?.[1] ?? v
+    return v
+  }
 
   return (
     <div className="container page">
@@ -126,12 +146,18 @@ const availableColors = useMemo(() => {
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span className="mono mute">ORDENAR POR</span>
-          <select className="select" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: 220 }}>
-            <option value="limited">Limitados primero</option>
-            <option value="newest">Más nuevos</option>
-            <option value="price-asc">Precio · menor a mayor</option>
-            <option value="price-desc">Precio · mayor a menor</option>
-          </select>
+          <Select
+            value={sort}
+            onChange={setSort}
+            width={240}
+            ariaLabel="Ordenar por"
+            options={[
+              { value: 'limited', label: 'Limitados primero' },
+              { value: 'newest', label: 'Más nuevos' },
+              { value: 'price-asc', label: 'Precio · menor a mayor' },
+              { value: 'price-desc', label: 'Precio · mayor a menor' },
+            ]}
+          />
         </div>
       </div>
 
@@ -141,71 +167,82 @@ const availableColors = useMemo(() => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 0 }}>
-        <aside style={{ borderRight: '1px solid var(--border)', paddingRight: 32, position: 'sticky', top: 120, alignSelf: 'start' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-            <div className="display" style={{ fontSize: 20 }}>FILTROS</div>
-            <button className="mono" style={{ background: 'none', border: 'none', color: 'var(--text-mute)' }} onClick={() => setFilters(EMPTY)}>LIMPIAR</button>
+      <div style={{ display: 'grid', gridTemplateColumns: '288px 1fr', gap: 40 }}>
+        <aside className="filters">
+          <div className="filter-bar">
+            <span className="title">
+              <Icon.Filter /> FILTROS
+              {active.length > 0 && <span className="filter-tally">{active.length}</span>}
+            </span>
+            <button className="filter-clear" disabled={active.length === 0} onClick={() => setFilters(EMPTY)}>Limpiar</button>
           </div>
 
-          <FilterGroup title="Categoría">
+          {active.length > 0 && (
+            <div className="filter-active">
+              {active.map(({ k, v }) => (
+                <button key={k + v} className="fpill" aria-label={`Quitar ${pillLabel(k, v)}`} onClick={() => toggle(k, v)}>
+                  {pillLabel(k, v)}
+                  <Icon.Close />
+                </button>
+              ))}
+            </div>
+          )}
+
+          <FilterGroup n={1} title="Categoría" active={filters.category.length}>
             {categories.map((c) => (
               <FilterCheck key={c.id} label={c.name} count={c.count} checked={filters.category.includes(c.id)} onClick={() => toggle('category', c.id)} />
             ))}
           </FilterGroup>
 
-          <FilterGroup title="Marca">
+          <FilterGroup n={2} title="Marca" active={filters.brand.length}>
             {brands.map((b) => (
               <FilterCheck key={b} label={b} checked={filters.brand.includes(b)} onClick={() => toggle('brand', b)} />
             ))}
           </FilterGroup>
 
-          <FilterGroup title="Talla">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+          <FilterGroup n={3} title="Talla" active={filters.size.length}>
+            <div className="fsizes">
               {availableSizes.map((s) =>(
-                <button key={s} className={'tag' + (filters.size.includes(s) ? ' active' : '')} onClick={() => toggle('size', s)} style={{ justifyContent: 'center', padding: '8px 0' }}>{s}</button>
+                <button key={s} type="button" className={'tag' + (filters.size.includes(s) ? ' active' : '')} onClick={() => toggle('size', s)} style={{ justifyContent: 'center', padding: '8px 0' }}>{s}</button>
               ))}
             </div>
           </FilterGroup>
 
-          <FilterGroup title="Color">
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <FilterGroup n={4} title="Color" active={filters.color.length}>
+            <div className="fswatches">
               {availableColors.map(([n, hex]) => (
-                <button key={n} title={n} aria-label={n} onClick={() => toggle('color', n)} style={{
-                  width: 28, height: 28, borderRadius: 0, background: hex,
-                  border: filters.color.includes(n) ? '2px solid var(--text)' : '1px solid var(--border)',
-                  outline: filters.color.includes(n) ? '2px solid var(--bg-0)' : 'none', outlineOffset: -4, cursor: 'pointer',
-                }} />
+                <button key={n} type="button" title={n} aria-label={n} aria-pressed={filters.color.includes(n)}
+                  className={'fswatch' + (filters.color.includes(n) ? ' on' : '')} onClick={() => toggle('color', n)} style={{ background: hex }} />
               ))}
             </div>
           </FilterGroup>
 
-          <FilterGroup title="Condición">
-            {[['NEW', 'Nuevo'], ['LIKE_NEW', 'Como nuevo'], ['USED', 'Usado'], ['REFURBISHED', 'Reacondicionado']].map(([v, l]) => (
+          <FilterGroup n={5} title="Condición" active={filters.condition.length}>
+            {CONDITIONS.map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.condition.includes(v)} onClick={() => toggle('condition', v)} />
             ))}
           </FilterGroup>
 
-          <FilterGroup title="Autenticación">
-            {[['VERIFIED', '✓ Verificado'], ['PENDING', 'Pendiente'], ['NOT_REQUIRED', 'No requerida']].map(([v, l]) => (
+          <FilterGroup n={6} title="Autenticación" active={filters.auth.length}>
+            {AUTHS.map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.auth.includes(v)} onClick={() => toggle('auth', v)} />
             ))}
           </FilterGroup>
 
-          <FilterGroup title="Disponibilidad">
-            {[['instock', 'En stock'], ['lowstock', 'Poco stock'], ['soldout', 'Agotado']].map(([v, l]) => (
+          <FilterGroup n={7} title="Disponibilidad" active={filters.stock.length}>
+            {STOCKS.map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.stock.includes(v)} onClick={() => toggle('stock', v)} />
             ))}
           </FilterGroup>
 
-          <FilterGroup title="Tipo de drop">
-            {[['limited', 'Limitado'], ['privateDrop', 'Drop privado']].map(([v, l]) => (
+          <FilterGroup n={8} title="Tipo de drop" active={filters.drop.length}>
+            {DROPS.map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.drop.includes(v)} onClick={() => toggle('drop', v)} />
             ))}
           </FilterGroup>
         </aside>
 
-        <div style={{ paddingLeft: 32 }}>
+        <div>
           <div className="grid-products">
             {items.map((p) => <ProductCard key={p.id} p={p} />)}
           </div>
