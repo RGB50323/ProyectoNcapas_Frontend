@@ -3,12 +3,19 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, type Session } from "@/lib/auth";
+import { formatSvPhone, cleanPhone, isValidPhone, hasLocalNumber } from "@/lib/phone";
 import { useToast } from "@/hooks/useToast";
 import Link from "next/link";
 import { PageLoader } from "@/components/PageLoader";
 
 function destinationFor(session: Session) {
+  if (session.role === "ADMIN") return "/admin/dashboard";
+  if (session.role === "SELLER") return "/seller/dashboard";
   return "/";
+}
+
+function onlyLetters(value: string) {
+  return value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ '-]/g, "");
 }
 
 function HintField({ hint, children }: { hint?: string; children: ReactNode }) {
@@ -122,8 +129,23 @@ export default function LoginPage() {
   }, [loading, session, router]);
 
   function validateRegister(): string | null {
+    const nameRegex = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ '-]+$/;
+
     if (!firstName.trim()) return "El nombre es requerido";
+    if (firstName.trim().length < 3)
+      return "El nombre debe tener al menos 3 caracteres";
+    if (firstName.trim().length > 500)
+      return "El nombre no puede superar los 500 caracteres";
+    if (!nameRegex.test(firstName.trim()))
+      return "El nombre solo puede contener letras";
+
     if (!lastName.trim()) return "El apellido es requerido";
+    if (lastName.trim().length < 3)
+      return "El apellido debe tener al menos 3 caracteres";
+    if (lastName.trim().length > 500)
+      return "El apellido no puede superar los 500 caracteres";
+    if (!nameRegex.test(lastName.trim()))
+      return "El apellido solo puede contener letras";
 
     if (!email.trim()) return "El correo es requerido";
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -137,8 +159,8 @@ export default function LoginPage() {
       return "La contraseña debe tener mayúscula, minúscula, número y símbolo (@$!%*?&)";
     if (password !== confirmPassword) return "Las contraseñas no coinciden";
 
-    if (phone && !/^\+?[0-9]{8,15}$/.test(phone))
-      return "Formato de teléfono inválido";
+    if (hasLocalNumber(phone) && !isValidPhone(phone))
+      return "Formato de teléfono inválido (+503 XXXX-XXXX)";
     return null;
   }
 
@@ -177,7 +199,7 @@ export default function LoginPage() {
         email,
         password,
         confirmPassword,
-        phone: phone || undefined,
+        phone: hasLocalNumber(phone) ? cleanPhone(phone) : undefined,
       });
       show("Bienvenido al Lab", "success");
       router.replace(destinationFor(s));
@@ -266,13 +288,15 @@ export default function LoginPage() {
                 className="input"
                 placeholder="Nombre"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                maxLength={500}
+                onChange={(e) => setFirstName(onlyLetters(e.target.value))}
               />
               <input
                 className="input"
                 placeholder="Apellido"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                maxLength={500}
+                onChange={(e) => setLastName(onlyLetters(e.target.value))}
               />
             </div>
           )}
@@ -286,13 +310,7 @@ export default function LoginPage() {
             autoComplete="email"
           />
 
-          <HintField
-            hint={
-              mode === "register"
-                ? "Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo (@$!%*?&)."
-                : undefined
-            }
-          >
+          <HintField>
             <PasswordInput
               placeholder="Contraseña"
               value={password}
@@ -314,9 +332,9 @@ export default function LoginPage() {
               <input
                 className="input"
                 type="tel"
-                placeholder="Teléfono (opcional)"
+                placeholder="+503 XXXX-XXXX (opcional)"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatSvPhone(e.target.value))}
               />
             </>
           )}
