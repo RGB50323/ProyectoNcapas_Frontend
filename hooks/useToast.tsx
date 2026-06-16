@@ -14,7 +14,7 @@ export function useToast() {
 
   const show = useCallback((message: string, type: ToastState['type'] = 'info') => {
     const id = Date.now()
-    setToasts(prev => [...prev, { message, type, id }])
+    setToasts([{ message, type, id }])
   }, [])
 
   const remove = useCallback((id: number) => {

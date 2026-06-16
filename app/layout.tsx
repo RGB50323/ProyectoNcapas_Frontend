@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Anton, Inter, JetBrains_Mono } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth'
+import { CartProvider } from '@/lib/cart'
+import { WishlistProvider } from '@/lib/wishlist'
 import './globals.css'
 
 const anton = Anton({
@@ -32,10 +34,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-SV" className={`${anton.variable} ${inter.variable} ${jetbrains.variable}`}>
+    <html lang="es-SV" className={`${anton.variable} ${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <body>
         <AuthProvider>
-          {children}
+          <CartProvider>
+            <WishlistProvider>
+              {children}
+            </WishlistProvider>
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

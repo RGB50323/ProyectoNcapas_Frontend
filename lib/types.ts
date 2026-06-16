@@ -121,6 +121,36 @@ export interface CartLine {
   color: string
 }
 
+export interface CartItem {
+  id: string
+  productId: string
+  productName: string
+  productSku: string
+  variantId: string
+  variantSize: string
+  variantColorName: string
+  variantColorHex: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+}
+
+export interface WishlistItem {
+  id: string
+  productId: string
+  productName: string
+  productSku: string
+}
+
+export interface CouponPreview {
+  couponCode: string
+  discountType: string
+  subtotal: number
+  shippingCost: number
+  discountAmount: number
+  total: number
+}
+
 export interface BrandOption {
   id: string
   name: string

@@ -24,11 +24,13 @@ export default async function DropsPage() {
         {drops.map((d, i) => {
           const [day, time] = d.date.split('·')
           const isPrivate = d.type === 'DROP PRIVADO'
+          const dayLabel = (day ?? '').trim()
+          const timeLabel = (time ?? '').trim()
           return (
             <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '200px 280px 1fr auto', gap: 32, padding: 32, borderBottom: i < drops.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
               <div>
-                <div className="mono accent" style={{ letterSpacing: '0.14em' }}>{day.trim()}</div>
-                <div className="display" style={{ fontSize: 32, marginTop: 4, color: 'var(--accent-2)' }}>{time.trim()}</div>
+                <div className="mono accent" style={{ letterSpacing: '0.14em' }}>{dayLabel}</div>
+                <div className="display" style={{ fontSize: 32, marginTop: 4, color: 'var(--accent-2)' }}>{timeLabel}</div>
                 <div className="mono mute" style={{ marginTop: 4 }}>GMT</div>
               </div>
               <div style={{ aspectRatio: '4/3', border: '1px solid var(--border)', overflow: 'hidden' }}>
