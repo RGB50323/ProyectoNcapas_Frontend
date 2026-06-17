@@ -8,6 +8,8 @@ import Modal from "@/components/Modal";
 import { Icon } from "@/components/Icon";
 import { Select } from "@/components/Select";
 import { useToast } from "@/hooks/useToast";
+import { usePaged } from "@/hooks/usePaged";
+import Pagination from "@/components/Pagination";
 
 type User = {
   uuid: string;
@@ -48,6 +50,8 @@ export default function AdminUsersPage() {
         return 0;
       });
   }, [users, search, roleFilter, sort]);
+
+  const { page, setPage, pageItems, pageCount } = usePaged(shown, 10, `${search}|${roleFilter}|${sort}`);
 
   const [deleteModal, setDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -180,7 +184,7 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody>
-            {shown.map((u) => (
+            {pageItems.map((u) => (
               <tr key={u.uuid}>
                 <td>
                   <div
@@ -224,6 +228,7 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
+        <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
 
       <Modal

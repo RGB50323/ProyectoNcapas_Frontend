@@ -290,15 +290,15 @@ export default function Profile() {
   return (
     <div className="container" style={{ paddingBlock: 48 }}>
       <div className="mono mute" style={{ marginBottom: 16, fontSize: 12 }}>
-        Cuenta / Perfil
+        {isSeller || isAdmin ? "Consola" : "Cuenta"} / Mi cuenta
       </div>
 
       <button
         className="btn btn-ghost"
         style={{ marginBottom: 24, padding: "8px 14px", fontSize: 11 }}
-        onClick={() => router.push("/account")}
+        onClick={() => router.push(isSeller ? "/seller/dashboard" : isAdmin ? "/admin/dashboard" : "/account")}
       >
-        ← Cuenta
+        ← {isSeller || isAdmin ? "Consola" : "Cuenta"}
       </button>
 
       <div
@@ -543,7 +543,7 @@ export default function Profile() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {!isAdmin && (
+          {!isAdmin && !isSeller && (
             <div className="card" style={{ padding: 28 }}>
               <div
                 style={{

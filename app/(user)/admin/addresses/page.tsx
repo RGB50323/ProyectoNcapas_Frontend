@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, authFetch } from "@/lib/auth";
 import { PageLoader } from "@/components/PageLoader";
 import Modal from "@/components/Modal";
 import { useToast } from "@/hooks/useToast";
+import { usePaged } from "@/hooks/usePaged";
+import Pagination from "@/components/Pagination";
 
 type Address = {
   id: string;
@@ -37,6 +39,22 @@ export default function AdminAddressesPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { show, ToastContainer } = useToast();
+
+  const groups = useMemo(
+    () =>
+      Object.values(
+        addresses.reduce(
+          (acc, a) => {
+            if (!acc[a.user.uuid]) acc[a.user.uuid] = { user: a.user, items: [] };
+            acc[a.user.uuid].items.push(a);
+            return acc;
+          },
+          {} as Record<string, { user: Address["user"]; items: Address[] }>,
+        ),
+      ),
+    [addresses],
+  );
+  const { page, setPage, pageItems, pageCount } = usePaged(groups, 10, groups.length);
 
   useEffect(() => {
     if (!loading && !session) router.replace("/login");
@@ -122,17 +140,7 @@ export default function AdminAddressesPage() {
         </h1>
       </div>
 
-      {Object.values(
-        addresses.reduce(
-          (groups, a) => {
-            if (!groups[a.user.uuid])
-              groups[a.user.uuid] = { user: a.user, items: [] };
-            groups[a.user.uuid].items.push(a);
-            return groups;
-          },
-          {} as Record<string, { user: Address["user"]; items: Address[] }>,
-        ),
-      ).map(({ user, items }) => (
+      {pageItems.map(({ user, items }) => (
         <div
           key={user.uuid}
           className="card"
@@ -219,6 +227,8 @@ export default function AdminAddressesPage() {
           </table>
         </div>
       ))}
+
+      <Pagination page={page} pageCount={pageCount} onPage={setPage} />
 
       {addresses.length === 0 && (
         <div className="card" style={{ padding: 28, textAlign: "center" }}>

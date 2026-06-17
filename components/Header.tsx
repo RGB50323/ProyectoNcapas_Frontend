@@ -25,11 +25,14 @@ export default function Header() {
   const { count: wishCount } = useWishlist()
   const [searchOpen, setSearchOpen] = useState(false)
   const isAdmin = session?.role === 'ADMIN'
+  const isSeller = session?.role === 'SELLER'
+  const isConsole = isAdmin || isSeller
+  const homeHref = isAdmin ? '/admin/dashboard' : isSeller ? '/seller/dashboard' : '/'
 
   return (
     <div className="header">
       <div className="header-inner">
-        <Link href={isAdmin ? '/admin/dashboard' : '/'} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+        <Link href={homeHref} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <img
             src="/logo.png"
             alt="Mister K"
@@ -37,21 +40,20 @@ export default function Header() {
           />
         </Link>
         <nav className="nav-main">
-          {isAdmin ? (
-            <span className="mono mute" style={{ letterSpacing: '0.18em' }}>CONSOLA · ADMINISTRACIÓN</span>
+          {isConsole ? (
+            <span className="mono mute" style={{ letterSpacing: '0.18em' }}>
+              {isAdmin ? 'CONSOLA · ADMINISTRACIÓN' : 'CONSOLA · VENDEDOR'}
+            </span>
           ) : (
             <>
               {NAV.map(([label, href]) => (
                 <Link key={label} href={href} className={pathname === href ? 'active' : ''}>{label}</Link>
               ))}
-              {session?.role === 'SELLER' && (
-                <Link href="/seller/dashboard" className={pathname.startsWith('/seller') ? 'active' : ''}>Mi Tienda</Link>
-              )}
             </>
           )}
         </nav>
         <div className="header-right">
-          {isAdmin ? (
+          {isConsole ? (
             <button
               className="mono"
               onClick={async () => { await logout(); router.replace('/login') }}

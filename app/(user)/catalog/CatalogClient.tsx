@@ -7,6 +7,8 @@ import type { Product, Category } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import { Select } from '@/components/Select'
 import ProductCard from '@/components/ProductCard'
+import Pagination from '@/components/Pagination'
+import { usePaged } from '@/hooks/usePaged'
 
 type Filters = {
   category: string[]
@@ -117,6 +119,8 @@ const availableColors = useMemo(() => {
     }
     return arr
   }, [products, chip, sort, filters, q])
+
+  const { page, setPage, pageItems, pageCount } = usePaged(items, 12, `${chip}|${sort}|${q}|${JSON.stringify(filters)}`)
 
   const active = (Object.keys(filters) as (keyof Filters)[]).flatMap((k) => filters[k].map((v) => ({ k, v })))
   const pillLabel = (k: keyof Filters, v: string): string => {
@@ -244,8 +248,9 @@ const availableColors = useMemo(() => {
 
         <div>
           <div className="grid-products">
-            {items.map((p) => <ProductCard key={p.id} p={p} />)}
+            {pageItems.map((p) => <ProductCard key={p.id} p={p} />)}
           </div>
+          <Pagination page={page} pageCount={pageCount} onPage={setPage} />
           {items.length === 0 && (
             <div style={{ padding: '64px 0', borderTop: '1px solid var(--border)' }}>
               <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ SIN RESULTADOS</div>

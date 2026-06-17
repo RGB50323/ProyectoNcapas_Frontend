@@ -17,11 +17,10 @@ export default function AdminCategoriesPage() {
       remove={admin.deleteCategory}
       columns={[
         { header: 'Nombre', cell: (c) => c.name },
-        { header: 'Unidades', cell: (c) => <span className="mono">{c.units}</span> },
+        { header: 'Productos', cell: (c) => <span className="mono">{c.units}</span> },
       ]}
       fields={[
         { name: 'name', label: 'Nombre', required: true },
-        { name: 'units', label: 'Unidades', type: 'number', step: '1', required: true },
       ]}
     />
   )
