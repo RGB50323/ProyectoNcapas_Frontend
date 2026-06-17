@@ -7,6 +7,8 @@ import { useAuth, authFetch } from "@/lib/auth";
 import { PageLoader } from "@/components/PageLoader";
 import Modal from "@/components/Modal";
 import { useToast } from "@/hooks/useToast";
+import { usePaged } from "@/hooks/usePaged";
+import Pagination from "@/components/Pagination";
 
 type SellerProfile = {
   id: string;
@@ -30,6 +32,7 @@ export default function AdminSellersPage() {
   const router = useRouter();
 
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
+  const { page, setPage, pageItems, pageCount } = usePaged(sellers, 10, sellers.length);
   const [fetching, setFetching] = useState(true);
   const [deleteModal, setDeleteModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
@@ -169,7 +172,7 @@ export default function AdminSellersPage() {
             </tr>
           </thead>
           <tbody>
-            {sellers.map((s) => (
+            {pageItems.map((s) => (
               <tr key={s.id}>
                 <td>
                   <div
@@ -239,8 +242,9 @@ export default function AdminSellersPage() {
             ))}
           </tbody>
         </table>
+        <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
-      
+
       {sellers.length === 0 && (
         <div className="card" style={{ padding: 28, textAlign: "center", marginTop: 15 }}>
           <p className="mono mute" style={{ fontSize: 13 }}>

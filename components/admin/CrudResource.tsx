@@ -5,6 +5,8 @@ import { useAuth, type Session } from '@/lib/auth'
 import Modal from '@/components/Modal'
 import { Select } from '@/components/Select'
 import { useToast } from '@/hooks/useToast'
+import { usePaged } from '@/hooks/usePaged'
+import Pagination from '@/components/Pagination'
 
 export type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'datetime' | 'select'
 
@@ -150,6 +152,7 @@ export default function CrudResource<T>({
   }
 
   const shown = filter ? items.filter(filter) : items
+  const { page, setPage, pageItems, pageCount } = usePaged(shown, 10, shown.length)
 
   return (
     <div>
@@ -175,7 +178,7 @@ export default function CrudResource<T>({
             </tr>
           </thead>
           <tbody>
-            {shown.map((item) => (
+            {pageItems.map((item) => (
               <tr key={getId(item)}>
                 {columns.map((c) => <td key={c.header}>{c.cell(item)}</td>)}
                 {(update || remove) && (
@@ -198,6 +201,7 @@ export default function CrudResource<T>({
         {loading && (
           <div className="mono mute" style={{ padding: 32, textAlign: 'center', fontSize: 13 }}>Cargando…</div>
         )}
+        <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
 
       <Modal open={editing !== null} title={editing === 'new' ? `Nuevo ${noun}` : `Editar ${noun}`} onClose={() => setEditing(null)} width={520}>
@@ -222,7 +226,7 @@ export default function CrudResource<T>({
                   {fl.label}
                 </label>
               ) : (
-                <input className="input" type={fl.type === 'number' ? 'number' : fl.type === 'datetime' ? 'datetime-local' : 'text'} step={fl.step} value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: e.target.value }))} />
+                <input className="input" type={fl.type === 'number' ? 'number' : fl.type === 'datetime' ? 'datetime-local' : 'text'} step={fl.step} value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: fl.type === 'number' ? e.target.value.replace(/^0+(?=\d)/, '') : e.target.value }))} />
               )}
             </div>
           ))}
