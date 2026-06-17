@@ -26,6 +26,8 @@ import {
   stripeImg,
 } from './mock-data'
 
+import { authFetch, type Session } from './auth'
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
 
@@ -238,6 +240,18 @@ export async function getProducts(): Promise<Product[]> {
   )
 }
 
+export async function getMyProducts(session: Session): Promise<Product[]> {
+  const [mineRes, variantsRes, imagesRes] = await Promise.all([
+    authFetch('/products/my', session).then((r) => r.json() as Promise<ApiResponse<BackendProduct[]>>),
+    apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
+    apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
+  ])
+
+  return mineRes.data.map((product) =>
+    mapProduct(product, variantsRes.data, imagesRes.data)
+  )
+}
+
 export async function getProduct(id: string): Promise<Product | undefined> {
   if (USE_MOCK) return PRODUCTS.find((product) => product.id === id)
 
@@ -291,6 +305,26 @@ export async function getBrandOptions(): Promise<BrandOption[]> {
     slug: brand.slug,
     logoUrl: brand.logoUrl,
   }))
+}
+
+export async function uploadProductImage(file: File, token: string): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE_URL}/product-images/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    })
+  } catch {
+    throw new Error('No se pudo conectar con el servidor (¿backend encendido?).')
+  }
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al subir la imagen (¿reiniciaste el backend?).`)
+  }
+  return json?.data?.url as string
 }
 
 export async function deleteProduct(id: string, token: string): Promise<void> {
