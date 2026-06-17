@@ -57,45 +57,18 @@ export function AdminSidebar() {
   )
 }
 
-export function SellerSidebar({
-  totalProducts = 0,
-  drafts = 0,
-  pendingAuth = 0,
-  soldOut = 0,
-  stockAlerts = 0,
-}: {
-  totalProducts?: number
-  drafts?: number
-  pendingAuth?: number
-  soldOut?: number
-  stockAlerts?: number
-}) {
+export function SellerSidebar() {
   return (
     <aside className="side">
       <div className="group">Resumen</div>
       <Item href="/seller/dashboard">Panel</Item>
-      <Item>Este mes</Item>
 
-      <div className="group">Mis piezas</div>
-      <Item>Todos los productos <span className="mono mute">{totalProducts}</span></Item>
-      <Item>Borradores <span className="mono mute">{drafts}</span></Item>
-      <Item>Autenticación pendiente <span className="mono" style={{ color: 'var(--accent-2)' }}>{pendingAuth}</span></Item>
-      <Item>Agotados <span className="mono" style={{ color: 'var(--danger)' }}>{soldOut}</span></Item>
-
-      <div className="group">Pedidos</div>
-      <Item>Por preparar <span className="mono" style={{ color: 'var(--accent-2)' }}>6</span></Item>
-      <Item>Enviados</Item>
-      <Item>Devoluciones <span className="mono" style={{ color: 'var(--accent-2)' }}>1</span></Item>
-
-      <div className="group">Marketing</div>
-      <Item>Promociones</Item>
-      <Item>Cupones</Item>
-      <Item>Alertas de stock <span className="mono" style={{ color: 'var(--danger)' }}>{stockAlerts}</span></Item>
+      <div className="group">Productos</div>
+      <Item href="/seller/products">Mis productos</Item>
 
       <div className="group">Cuenta</div>
-      <Item>Perfil de tienda</Item>
-      <Item>Pagos</Item>
-      <Item>Ajustes</Item>
+      <Item href="/seller/profile">Perfil de tienda</Item>
+      <Item href="/account/profile">Mi cuenta</Item>
     </aside>
   )
 }

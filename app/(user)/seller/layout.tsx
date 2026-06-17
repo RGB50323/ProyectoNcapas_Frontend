@@ -1,23 +1,26 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth'
 import { SellerSidebar } from '@/components/dash'
-import { getProducts } from '@/lib/api'
+import { PageLoader } from '@/components/PageLoader'
 
-export default async function SellerLayout({ children }: { children: React.ReactNode }) {
-  const products = await getProducts()
+export default function SellerLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const { session, loading } = useAuth()
 
-  const totalProducts = products.length
-  const soldOut = products.filter((p) => p.soldOut).length
-  const stockAlerts = products.filter((p) => p.lowStock > 0 || p.soldOut).length
-  const pendingAuth = products.filter((p) => p.auth === 'PENDING').length
+  useEffect(() => {
+    if (loading) return
+    if (!session) router.replace('/login')
+    else if (session.role !== 'SELLER') router.replace('/')
+  }, [loading, session, router])
+
+  if (loading || !session || session.role !== 'SELLER') return <PageLoader />
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <SellerSidebar
-        totalProducts={totalProducts}
-        soldOut={soldOut}
-        stockAlerts={stockAlerts}
-        pendingAuth={pendingAuth}
-        drafts={0}
-      />
+      <SellerSidebar />
       <div className="dash-main" style={{ flex: 1 }}>{children}</div>
     </div>
   )
