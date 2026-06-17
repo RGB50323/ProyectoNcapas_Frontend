@@ -4,6 +4,19 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BrandOption, Category, Product, ProductImage, Variant } from '@/lib/types'
 import { useAuth } from '@/lib/auth'
+import { uploadProductImage } from '@/lib/api'
+import { Select } from '@/components/Select'
+import ImageDropzone from '@/components/ImageDropzone'
+import ColorPicker from '@/components/ColorPicker'
+import NumberField from '@/components/NumberField'
+
+const MAX_IMAGE_MB = 5
+const CONDITIONS = [
+  { value: 'NEW', label: 'Nuevo' },
+  { value: 'LIKE_NEW', label: 'Como nuevo' },
+  { value: 'USED', label: 'Usado' },
+  { value: 'REFURBISHED', label: 'Reacondicionado' },
+]
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
@@ -151,6 +164,9 @@ export default function EditProductClient({
 
   const [deletedVariantIds, setDeletedVariantIds] = useState<string[]>([])
 
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [uploadError, setUploadError] = useState('')
+
   const [images, setImages] = useState<ProductImage[]>(
   (product.productImages ?? []).map((image) => ({ ...image }))
 )
@@ -214,6 +230,23 @@ const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
         : image
     )
   )
+}
+
+async function handleFile(index: number, file: File | undefined) {
+  if (!file) return
+  if (!file.type.startsWith('image/')) { setUploadError('Solo se permiten imágenes.'); return }
+  if (file.size > MAX_IMAGE_MB * 1024 * 1024) { setUploadError(`La imagen supera ${MAX_IMAGE_MB} MB.`); return }
+  if (!session?.accessToken) { setUploadError('Inicia sesión para subir imágenes.'); return }
+  setUploadError('')
+  setUploadingIndex(index)
+  try {
+    const url = await uploadProductImage(file, session.accessToken)
+    updateImage(index, 'url', url)
+  } catch (err) {
+    setUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen.')
+  } finally {
+    setUploadingIndex(null)
+  }
 }
 
 function addImage() {
@@ -407,7 +440,7 @@ return (
 
               <label>
                 <div className="label">Precio</div>
-                <input className="input" type="number" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} />
+                <input className="input" type="number" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value.replace(/^0+(?=\d)/, ''))} />
               </label>
 
               <label>
@@ -420,40 +453,23 @@ return (
                 />
               </label>
 
-              <label>
+              <div>
                 <div className="label">Categoría</div>
-                <select className="select" value={form.categoryId} onChange={(e) => update('categoryId', e.target.value)}>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <Select value={form.categoryId} onChange={(v) => update('categoryId', v)} width="100%" ariaLabel="Categoría" placeholder="Selecciona categoría" options={categories.map((c) => ({ value: c.id, label: c.name }))} />
+              </div>
 
-              <label>
+              <div>
                 <div className="label">Marca</div>
-                <select className="select" value={form.brandId} onChange={(e) => update('brandId', e.target.value)}>
-                  {brandOptions.map((brand) => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <Select value={form.brandId} onChange={(v) => update('brandId', v)} width="100%" ariaLabel="Marca" placeholder="Selecciona marca" options={brandOptions.map((b) => ({ value: b.id, label: b.name }))} />
+              </div>
 
-              <label>
+              <div>
                 <div className="label">Condición</div>
-                <select className="select" value={form.condition} onChange={(e) => update('condition', e.target.value as typeof form.condition)}>
-                  <option value="NEW">Nuevo</option>
-                  <option value="LIKE_NEW">Como nuevo</option>
-                  <option value="USED">Usado</option>
-                  <option value="REFURBISHED">Reacondicionado</option>
-                </select>
-              </label>
+                <Select value={form.condition} onChange={(v) => update('condition', v as typeof form.condition)} width="100%" ariaLabel="Condición" options={CONDITIONS} />
+              </div>
               <label>
                 <div className="label">Stock total</div>
-                <input className="input" type="number" min={0} value={form.totalStock} onChange={(e) => update('totalStock', e.target.value)} />
+                <input className="input" type="number" min={0} value={form.totalStock} onChange={(e) => update('totalStock', e.target.value.replace(/^0+(?=\d)/, ''))} />
               </label>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
@@ -525,33 +541,24 @@ return (
 
                     <label>
                       <div className="label">HEX</div>
-                      <input
-                        className="input"
-                        value={variant.colorHex}
-                        onChange={(e) => updateVariant(index, 'colorHex', e.target.value)}
-                      />
+                      <div className="hexfield">
+                        <ColorPicker value={variant.colorHex} onChange={(hex) => updateVariant(index, 'colorHex', hex)} />
+                        <input
+                          className="input"
+                          value={variant.colorHex}
+                          onChange={(e) => updateVariant(index, 'colorHex', e.target.value)}
+                        />
+                      </div>
                     </label>
 
                     <label>
                       <div className="label">Stock</div>
-                      <input
-                        className="input"
-                        type="number"
-                        min={0}
-                        value={variant.stock}
-                        onChange={(e) => updateVariant(index, 'stock', Number(e.target.value))}
-                      />
+                      <NumberField min={0} value={variant.stock} onChange={(n) => updateVariant(index, 'stock', n)} />
                     </label>
 
                     <label>
                       <div className="label">Price delta</div>
-                      <input
-                        className="input"
-                        type="number"
-                        step="0.01"
-                        value={variant.priceDelta}
-                        onChange={(e) => updateVariant(index, 'priceDelta', Number(e.target.value))}
-                      />
+                      <NumberField float step="0.01" value={variant.priceDelta} onChange={(n) => updateVariant(index, 'priceDelta', n)} />
                     </label>
                     <button
                     className="btn btn-ghost"
@@ -593,42 +600,21 @@ return (
                   key={image.id}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '80px 1fr',
-                    gap: 12,
+                    gridTemplateColumns: '170px 1fr',
+                    gap: 16,
                     border: '1px solid var(--border)',
                     padding: 12,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 80,
-                      height: 80,
-                      border: '1px solid var(--border)',
-                      overflow: 'hidden',
-                      background: 'var(--card)',
-                    }}
-                  >
-                    <img
-                      src={image.url || '/placeholder.svg'}
-                      alt={image.altText || form.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
+                  <ImageDropzone
+                    value={image.url}
+                    uploading={uploadingIndex === index}
+                    alt={image.altText || form.name}
+                    maxMb={MAX_IMAGE_MB}
+                    onFile={(f) => handleFile(index, f)}
+                  />
 
                   <div style={{ display: 'grid', gap: 10 }}>
-                    <label>
-                      <div className="label">URL</div>
-                      <input
-                        className="input"
-                        value={image.url}
-                        onChange={(e) => updateImage(index, 'url', e.target.value)}
-                      />
-                    </label>
-
                     <label>
                       <div className="label">Texto alternativo</div>
                       <input
@@ -641,12 +627,10 @@ return (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
                       <label>
                         <div className="label">Orden</div>
-                        <input
-                          className="input"
-                          type="number"
+                        <NumberField
                           min={0}
                           value={image.sortOrder}
-                          onChange={(e) => updateImage(index, 'sortOrder', Number(e.target.value))}
+                          onChange={(n) => updateImage(index, 'sortOrder', n)}
                         />
                       </label>
 
@@ -668,6 +652,7 @@ return (
                   </div>
                 </div>
               ))}
+              {uploadError && <div className="mono" style={{ color: 'var(--danger)', fontSize: 12 }}>{uploadError}</div>}
             </div>
           </div>
         )}
@@ -723,27 +708,28 @@ return (
           </div>
         )}
 
-        {status === 'error' && (
-          <div className="card" style={{ padding: 16, borderColor: 'var(--danger)', color: 'var(--danger)' }}>
-            {error}
-          </div>
-        )}
-
-        {status === 'success' && (
-          <div className="card" style={{ padding: 16, borderColor: 'var(--ok)', color: 'var(--ok)' }}>
-            Cambios guardados correctamente. Volviendo al panel...
-          </div>
-        )}
 <div
   style={{
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
     marginTop: 0,
     paddingTop: 0,
   }}
 >
+  <span
+    className="mono"
+    style={{
+      fontSize: 12,
+      letterSpacing: '0.04em',
+      color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
+      visibility: status === 'error' || status === 'success' ? 'visible' : 'hidden',
+    }}
+  >
+    {status === 'error' ? error : 'Cambios guardados ✓'}
+  </span>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
   <button
     type="button"
     className="btn btn-ghost"
@@ -776,6 +762,7 @@ return (
         ? 'Guardar stock'
         : 'Guardar cambios'}
   </button>
+  </div>
 </div>
       </div>
     </div>
