@@ -9,6 +9,8 @@ export type OrderStatus =
   | 'NEW' | 'PAID' | 'PREPARING' | 'SHIPPED' | 'DELIVERED'
   | 'RETURN_REQUESTED' | 'REFUNDED' | 'CANCELLED'
 
+export type VerificationStageStatus = 'PENDING' | 'PASSED' | 'FAILED'
+
 export interface ProductColor {
   name: string
   hex: string
@@ -156,4 +158,20 @@ export interface BrandOption {
   name: string
   slug: string
   logoUrl: string
+}
+
+export interface Verification {
+  id: string
+  productId: string
+  productName: string
+  verifiedById: string
+  verifiedByFirstName: string
+  verifiedByLastName: string
+  materialCheck: VerificationStageStatus
+  constructionCheck: VerificationStageStatus
+  factoryCodeCheck: VerificationStageStatus
+  finalInspection: VerificationStageStatus
+  notes: string | null
+  verifiedAt: string | null
+  createdAt: string
 }
