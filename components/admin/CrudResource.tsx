@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { useAuth, type Session } from '@/lib/auth'
 import Modal from '@/components/Modal'
 import { Select } from '@/components/Select'
@@ -35,8 +36,11 @@ interface Props<T> {
   fields: Field[]
   load: (s: Session) => Promise<T[]>
   create?: (s: Session, body: any) => Promise<unknown>
+  createHref?: string
   update?: (s: Session, id: string, body: any) => Promise<unknown>
+  editHref?: (item: T) => string
   remove?: (s: Session, id: string) => Promise<unknown>
+  removeDisabledReason?: (item: T) => string | null
   toForm?: (item: T) => Record<string, any>
   toBody?: (form: Record<string, any>) => any
   rowLabel?: (item: T) => string
@@ -84,7 +88,7 @@ function defaultToBody(form: Record<string, any>, fields: Field[]): any {
 
 export default function CrudResource<T>({
   title, eyebrow, noun, getId, columns, fields,
-  load, create, update, remove, toForm, toBody, rowLabel, filter, extraHeader, toolbar,
+  load, create, createHref, update, editHref, remove, removeDisabledReason, toForm, toBody, rowLabel, filter, extraHeader, toolbar,
 }: Props<T>) {
   const { session } = useAuth()
   const { show, ToastContainer } = useToast()
@@ -138,6 +142,12 @@ export default function CrudResource<T>({
 
   async function confirmDelete() {
     if (!session || !toDelete) return
+    const blocked = removeDisabledReason?.(toDelete)
+    if (blocked) {
+      show(blocked, 'error')
+      setToDelete(null)
+      return
+    }
     setDeleting(true)
     try {
       await remove!(session, getId(toDelete))
@@ -165,7 +175,11 @@ export default function CrudResource<T>({
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {toolbar}
-          {create && <button className="btn" onClick={openNew}>+ Nuevo</button>}
+          {createHref ? (
+            <Link className="btn" href={createHref}>+ Nuevo</Link>
+          ) : create ? (
+            <button className="btn" onClick={openNew}>+ Nuevo</button>
+          ) : null}
         </div>
       </div>
 
@@ -184,11 +198,36 @@ export default function CrudResource<T>({
                 {(update || remove) && (
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {update && (
-                      <button className="mono accent" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => openEdit(item)}>EDITAR</button>
+                      editHref ? (
+                        <Link className="mono accent" style={{ fontSize: 11 }} href={editHref(item)}>EDITAR</Link>
+                      ) : (
+                        <button className="mono accent" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => openEdit(item)}>EDITAR</button>
+                      )
                     )}
-                    {remove && (
-                      <button className="mono" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', marginLeft: 16 }} onClick={() => setToDelete(item)}>ELIMINAR</button>
-                    )}
+                    {remove && (() => {
+                      const blocked = removeDisabledReason?.(item)
+
+                      return (
+                        <button
+                          className="mono"
+                          title={blocked ?? undefined}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: blocked ? 'not-allowed' : 'pointer',
+                            color: blocked ? 'var(--text-mute)' : 'var(--danger)',
+                            marginLeft: 16,
+                            opacity: blocked ? 0.65 : 1,
+                          }}
+                          onClick={() => {
+                            if (blocked) { show(blocked, 'error'); return }
+                            setToDelete(item)
+                          }}
+                        >
+                          ELIMINAR
+                        </button>
+                      )
+                    })()}
                   </td>
                 )}
               </tr>

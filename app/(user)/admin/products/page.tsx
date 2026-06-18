@@ -16,12 +16,51 @@ const CONDITIONS = [
   { value: 'REFURBISHED', label: 'Reacondicionado' },
 ]
 
+const AUTH_OPTIONS = [
+  { value: '', label: 'Toda autenticación' },
+  { value: 'NOT_SUBMITTED', label: 'Sin enviar' },
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'AUTHENTICATED', label: 'Autenticado' },
+  { value: 'REJECTED', label: 'Rechazado' },
+]
+
+const STOCK_OPTIONS = [
+  { value: '', label: 'Todo stock' },
+  { value: 'available', label: 'Disponible' },
+  { value: 'low', label: 'Bajo stock' },
+  { value: 'sold-out', label: 'Agotado' },
+]
+
+const AUTH_LABELS: Record<string, string> = {
+  NOT_SUBMITTED: 'SIN ENVIAR',
+  PENDING: 'PENDIENTE',
+  AUTHENTICATED: 'AUTENTICADO',
+  REJECTED: 'RECHAZADO',
+}
+
+function authPill(auth: string) {
+  if (auth === 'AUTHENTICATED') return 'pill green'
+  if (auth === 'PENDING') return 'pill yellow'
+  if (auth === 'REJECTED') return 'pill red'
+  return 'pill'
+}
+
+function stockMatches(product: Product, filter: string) {
+  if (filter === 'available') return product.totalStock > 0
+  if (filter === 'low') return product.lowStock > 0
+  if (filter === 'sold-out') return product.soldOut
+  return true
+}
+
 export default function AdminProductsPage() {
   const { session } = useAuth()
   const params = useSearchParams()
-  const categoryFilter = params.get('category') ?? ''
 
+  const [query, setQuery] = useState('')
   const [sellerFilter, setSellerFilter] = useState(params.get('seller') ?? '')
+  const [categoryFilter, setCategoryFilter] = useState(params.get('category') ?? '')
+  const [authFilter, setAuthFilter] = useState(params.get('auth') ?? '')
+  const [stockFilter, setStockFilter] = useState('')
   const [sellers, setSellers] = useState<AdminSeller[]>([])
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [brands, setBrands] = useState<AdminBrand[]>([])
@@ -33,7 +72,8 @@ export default function AdminProductsPage() {
     admin.listBrands(session).then(setBrands).catch(() => {})
   }, [session])
 
-  const storeName = (sellerId?: string) => sellers.find((s) => s.id === sellerId)?.storeName ?? '—'
+  const storeName = (sellerId?: string) => sellers.find((s) => s.id === sellerId)?.storeName ?? '-'
+  const categoryName = (categoryId?: string) => categories.find((c) => c.id === categoryId)?.name ?? '-'
 
   return (
     <CrudResource<Product>
@@ -44,27 +84,69 @@ export default function AdminProductsPage() {
       rowLabel={(p) => p.name}
       load={getProducts}
       create={admin.createProduct}
+      createHref="/admin/products/new"
       update={admin.updateProduct}
+      editHref={(p) => `/admin/products/${p.id}/edit`}
       remove={(s, id) => deleteProduct(id, s.accessToken)}
-      filter={(p) =>
-        (!sellerFilter || p.sellerId === sellerFilter) &&
-        (!categoryFilter || p.category === categoryFilter)
-      }
+      filter={(p) => {
+        const q = query.trim().toLowerCase()
+        const seller = storeName(p.sellerId)
+        const category = categoryName(p.categoryId ?? p.category)
+        const haystack = `${p.name} ${p.sku} ${p.brand} ${seller} ${category}`.toLowerCase()
+
+        return (
+          (!q || haystack.includes(q)) &&
+          (!sellerFilter || p.sellerId === sellerFilter) &&
+          (!categoryFilter || p.category === categoryFilter || p.categoryId === categoryFilter) &&
+          (!authFilter || p.auth === authFilter) &&
+          stockMatches(p, stockFilter)
+        )
+      }}
       toolbar={
-        <Select
-          value={sellerFilter}
-          onChange={setSellerFilter}
-          width={220}
-          ariaLabel="Filtrar por tienda"
-          options={[{ value: '', label: 'Todas las tiendas' }, ...sellers.map((s) => ({ value: s.id, label: s.storeName }))]}
-        />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            className="input"
+            placeholder="Buscar producto, SKU, marca o tienda..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ width: 280 }}
+          />
+          <Select
+            value={sellerFilter}
+            onChange={setSellerFilter}
+            width={210}
+            ariaLabel="Filtrar por tienda"
+            options={[{ value: '', label: 'Todas las tiendas' }, ...sellers.map((s) => ({ value: s.id, label: s.storeName }))]}
+          />
+          <Select
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            width={190}
+            ariaLabel="Filtrar por categoría"
+            options={[{ value: '', label: 'Todas las categorías' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+          />
+          <Select
+            value={authFilter}
+            onChange={setAuthFilter}
+            width={190}
+            ariaLabel="Filtrar por autenticación"
+            options={AUTH_OPTIONS}
+          />
+          <Select
+            value={stockFilter}
+            onChange={setStockFilter}
+            width={160}
+            ariaLabel="Filtrar por stock"
+            options={STOCK_OPTIONS}
+          />
+        </div>
       }
       columns={[
         {
           header: 'Producto',
           cell: (p) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <img src={p.images[0]} alt={p.name} style={{ width: 36, height: 36, objectFit: 'cover', border: '1px solid var(--border)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 220 }}>
+              <img src={p.images[0]} alt={p.name} style={{ width: 40, height: 40, objectFit: 'cover', border: '1px solid var(--border)' }} />
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 13 }}>{p.name}</div>
                 <div className="mono mute">{p.brand}</div>
@@ -74,8 +156,22 @@ export default function AdminProductsPage() {
         },
         { header: 'Tienda', cell: (p) => <span className="mono mute">{storeName(p.sellerId)}</span> },
         { header: 'SKU', cell: (p) => <span className="mono mute">{p.sku}</span> },
+        { header: 'Categoría', cell: (p) => <span className="mono mute">{categoryName(p.categoryId ?? p.category)}</span> },
         { header: 'Precio', cell: (p) => <span className="mono">${p.price}</span> },
-        { header: 'Stock', cell: (p) => <span className="mono">{p.totalStock}</span> },
+        {
+          header: 'Stock',
+          cell: (p) => (
+            p.soldOut
+              ? <span className="pill red">AGOTADO</span>
+              : p.lowStock > 0
+                ? <span className="pill yellow">BAJO · {p.totalStock}</span>
+                : <span className="pill green">{p.totalStock}</span>
+          ),
+        },
+        {
+          header: 'Autenticación',
+          cell: (p) => <span className={authPill(p.auth)}>{AUTH_LABELS[p.auth] ?? p.auth}</span>,
+        },
       ]}
       toForm={(p) => ({
         sellerId: p.sellerId ?? '',

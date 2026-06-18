@@ -41,6 +41,12 @@ type ApiResponse<T> = {
   uri: string
 }
 
+type WriteMethod = 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+
+export type ProductBody = Record<string, unknown>
+export type ProductVariantBody = Record<string, unknown>
+export type ProductImageBody = Record<string, unknown>
+
 type BackendProduct = {
   id: string
   sellerId: string
@@ -107,6 +113,13 @@ type BackendImage = {
   sortOrder: number
 }
 
+type BackendProductBadge = {
+  id: string
+  productId: string
+  productName: string
+  label: string
+}
+
 async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     cache: 'no-store',
@@ -117,6 +130,48 @@ async function apiGet<T>(path: string): Promise<T> {
   }
 
   return res.json() as Promise<T>
+}
+
+async function getProductBadgesOptional(): Promise<BackendProductBadge[]> {
+  try {
+    const response = await apiGet<ApiResponse<BackendProductBadge[]>>('/product-badges/')
+    return response.data
+  } catch {
+    return []
+  }
+}
+
+async function apiWrite<T>(
+  path: string,
+  token: string,
+  method: WriteMethod,
+  body?: Record<string, unknown>
+): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: {
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      Authorization: `Bearer ${token}`,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  const json = await res.json().catch(() => null)
+
+  if (!res.ok) {
+    const message =
+      json?.message ||
+      json?.error ||
+      `Error ${res.status} al procesar la solicitud`
+
+    throw new Error(
+      typeof message === 'string'
+        ? message
+        : Object.values(message).join('. ')
+    )
+  }
+
+  return json?.data as T
 }
 
 function mapAuthStatus(authStatus: string): AuthStatus {
@@ -131,7 +186,8 @@ function mapAuthStatus(authStatus: string): AuthStatus {
 function mapProduct(
   product: BackendProduct,
   allVariants: BackendVariant[],
-  allImages: BackendImage[]
+  allImages: BackendImage[],
+  allBadges: BackendProductBadge[] = []
 ): Product {
   const productVariants = allVariants.filter(
     (variant) => variant.productId === product.id
@@ -168,12 +224,23 @@ function mapProduct(
   )
 
   const badges: string[] = []
+  const addBadge = (label?: string) => {
+    const clean = label?.trim()
+    if (!clean) return
+    if (!badges.some((badge) => badge.toLowerCase() === clean.toLowerCase())) {
+      badges.push(clean)
+    }
+  }
 
-  if (product.featured) badges.push('Destacado')
-  if (product.newProduct) badges.push('Nuevo')
-  if (product.limited) badges.push('Limitado')
-  if (product.privateDrop) badges.push('Drop privado')
-  if (product.authStatus === 'AUTHENTICATED') badges.push('Verificado')
+  if (product.featured) addBadge('Destacado')
+  if (product.newProduct) addBadge('Nuevo')
+  if (product.limited) addBadge('Limitado')
+  if (product.privateDrop) addBadge('Drop privado')
+  if (product.authStatus === 'AUTHENTICATED') addBadge('Verificado')
+
+  allBadges
+    .filter((badge) => badge.productId === product.id)
+    .forEach((badge) => addBadge(badge.label))
 
   const calculatedTotalStock = variants.reduce(
     (sum, variant) => sum + variant.stock,
@@ -229,26 +296,28 @@ function mapProduct(
 export async function getProducts(): Promise<Product[]> {
   if (USE_MOCK) return PRODUCTS
 
-  const [productsRes, variantsRes, imagesRes] = await Promise.all([
+  const [productsRes, variantsRes, imagesRes, productBadges] = await Promise.all([
     apiGet<ApiResponse<BackendProduct[]>>('/products/'),
     apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
     apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
+    getProductBadgesOptional(),
   ])
 
   return productsRes.data.map((product) =>
-    mapProduct(product, variantsRes.data, imagesRes.data)
+    mapProduct(product, variantsRes.data, imagesRes.data, productBadges)
   )
 }
 
 export async function getMyProducts(session: Session): Promise<Product[]> {
-  const [mineRes, variantsRes, imagesRes] = await Promise.all([
+  const [mineRes, variantsRes, imagesRes, productBadges] = await Promise.all([
     authFetch('/products/my', session).then((r) => r.json() as Promise<ApiResponse<BackendProduct[]>>),
     apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
     apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
+    getProductBadgesOptional(),
   ])
 
   return mineRes.data.map((product) =>
-    mapProduct(product, variantsRes.data, imagesRes.data)
+    mapProduct(product, variantsRes.data, imagesRes.data, productBadges)
   )
 }
 
@@ -262,8 +331,21 @@ export async function getProduct(id: string): Promise<Product | undefined> {
   )
 }
 
-export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
+export async function getPublicProducts(): Promise<Product[]> {
   const products = await getProducts()
+  return products.filter((product) => product.auth === 'AUTHENTICATED')
+}
+
+export async function getPublicProduct(id: string): Promise<Product | undefined> {
+  const products = await getPublicProducts()
+
+  return products.find(
+    (product) => product.id === id || product.sku === id
+  )
+}
+
+export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
+  const products = await getPublicProducts()
   return products.filter((product) => product.category === categoryId)
 }
 
@@ -325,6 +407,38 @@ export async function uploadProductImage(file: File, token: string): Promise<str
     throw new Error(json?.message || json?.error || `Error ${res.status} al subir la imagen (¿reiniciaste el backend?).`)
   }
   return json?.data?.url as string
+}
+
+export async function createProduct(body: ProductBody, token: string): Promise<{ id: string }> {
+  return apiWrite('/products/create', token, 'POST', body)
+}
+
+export async function patchProduct(id: string, body: ProductBody, token: string): Promise<unknown> {
+  return apiWrite(`/products/patch/${id}`, token, 'PATCH', body)
+}
+
+export async function createProductVariant(body: ProductVariantBody, token: string): Promise<unknown> {
+  return apiWrite('/product-variants/create', token, 'POST', body)
+}
+
+export async function patchProductVariant(id: string, body: ProductVariantBody, token: string): Promise<unknown> {
+  return apiWrite(`/product-variants/patch/${id}`, token, 'PATCH', body)
+}
+
+export async function deleteProductVariant(id: string, token: string): Promise<unknown> {
+  return apiWrite(`/product-variants/${id}`, token, 'DELETE')
+}
+
+export async function createProductImage(body: ProductImageBody, token: string): Promise<unknown> {
+  return apiWrite('/product-images/create', token, 'POST', body)
+}
+
+export async function patchProductImage(id: string, body: ProductImageBody, token: string): Promise<unknown> {
+  return apiWrite(`/product-images/patch/${id}`, token, 'PATCH', body)
+}
+
+export async function deleteProductImage(id: string, token: string): Promise<unknown> {
+  return apiWrite(`/product-images/${id}`, token, 'DELETE')
 }
 
 export async function deleteProduct(id: string, token: string): Promise<void> {

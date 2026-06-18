@@ -4,7 +4,16 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BrandOption, Category, Product, ProductImage, Variant } from '@/lib/types'
 import { useAuth } from '@/lib/auth'
-import { uploadProductImage } from '@/lib/api'
+import {
+  createProductImage,
+  createProductVariant,
+  deleteProductImage,
+  deleteProductVariant,
+  patchProduct,
+  patchProductImage,
+  patchProductVariant,
+  uploadProductImage,
+} from '@/lib/api'
 import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
 import ColorPicker from '@/components/ColorPicker'
@@ -18,9 +27,6 @@ const CONDITIONS = [
   { value: 'REFURBISHED', label: 'Reacondicionado' },
 ]
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
-
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
 
 function slugify(value: string) {
@@ -31,95 +37,6 @@ function slugify(value: string) {
     .replace(/\s+/g, '-')
 }
 
-async function patchJson(
-  path: string,
-  token: string,
-  body: Record<string, unknown>
-) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  })
-
-  const json = await res.json().catch(() => null)
-
-  if (!res.ok) {
-    const message =
-      json?.message ||
-      json?.error ||
-      `Error ${res.status} al guardar cambios`
-
-    throw new Error(
-      typeof message === 'string'
-        ? message
-        : Object.values(message).join('. ')
-    )
-  }
-
-  return json
-}
-
-async function postJson(
-  path: string,
-  token: string,
-  body: Record<string, unknown>
-) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  })
-
-  const json = await res.json().catch(() => null)
-
-  if (!res.ok) {
-    const message =
-      json?.message ||
-      json?.error ||
-      `Error ${res.status} al crear registro`
-
-    throw new Error(
-      typeof message === 'string'
-        ? message
-        : Object.values(message).join('. ')
-    )
-  }
-
-  return json
-}
-
-async function deleteJson(path: string, token: string) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  const json = await res.json().catch(() => null)
-
-  if (!res.ok) {
-    const message =
-      json?.message ||
-      json?.error ||
-      `Error ${res.status} al eliminar registro`
-
-    throw new Error(
-      typeof message === 'string'
-        ? message
-        : Object.values(message).join('. ')
-    )
-  }
-
-  return json
-}
 
 
 
@@ -149,12 +66,6 @@ export default function EditProductClient({
     categoryId: product.categoryId ?? product.category,
     brandId: product.brandId ?? '',
     condition: product.condition,
-    authStatus:product.auth,
-    featured: product.featured,
-    newProduct: product.isNew,
-    limited: product.limited,
-    privateDrop: product.privateDrop,
-    totalStock: String(product.totalStock),
     imageUrl: product.images[0] ?? '',
   })
 
@@ -298,9 +209,8 @@ async function handleSave() {
 
   try {
     if (!isStockMode) {
-      await patchJson(
-        `/products/patch/${product.id}`,
-        session.accessToken,
+      await patchProduct(
+        product.id,
         {
           categoryId: form.categoryId,
           brandId: form.brandId,
@@ -310,18 +220,13 @@ async function handleSave() {
           description: form.description,
           price: Number(form.price),
           condition: form.condition,
-          authStatus: form.authStatus,
-          featured: form.featured,
-          newProduct: form.newProduct,
-          limited: form.limited,
-          privateDrop: form.privateDrop,
-          totalStock: Number(form.totalStock),
-        }
+        },
+        session.accessToken
       )
 
       await Promise.all(
         Array.from(new Set(deletedImageIds)).map((imageId) =>
-          deleteJson(`/product-images/${imageId}`, session.accessToken)
+          deleteProductImage(imageId, session.accessToken)
         )
       )
 
@@ -338,29 +243,17 @@ async function handleSave() {
             }
 
             if (image.id.startsWith('new-')) {
-              return postJson('/product-images/create', session.accessToken, body)
+              return createProductImage(body, session.accessToken)
             }
 
-            return patchJson(
-              `/product-images/patch/${image.id}`,
-              session.accessToken,
-              body
-            )
+            return patchProductImage(image.id, body, session.accessToken)
           })
-      )
-    } else {
-      await patchJson(
-        `/products/patch/${product.id}`,
-        session.accessToken,
-        {
-          totalStock: Number(form.totalStock),
-        }
       )
     }
 
 await Promise.all(
   Array.from(new Set(deletedVariantIds)).map((variantId) =>
-    deleteJson(`/product-variants/${variantId}`, session.accessToken)
+    deleteProductVariant(variantId, session.accessToken)
   )
 )
 
@@ -379,14 +272,10 @@ await Promise.all(
       }
 
       if (variant.id?.startsWith('new-')) {
-        return postJson('/product-variants/create', session.accessToken, body)
+        return createProductVariant(body, session.accessToken)
       }
 
-      return patchJson(
-        `/product-variants/patch/${variant.id}`,
-        session.accessToken,
-        body
-      )
+      return patchProductVariant(variant.id!, body, session.accessToken)
     })
 )
 
@@ -466,25 +355,6 @@ return (
               <div>
                 <div className="label">Condición</div>
                 <Select value={form.condition} onChange={(v) => update('condition', v as typeof form.condition)} width="100%" ariaLabel="Condición" options={CONDITIONS} />
-              </div>
-              <label>
-                <div className="label">Stock total</div>
-                <input className="input" type="number" min={0} value={form.totalStock} onChange={(e) => update('totalStock', e.target.value.replace(/^0+(?=\d)/, ''))} />
-              </label>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                <label className="mono">
-                  <input type="checkbox" checked={form.featured} onChange={(e) => update('featured', e.target.checked)} /> Destacado
-                </label>
-                <label className="mono">
-                  <input type="checkbox" checked={form.newProduct} onChange={(e) => update('newProduct', e.target.checked)} /> Nuevo
-                </label>
-                <label className="mono">
-                  <input type="checkbox" checked={form.limited} onChange={(e) => update('limited', e.target.checked)} /> Limitado
-                </label>
-                <label className="mono">
-                  <input type="checkbox" checked={form.privateDrop} onChange={(e) => update('privateDrop', e.target.checked)} /> Drop privado
-                </label>
               </div>
             </div>
           </div>
@@ -575,7 +445,7 @@ return (
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: 24 }}>
+      <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
         {!isStockMode && (
           <div className="card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -657,6 +527,30 @@ return (
           </div>
         )}
 
+        {!isStockMode && (
+          <div style={{ display: 'grid', justifyItems: 'end', gap: 10 }}>
+            {(status === 'error' || status === 'success') && (
+              <span
+                className="mono"
+                style={{
+                  fontSize: 12,
+                  letterSpacing: '0.04em',
+                  color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
+                  textAlign: 'right',
+                }}
+              >
+                {status === 'error' ? error : 'Cambios guardados'}
+              </span>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>Cancelar</button>
+              <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+                {status === 'saving' ? 'Guardando...' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {isStockMode && (
           <div className="card" style={{ padding: 24 }}>
             <div className="display" style={{ fontSize: 20, marginBottom: 20 }}>
@@ -708,64 +602,32 @@ return (
           </div>
         )}
 
-<div
-  style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 0,
-    paddingTop: 0,
-  }}
->
-  <span
-    className="mono"
-    style={{
-      fontSize: 12,
-      letterSpacing: '0.04em',
-      color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
-      visibility: status === 'error' || status === 'success' ? 'visible' : 'hidden',
-    }}
-  >
-    {status === 'error' ? error : 'Cambios guardados ✓'}
-  </span>
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-  <button
-    type="button"
-    className="btn btn-ghost"
-    onClick={() => router.push('/seller/dashboard')}
-    disabled={status === 'saving'}
-    style={{
-      height: 44,
-      padding: '0 22px',
-      width: 'auto',
-    }}
-  >
-    Cancelar
-  </button>
-
-  <button
-    type="button"
-    className="btn"
-    onClick={handleSave}
-    disabled={status === 'saving'}
-    style={{
-      height: 44,
-      padding: '0 28px',
-      width: 'auto',
-      minWidth: 180,
-    }}
-  >
-    {status === 'saving'
-      ? 'Guardando...'
-      : isStockMode
-        ? 'Guardar stock'
-        : 'Guardar cambios'}
-  </button>
-  </div>
-</div>
+        {isStockMode && (
+          <div style={{ display: 'grid', justifyItems: 'end', gap: 10 }}>
+            {(status === 'error' || status === 'success') && (
+              <span
+                className="mono"
+                style={{
+                  fontSize: 12,
+                  letterSpacing: '0.04em',
+                  color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
+                  textAlign: 'right',
+                }}
+              >
+                {status === 'error' ? error : 'Cambios guardados'}
+              </span>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>Cancelar</button>
+              <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+                {status === 'saving' ? 'Guardando...' : 'Guardar stock'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+
   </div>
 )
 }

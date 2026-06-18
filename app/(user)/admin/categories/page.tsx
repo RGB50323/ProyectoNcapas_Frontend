@@ -15,6 +15,9 @@ export default function AdminCategoriesPage() {
       create={admin.createCategory}
       update={admin.updateCategory}
       remove={admin.deleteCategory}
+      removeDisabledReason={(c) =>
+        c.units > 0 ? `No se puede eliminar esta categoría porque tiene ${c.units} producto${c.units === 1 ? '' : 's'} asociado${c.units === 1 ? '' : 's'}.` : null
+      }
       columns={[
         { header: 'Nombre', cell: (c) => c.name },
         { header: 'Productos', cell: (c) => <span className="mono">{c.units}</span> },

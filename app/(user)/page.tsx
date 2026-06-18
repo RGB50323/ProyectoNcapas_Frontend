@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getProducts } from '@/lib/api'
+import { getPublicProducts } from '@/lib/api'
 import { stripeImg } from '@/lib/mock-data'
 import type { Product } from '@/lib/types'
 import { Icon } from '@/components/Icon'
@@ -134,7 +134,7 @@ function EditorialBlock() {
 
 /* ─── Page ─── */
 export default async function HomePage() {
-  const products = await getProducts()
+  const products = await getPublicProducts()
 
   const slides: HeroSlide[] = [
     {

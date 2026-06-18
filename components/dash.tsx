@@ -45,6 +45,7 @@ export function AdminSidebar() {
       <Item href="/admin/products">Productos</Item>
       <Item href="/admin/categories">Categorías</Item>
       <Item href="/admin/brands">Marcas</Item>
+      <Item href="/admin/badges">Etiquetas</Item>
 
       <div className="group">Ventas</div>
       <Item href="/admin/shipping">Métodos de envío</Item>
@@ -52,6 +53,7 @@ export function AdminSidebar() {
       <Item href="/admin/drops">Drops</Item>
 
       <div className="group">Operaciones</div>
+      <Item href="/admin/auth-alerts">Alertas</Item>
       <Item href="/admin/orders">Pedidos</Item>
     </aside>
   )

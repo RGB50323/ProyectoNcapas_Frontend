@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getProducts, getCategories } from '@/lib/api'
+import { getPublicProducts, getCategories } from '@/lib/api'
 import type { Product } from '@/lib/types'
 
 const CONDITION_LABEL: Record<string, string> = {
@@ -10,7 +10,7 @@ const CONDITION_LABEL: Record<string, string> = {
 }
 
 export default async function ComparePage() {
-  const [all, categories] = await Promise.all([getProducts(), getCategories()])
+  const [all, categories] = await Promise.all([getPublicProducts(), getCategories()])
   const products = [all[0], all[1], all[3], all[12]].filter(Boolean) as Product[]
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? id
 

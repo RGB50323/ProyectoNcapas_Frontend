@@ -74,6 +74,13 @@ export interface AdminDrop {
   active: boolean
 }
 
+export interface AdminProductBadge {
+  id: string
+  productId: string
+  productName: string
+  label: string
+}
+
 export interface AdminOrder {
   id: string
   customerId: string
@@ -187,4 +194,9 @@ export const admin = {
 
   createProduct: (s: Session, b: unknown) => create(s, '/products/create', b),
   updateProduct: (s: Session, id: string, b: unknown) => put(s, `/products/update/${id}`, b),
+
+  listProductBadges: (s: Session) => list<AdminProductBadge>(s, '/product-badges/'),
+  createProductBadge: (s: Session, b: unknown) => create(s, '/product-badges/create', b),
+  updateProductBadge: (s: Session, id: string, b: unknown) => put(s, `/product-badges/update/${id}`, b),
+  deleteProductBadge: (s: Session, id: string) => del(s, `/product-badges/${id}`),
 }

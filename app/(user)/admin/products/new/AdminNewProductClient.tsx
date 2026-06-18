@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { BrandOption, Category } from '@/lib/types'
+import type { AuthStatus, BrandOption, Category, Condition } from '@/lib/types'
 import { useAuth } from '@/lib/auth'
+import { admin, type AdminSeller } from '@/lib/admin'
 import { createProduct, createProductImage, createProductVariant, uploadProductImage } from '@/lib/api'
 import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
@@ -19,8 +20,12 @@ const CONDITIONS = [
   { value: 'REFURBISHED', label: 'Reacondicionado' },
 ]
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
+const AUTH_OPTIONS = [
+  { value: 'NOT_SUBMITTED', label: 'Sin enviar' },
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'AUTHENTICATED', label: 'Autenticado' },
+  { value: 'REJECTED', label: 'Rechazado' },
+]
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
 
@@ -47,49 +52,7 @@ function slugify(value: string) {
     .replace(/\s+/g, '-')
 }
 
-function getUserIdFromToken(accessToken: string): string | null {
-  try {
-    const payload = JSON.parse(atob(accessToken.split('.')[1]))
-
-    return (
-      payload.sellerId ??
-      payload.sellerProfileId ??
-      payload.userId ??
-      payload.sub ??
-      null
-    )
-  } catch {
-    return null
-  }
-}
-
-async function getSellerProfileIdByUserId(
-  token: string,
-  userId: string
-): Promise<string | null> {
-  const res = await fetch(`${API_BASE_URL}/seller_profiles/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    cache: 'no-store',
-  })
-
-  const json = await res.json().catch(() => null)
-
-  if (!res.ok) {
-    throw new Error(json?.message || json?.error || 'No se pudo obtener el perfil de seller.')
-  }
-
-  const profiles = json?.data ?? []
-
-  const profile = profiles.find(
-    (item: any) => item?.user?.uuid === userId
-  )
-
-  return profile?.id ?? null
-}
-
-export default function NewProductClient({
+export default function AdminNewProductClient({
   categories,
   brandOptions,
 }: {
@@ -99,41 +62,41 @@ export default function NewProductClient({
   const router = useRouter()
   const { session } = useAuth()
 
+  const [sellers, setSellers] = useState<AdminSeller[]>([])
   const [status, setStatus] = useState<SaveStatus>('idle')
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
+    sellerId: '',
     name: '',
     sku: '',
     price: '',
     description: '',
     categoryId: categories[0]?.id ?? '',
     brandId: brandOptions[0]?.id ?? '',
-    condition: 'NEW',
+    condition: 'NEW' as Condition,
     conditionScore: '5.0',
+    authStatus: 'NOT_SUBMITTED' as AuthStatus,
+    featured: false,
+    newProduct: true,
+    limited: false,
+    privateDrop: false,
   })
 
   const [variants, setVariants] = useState<NewVariant[]>([
-    {
-      size: '',
-      color: '',
-      colorHex: '#000000',
-      stock: 1,
-      priceDelta: 0,
-    },
+    { size: '', color: '', colorHex: '#000000', stock: 1, priceDelta: 0 },
   ])
 
+  const [images, setImages] = useState<NewImage[]>([
+    { url: '', altText: '', primaryImage: true, sortOrder: 1 },
+  ])
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
   const [uploadError, setUploadError] = useState('')
 
-  const [images, setImages] = useState<NewImage[]>([
-    {
-      url: '',
-      altText: '',
-      primaryImage: true,
-      sortOrder: 1,
-    },
-  ])
+  useEffect(() => {
+    if (!session) return
+    admin.listSellers(session).then(setSellers).catch(() => setSellers([]))
+  }, [session])
 
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -150,13 +113,7 @@ export default function NewProductClient({
   function addVariant() {
     setVariants((prev) => [
       ...prev,
-      {
-        size: '',
-        color: '',
-        colorHex: '#000000',
-        stock: 1,
-        priceDelta: 0,
-      },
+      { size: '', color: '', colorHex: '#000000', stock: 1, priceDelta: 0 },
     ])
   }
 
@@ -184,11 +141,22 @@ export default function NewProductClient({
     ])
   }
 
+  function removeImage(index: number) {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function markPrimaryImage(index: number) {
+    setImages((prev) =>
+      prev.map((image, i) => ({ ...image, primaryImage: i === index }))
+    )
+  }
+
   async function handleFile(index: number, file: File | undefined) {
     if (!file) return
-    if (!file.type.startsWith('image/')) { setUploadError('Solo se permiten imágenes.'); return }
+    if (!file.type.startsWith('image/')) { setUploadError('Solo se permiten imagenes.'); return }
     if (file.size > MAX_IMAGE_MB * 1024 * 1024) { setUploadError(`La imagen supera ${MAX_IMAGE_MB} MB.`); return }
-    if (!session?.accessToken) { setUploadError('Inicia sesión para subir imágenes.'); return }
+    if (!session?.accessToken) { setUploadError('Inicia sesion para subir imagenes.'); return }
+
     setUploadError('')
     setUploadingIndex(index)
     try {
@@ -201,68 +169,31 @@ export default function NewProductClient({
     }
   }
 
-  function removeImage(index: number) {
-    setImages((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  function markPrimaryImage(index: number) {
-    setImages((prev) =>
-      prev.map((image, i) => ({
-        ...image,
-        primaryImage: i === index,
-      }))
-    )
-  }
-
   async function handleSave() {
     if (!session?.accessToken) {
       setStatus('error')
-      setError('Debes iniciar sesión como SELLER o ADMIN para crear productos.')
+      setError('Debes iniciar sesion como ADMIN para crear productos.')
       return
     }
 
-    const userId = getUserIdFromToken(session.accessToken)
-
-    if (!userId) {
+    if (!form.sellerId || !form.name.trim() || !form.price || !form.categoryId || !form.brandId) {
       setStatus('error')
-      setError('No se pudo obtener el userId desde la sesión.')
+      setError('Completa tienda, nombre, precio, categoria y marca.')
       return
     }
 
-    if (!form.name.trim() || !form.price || !form.categoryId || !form.brandId) {
-      setStatus('error')
-      setError('Completa nombre, precio, categoría y marca.')
-      return
-    }
-
-    const sellerId = await getSellerProfileIdByUserId(
-    session.accessToken,
-    userId
-    )
-
-    if (!sellerId) {
-    setStatus('error')
-    setError('No se encontró un perfil de seller asociado a este usuario.')
-    return
-    }
-
-    const validVariants = variants.filter(
-      (variant) => variant.size.trim() && variant.color.trim()
-    )
-
-    const validImages = images.filter(
-      (image) => image.url.trim()
-    )
+    const validVariants = variants.filter((variant) => variant.size.trim() && variant.color.trim())
+    const validImages = images.filter((image) => image.url.trim())
 
     if (validVariants.length === 0) {
       setStatus('error')
-      setError('Agrega al menos una variante válida.')
+      setError('Agrega al menos una variante valida.')
       return
     }
 
     if (validImages.length === 0) {
       setStatus('error')
-      setError('Agrega al menos una imagen válida.')
+      setError('Agrega al menos una imagen valida.')
       return
     }
 
@@ -270,18 +201,11 @@ export default function NewProductClient({
     setError('')
 
     try {
-      const totalStock = validVariants.reduce(
-        (sum, variant) => sum + Number(variant.stock),
-        0
-      )
-
-      const sku =
-        form.sku.trim() ||
-        `PRD-${Date.now()}`
-
+      const totalStock = validVariants.reduce((sum, variant) => sum + Number(variant.stock), 0)
+      const sku = form.sku.trim() || `PRD-${Date.now()}`
       const product = await createProduct(
         {
-          sellerId,
+          sellerId: form.sellerId,
           categoryId: form.categoryId,
           brandId: form.brandId,
           sku,
@@ -291,7 +215,11 @@ export default function NewProductClient({
           price: Number(form.price),
           condition: form.condition,
           conditionScore: Number(form.conditionScore),
-          authStatus: 'NOT_SUBMITTED',
+          authStatus: form.authStatus,
+          featured: form.featured,
+          newProduct: form.newProduct,
+          limited: form.limited,
+          privateDrop: form.privateDrop,
           totalStock,
         },
         session.accessToken
@@ -300,7 +228,7 @@ export default function NewProductClient({
       const productId = product?.id
 
       if (!productId) {
-        throw new Error('El backend no devolvió el ID del producto creado.')
+        throw new Error('El backend no devolvio el ID del producto creado.')
       }
 
       await Promise.all(
@@ -335,40 +263,40 @@ export default function NewProductClient({
       )
 
       setStatus('success')
-
       setTimeout(() => {
-        router.push('/seller/dashboard')
+        router.push('/admin/products')
         router.refresh()
       }, 900)
     } catch (err) {
       setStatus('error')
-      setError(err instanceof Error ? err.message : 'No se pudo crear la pieza.')
+      setError(err instanceof Error ? err.message : 'No se pudo crear el producto.')
     }
   }
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <div className="eyebrow accent">◇ NUEVA PIEZA</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
-            Crear producto
-          </h1>
+          <div className="eyebrow accent">◆ ADMIN PRODUCTOS</div>
+          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>Crear producto</h1>
         </div>
 
-        <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')}>
-          Volver al panel
+        <button className="btn btn-ghost" onClick={() => router.push('/admin/products')}>
+          Volver a productos
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 24 }}>
-        <div style={{ display: 'grid', gap: 24 }}>
+        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
           <div className="card" style={{ padding: 24 }}>
-            <div className="display" style={{ fontSize: 20, marginBottom: 20 }}>
-              Información del producto
-            </div>
+            <div className="display" style={{ fontSize: 20, marginBottom: 20 }}>Informacion del producto</div>
 
             <div style={{ display: 'grid', gap: 16 }}>
+              <div>
+                <div className="label">Tienda</div>
+                <Select value={form.sellerId} onChange={(v) => update('sellerId', v)} width="100%" ariaLabel="Tienda" placeholder="Selecciona tienda" options={sellers.map((s) => ({ value: s.id, label: s.storeName }))} />
+              </div>
+
               <label>
                 <div className="label">Nombre</div>
                 <input className="input" value={form.name} onChange={(e) => update('name', e.target.value)} />
@@ -376,7 +304,7 @@ export default function NewProductClient({
 
               <label>
                 <div className="label">SKU</div>
-                <input className="input" value={form.sku} onChange={(e) => update('sku', e.target.value)} placeholder="Opcional: se genera automático" />
+                <input className="input" value={form.sku} onChange={(e) => update('sku', e.target.value)} placeholder="Opcional: se genera automatico" />
               </label>
 
               <label>
@@ -385,13 +313,13 @@ export default function NewProductClient({
               </label>
 
               <label>
-                <div className="label">Descripción</div>
+                <div className="label">Descripcion</div>
                 <textarea className="input" value={form.description} onChange={(e) => update('description', e.target.value)} rows={4} />
               </label>
 
               <div>
-                <div className="label">Categoría</div>
-                <Select value={form.categoryId} onChange={(v) => update('categoryId', v)} width="100%" ariaLabel="Categoría" placeholder="Selecciona categoría" options={categories.map((c) => ({ value: c.id, label: c.name }))} />
+                <div className="label">Categoria</div>
+                <Select value={form.categoryId} onChange={(v) => update('categoryId', v)} width="100%" ariaLabel="Categoria" placeholder="Selecciona categoria" options={categories.map((c) => ({ value: c.id, label: c.name }))} />
               </div>
 
               <div>
@@ -399,9 +327,15 @@ export default function NewProductClient({
                 <Select value={form.brandId} onChange={(v) => update('brandId', v)} width="100%" ariaLabel="Marca" placeholder="Selecciona marca" options={brandOptions.map((b) => ({ value: b.id, label: b.name }))} />
               </div>
 
-              <div>
-                <div className="label">Condición</div>
-                <Select value={form.condition} onChange={(v) => update('condition', v)} width="100%" ariaLabel="Condición" options={CONDITIONS} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div className="label">Condicion</div>
+                  <Select value={form.condition} onChange={(v) => update('condition', v as Condition)} width="100%" ariaLabel="Condicion" options={CONDITIONS} />
+                </div>
+                <div>
+                  <div className="label">Autenticacion</div>
+                  <Select value={form.authStatus} onChange={(v) => update('authStatus', v as AuthStatus)} width="100%" ariaLabel="Autenticacion" options={AUTH_OPTIONS} />
+                </div>
               </div>
 
               <label>
@@ -409,6 +343,12 @@ export default function NewProductClient({
                 <input className="input" type="number" min={0} max={5} step="0.1" value={form.conditionScore} onChange={(e) => update('conditionScore', e.target.value.replace(/^0+(?=\d)/, ''))} />
               </label>
 
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <label className="mono"><input type="checkbox" checked={form.featured} onChange={(e) => update('featured', e.target.checked)} /> Destacado</label>
+                <label className="mono"><input type="checkbox" checked={form.newProduct} onChange={(e) => update('newProduct', e.target.checked)} /> Nuevo</label>
+                <label className="mono"><input type="checkbox" checked={form.limited} onChange={(e) => update('limited', e.target.checked)} /> Limitado</label>
+                <label className="mono"><input type="checkbox" checked={form.privateDrop} onChange={(e) => update('privateDrop', e.target.checked)} /> Drop privado</label>
+              </div>
             </div>
           </div>
 
@@ -420,27 +360,15 @@ export default function NewProductClient({
 
             <div style={{ display: 'grid', gap: 12 }}>
               {variants.map((variant, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto',
-                    gap: 10,
-                    alignItems: 'end',
-                    border: '1px solid var(--border)',
-                    padding: 12,
-                  }}
-                >
+                <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr auto', gap: 10, alignItems: 'end', border: '1px solid var(--border)', padding: 12 }}>
                   <label>
                     <div className="label">Talla</div>
                     <input className="input" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} />
                   </label>
-
                   <label>
                     <div className="label">Color</div>
                     <input className="input" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} />
                   </label>
-
                   <label>
                     <div className="label">HEX</div>
                     <div className="hexfield">
@@ -448,20 +376,15 @@ export default function NewProductClient({
                       <input className="input" value={variant.colorHex} onChange={(e) => updateVariant(index, 'colorHex', e.target.value)} />
                     </div>
                   </label>
-
                   <label>
                     <div className="label">Stock</div>
                     <NumberField min={0} value={variant.stock} onChange={(n) => updateVariant(index, 'stock', n)} />
                   </label>
-
                   <label>
                     <div className="label">Price delta</div>
                     <NumberField float step="0.01" value={variant.priceDelta} onChange={(n) => updateVariant(index, 'priceDelta', n)} />
                   </label>
-
-                  <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => removeVariant(index)}>
-                    Eliminar
-                  </button>
+                  <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => removeVariant(index)}>Eliminar</button>
                 </div>
               ))}
             </div>
@@ -471,29 +394,14 @@ export default function NewProductClient({
         <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
           <div className="card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div className="display" style={{ fontSize: 20 }}>Imágenes iniciales</div>
+              <div className="display" style={{ fontSize: 20 }}>Imagenes iniciales</div>
               <button className="btn btn-ghost" onClick={addImage}>+ Agregar imagen</button>
             </div>
 
             <div style={{ display: 'grid', gap: 14 }}>
               {images.map((image, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '170px 1fr',
-                    gap: 16,
-                    border: '1px solid var(--border)',
-                    padding: 12,
-                  }}
-                >
-                  <ImageDropzone
-                    value={image.url}
-                    uploading={uploadingIndex === index}
-                    alt={image.altText || form.name}
-                    maxMb={MAX_IMAGE_MB}
-                    onFile={(f) => handleFile(index, f)}
-                  />
+                <div key={index} style={{ display: 'grid', gridTemplateColumns: '170px 1fr', gap: 16, border: '1px solid var(--border)', padding: 12 }}>
+                  <ImageDropzone value={image.url} uploading={uploadingIndex === index} alt={image.altText || form.name} maxMb={MAX_IMAGE_MB} onFile={(f) => handleFile(index, f)} />
 
                   <div style={{ display: 'grid', gap: 10 }}>
                     <label>
@@ -506,14 +414,10 @@ export default function NewProductClient({
                         <div className="label">Orden</div>
                         <NumberField min={0} value={image.sortOrder} onChange={(n) => updateImage(index, 'sortOrder', n)} />
                       </label>
-
                       <button className={image.primaryImage ? 'btn' : 'btn btn-ghost'} onClick={() => markPrimaryImage(index)}>
                         {image.primaryImage ? 'Principal' : 'Marcar principal'}
                       </button>
-
-                      <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => removeImage(index)}>
-                        Eliminar
-                      </button>
+                      <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => removeImage(index)}>Eliminar</button>
                     </div>
                   </div>
                 </div>
@@ -523,24 +427,13 @@ export default function NewProductClient({
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <span
-              className="mono"
-              style={{
-                fontSize: 12,
-                letterSpacing: '0.04em',
-                color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
-                visibility: status === 'error' || status === 'success' ? 'visible' : 'hidden',
-              }}
-            >
-              {status === 'error' ? error : 'Pieza creada ✓'}
+            <span className="mono" style={{ fontSize: 12, letterSpacing: '0.04em', color: status === 'error' ? 'var(--danger)' : 'var(--ok)', visibility: status === 'error' || status === 'success' ? 'visible' : 'hidden' }}>
+              {status === 'error' ? error : 'Producto creado'}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>
-                Cancelar
-              </button>
-
+              <button className="btn btn-ghost" onClick={() => router.push('/admin/products')} disabled={status === 'saving'}>Cancelar</button>
               <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
-                {status === 'saving' ? 'Creando...' : 'Crear pieza'}
+                {status === 'saving' ? 'Creando...' : 'Crear producto'}
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getProducts } from '@/lib/api'
+import { getPublicProducts } from '@/lib/api'
 import type { Product } from '@/lib/types'
 import { Icon } from './Icon'
 
@@ -29,7 +29,7 @@ export default function SearchOverlay({ open, onClose }: { open: boolean; onClos
   }, [open])
 
   useEffect(() => {
-    if (open && !products) getProducts().then(setProducts).catch(() => setProducts([]))
+    if (open && !products) getPublicProducts().then(setProducts).catch(() => setProducts([]))
   }, [open, products])
 
   useEffect(() => {

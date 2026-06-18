@@ -1,9 +1,9 @@
-import { getProducts, getShippingMethods } from '@/lib/api'
+import { getPublicProducts, getShippingMethods } from '@/lib/api'
 import CartClient from './CartClient'
 
 export default async function CartPage() {
   const [products, shipping] = await Promise.all([
-    getProducts(), getShippingMethods(),
+    getPublicProducts(), getShippingMethods(),
   ])
   return <CartClient products={products} shipping={shipping} />
 }
