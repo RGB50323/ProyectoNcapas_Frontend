@@ -11,7 +11,8 @@ import type {
   Condition,
   AuthStatus,
   BrandOption,
-  ProductImage
+  ProductImage,
+  Verification
 } from './types'
 
 import {
@@ -536,4 +537,44 @@ export async function getOrders(): Promise<Order[]> {
   if (USE_MOCK) return ORDERS
 
   return ORDERS
+}
+
+export async function getVerifications(token: string): Promise<Verification[]> {
+  const res = await fetch(`${API_BASE_URL}/verifications/`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  })
+  const json = await res.json()
+  return json.data as Verification[]
+}
+
+export async function getVerificationsByProduct(productId: string, token: string): Promise<Verification[]> {
+  const res = await fetch(`${API_BASE_URL}/verifications/product/${productId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  })
+  const json = await res.json()
+  return json.data as Verification[]
+}
+
+export async function createVerification(body: Record<string, unknown>, token: string): Promise<Verification> {
+  return apiWrite('/verifications/create', token, 'POST', body)
+}
+
+export async function updateVerification(id: string, body: Record<string, unknown>, token: string): Promise<Verification> {
+  return apiWrite(`/verifications/update/${id}`, token, 'PUT', body)
+}
+
+
+export async function deleteVerification(id: string, token: string): Promise<void> {
+  await apiWrite(`/verifications/${id}`, token, 'DELETE')
+}
+
+export async function getVerificationById(id: string, token: string): Promise<Verification> {
+  const res = await fetch(`${API_BASE_URL}/verifications/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  })
+  const json = await res.json()
+  return json.data as Verification
 }
