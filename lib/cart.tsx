@@ -5,10 +5,14 @@ import { useAuth } from './auth'
 import { getCart, addCartItem, updateCartItem, removeCartItem } from './shop'
 import type { CartItem } from './types'
 
+const COUPON_KEY = 'klab_coupon'
+
 interface CartContextValue {
   items: CartItem[]
   count: number
   loading: boolean
+  coupon: string | null
+  setCoupon: (code: string | null) => void
   add: (productId: string, variantId: string, quantity?: number) => Promise<void>
   update: (id: string, quantity: number) => Promise<void>
   remove: (id: string) => Promise<void>
@@ -22,6 +26,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const isBuyer = session?.role === 'BUYER'
   const [items, setItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [coupon, setCouponState] = useState<string | null>(null)
+
+  useEffect(() => {
+    const saved = localStorage.getItem(COUPON_KEY)
+    if (saved) setCouponState(saved)
+  }, [])
+
+  const setCoupon = useCallback((code: string | null) => {
+    setCouponState(code)
+    if (code) localStorage.setItem(COUPON_KEY, code)
+    else localStorage.removeItem(COUPON_KEY)
+  }, [])
 
   const refresh = useCallback(async () => {
     if (!session || !isBuyer) {
@@ -64,7 +80,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const count = items.reduce((sum, it) => sum + it.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ items, count, loading, add, update, remove, refresh }}>
+    <CartContext.Provider value={{ items, count, loading, coupon, setCoupon, add, update, remove, refresh }}>
       {children}
     </CartContext.Provider>
   )

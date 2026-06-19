@@ -3,59 +3,55 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { Product, ShippingMethod, CouponPreview } from '@/lib/types'
+import type { Product, CouponPreview } from '@/lib/types'
 import { useAuth } from '@/lib/auth'
 import { useCart } from '@/lib/cart'
 import { previewCoupon } from '@/lib/shop'
 import { Icon } from '@/components/Icon'
 import { Qty, Line } from '@/components/ui'
 
-export default function CartClient({ products, shipping }: { products: Product[]; shipping: ShippingMethod[] }) {
+export default function CartClient({ products }: { products: Product[] }) {
   const router = useRouter()
   const { session } = useAuth()
-  const { items, update, remove } = useCart()
+  const { items, update, remove, coupon, setCoupon } = useCart()
 
-  const [ship, setShip] = useState(shipping[0]?.id ?? '')
   const [code, setCode] = useState('')
   const [preview, setPreview] = useState<CouponPreview | null>(null)
-  const [appliedCode, setAppliedCode] = useState('')
   const [error, setError] = useState('')
 
   const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products])
   const subtotal = useMemo(() => items.reduce((s, it) => s + it.lineTotal, 0), [items])
 
-  const selected = shipping.find((s) => s.id === ship)
-  const shipFee = preview ? preview.shippingCost : selected?.fee ?? 0
   const discount = preview ? preview.discountAmount : 0
-  const total = preview ? preview.total : subtotal + shipFee
+  const total = subtotal - discount
 
-  const runPreview = async (couponCode: string, shippingMethodId: string) => {
+  const runPreview = async (couponCode: string) => {
     if (!session) { setError('Inicia sesión como comprador para usar cupones.'); return }
     try {
-      const result = await previewCoupon(session, { code: couponCode, shippingMethodId: shippingMethodId || undefined })
+      const result = await previewCoupon(session, { code: couponCode })
       setPreview(result)
-      setAppliedCode(couponCode)
+      setCoupon(couponCode)
       setError('')
     } catch (e) {
       setPreview(null)
-      setAppliedCode('')
+      setCoupon(null)
       setError(e instanceof Error ? e.message : 'Cupón no válido.')
     }
   }
 
   useEffect(() => {
-    if (appliedCode) runPreview(appliedCode, ship)
+    if (coupon) runPreview(coupon)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ship, items.length])
+  }, [items.length, coupon])
 
   const applyCode = () => {
     const trimmed = code.trim()
-    if (trimmed) runPreview(trimmed, ship)
+    if (trimmed) runPreview(trimmed)
   }
 
   const clearCoupon = () => {
     setPreview(null)
-    setAppliedCode('')
+    setCoupon(null)
     setError('')
   }
 
@@ -119,7 +115,7 @@ export default function CartClient({ products, shipping }: { products: Product[]
 
             <div className="label">Código de cupón</div>
             <div style={{ display: 'flex', gap: 0, marginBottom: error ? 8 : 20 }}>
-              <input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="KLAB10" style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+              <input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Escribe tu cupón" style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
               <button className="btn btn-ghost" onClick={applyCode} disabled={items.length === 0} style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>Aplicar</button>
             </div>
             {error && <div className="mono" style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 12 }}>{error}</div>}
@@ -130,28 +126,10 @@ export default function CartClient({ products, shipping }: { products: Product[]
               </div>
             )}
 
-            <div className="label">Método de envío</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-              {shipping.map((s) => (
-                <button key={s.id} onClick={() => setShip(s.id)} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px',
-                  background: ship === s.id ? 'var(--elev)' : 'var(--bg-0)',
-                  border: '1px solid ' + (ship === s.id ? 'var(--accent)' : 'var(--border)'),
-                  borderRadius: 2, cursor: 'pointer', color: 'var(--text)',
-                }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text)' }}>{s.name}</div>
-                    <div className="mono mute" style={{ marginTop: 4 }}>{s.eta}</div>
-                  </div>
-                  <div className="display" style={{ fontSize: 14 }}>{s.fee === 0 ? 'GRATIS' : `$${s.fee}`}</div>
-                </button>
-              ))}
-            </div>
-
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <Line label="Subtotal" value={`$${subtotal}`} />
-              {discount > 0 && <Line label={`Descuento (${preview?.couponCode})`} value={`-$${discount}`} accent />}
-              <Line label="Envío" value={shipFee === 0 ? 'GRATIS' : `$${shipFee}`} />
+              {discount > 0 && <Line label="Descuento Cupon" value={`-$${discount}`} accent />}
+              <Line label="Envío" value="Se calcula en el checkout" />
               <Line label="Impuesto estimado" value="incl." />
               <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>

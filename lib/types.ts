@@ -201,6 +201,7 @@ export interface WishlistItem {
 }
 
 export interface CouponPreview {
+  couponId: string
   couponCode: string
   discountType: string
   subtotal: number

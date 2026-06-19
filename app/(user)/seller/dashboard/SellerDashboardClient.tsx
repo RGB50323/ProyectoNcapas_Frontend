@@ -14,8 +14,6 @@ import { getMySellerProfile, orderItemsBySeller, getOrder } from '@/lib/seller'
 import { Stat, ChartCard, Legend, tooltipProps, axisTick, money, MONTHS, STATUS_ORDER, STATUS_FILL, STATUS_PILL } from '@/components/charts'
 import type { Product } from '@/lib/types'
 
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
-
 export default function SellerDashboardClient() {
   const router = useRouter()
   const { session } = useAuth()
@@ -30,10 +28,6 @@ export default function SellerDashboardClient() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [selectedAuthIds, setSelectedAuthIds] = useState<string[]>([])
-  const [authSubmitting, setAuthSubmitting] = useState(false)
-  const [authError, setAuthError] = useState('')
 
   useEffect(() => {
     if (!session) return
@@ -119,31 +113,6 @@ export default function SellerDashboardClient() {
 
   const activeCoupons = coupons.filter((c) => c.active).slice(0, 4)
 
-  async function sendToAuthentication() {
-    if (!session?.accessToken) { setAuthError('Inicia sesión para enviar a autenticación.'); return }
-    if (selectedAuthIds.length === 0) { setAuthError('Selecciona al menos un producto.'); return }
-    setAuthSubmitting(true)
-    setAuthError('')
-    try {
-      await Promise.all(selectedAuthIds.map((id) =>
-        fetch(`${API}/products/patch/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` },
-          body: JSON.stringify({ authStatus: 'PENDING' }),
-        }).then(async (res) => {
-          if (!res.ok) { const j = await res.json().catch(() => null); throw new Error(j?.message || 'No se pudo enviar.') }
-        }),
-      ))
-      setAuthModalOpen(false)
-      setSelectedAuthIds([])
-      router.refresh()
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'No se pudo enviar a autenticación.')
-    } finally {
-      setAuthSubmitting(false)
-    }
-  }
-
   async function handleDelete() {
     if (!productToDelete || !session?.accessToken) return
     setDeleting(true)
@@ -170,8 +139,6 @@ export default function SellerDashboardClient() {
     )
   }
 
-  const pendingAuthCount = myPieces.filter((p) => p.auth === 'NOT_SUBMITTED' || p.auth === 'REJECTED').length
-
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
@@ -183,7 +150,6 @@ export default function SellerDashboardClient() {
           <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{profile.storeName.toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost" onClick={() => { setSelectedAuthIds([]); setAuthError(''); setAuthModalOpen(true) }}>Enviar a autenticación</button>
           <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
         </div>
       </div>
@@ -380,33 +346,6 @@ export default function SellerDashboardClient() {
         </div>
       )}
 
-      {authModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 24 }}>
-          <div className="card" style={{ width: '100%', maxWidth: 560, padding: 24 }}>
-            <div className="eyebrow accent">◇ AUTENTICACIÓN</div>
-            <div className="display" style={{ fontSize: 22, marginTop: 8 }}>Enviar piezas a autenticación</div>
-            <p style={{ color: 'var(--text-dim)', lineHeight: 1.6 }}>Selecciona los productos a revisar. Su estado pasará a pendiente.</p>
-            <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
-              {myPieces.filter((p) => p.auth === 'NOT_SUBMITTED' || p.auth === 'REJECTED').map((p) => (
-                <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, border: '1px solid var(--border)', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={selectedAuthIds.includes(p.id)} onChange={(e) => setSelectedAuthIds((prev) => e.target.checked ? [...prev, p.id] : prev.filter((id) => id !== p.id))} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 14 }}>{p.name}</div>
-                    <div className="mono mute">{p.sku}</div>
-                  </div>
-                  <span className="mono mute">{p.auth}</span>
-                </label>
-              ))}
-            </div>
-            {pendingAuthCount === 0 && <div className="mono mute" style={{ padding: 16, fontSize: 13 }}>No hay productos disponibles para enviar.</div>}
-            {authError && <div style={{ color: 'var(--danger)', fontFamily: 'var(--font-mono)', fontSize: 12, marginTop: 12 }}>{authError}</div>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 20 }}>
-              <button className="btn btn-ghost" disabled={authSubmitting} onClick={() => { setAuthModalOpen(false); setAuthError('') }}>Cancelar</button>
-              <button className="btn" disabled={authSubmitting} onClick={sendToAuthentication}>{authSubmitting ? 'Enviando…' : 'Enviar'}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }

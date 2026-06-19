@@ -3,11 +3,11 @@
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { ShippingMethod, CartItem } from '@/lib/types'
+import type { ShippingMethod, CartItem, CouponPreview } from '@/lib/types'
 import { PAYMENT_METHODS } from '@/lib/payments'
 import { useAuth, getUserId, authFetch } from '@/lib/auth'
 import { useCart } from '@/lib/cart'
-import { clearCart } from '@/lib/shop'
+import { clearCart, previewCoupon } from '@/lib/shop'
 import { Icon } from '@/components/Icon'
 import { Section, Field, Grid2, ReviewRow, Line } from '@/components/ui'
 
@@ -84,7 +84,7 @@ function CheckoutDone({ orderId }: { orderId: string }) {
 export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[] }) {
     const router = useRouter()
     const { session } = useAuth()
-    const { items, refresh: refreshCart } = useCart()
+    const { items, refresh: refreshCart, coupon, setCoupon } = useCart()
 
     const [step, setStep] = useState(1)
     const [orderId, setOrderId] = useState<string | null>(null)
@@ -104,6 +104,21 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].id)
     const [transactionId, setTransactionId] = useState('')
 
+    // Aceptacion de terminos en el paso de revision
+    const [accepted, setAccepted] = useState(false)
+
+    // Snapshot del resumen al confirmar, el carrito se vacia despues
+    const [confirmed, setConfirmed] = useState<{
+        items: CartItem[]
+        subtotal: number
+        discount: number
+        shipFee: number
+        total: number
+    } | null>(null)
+
+    // Cupon aplicado en la bolsa, recalculado con el envio elegido
+    const [preview, setPreview] = useState<CouponPreview | null>(null)
+
     // Cargar direcciones del usuario
     useEffect(() => {
         if (!session) return
@@ -120,11 +135,20 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
             .catch(() => {})
     }, [session])
 
+    // Recalcular el cupon cuando cambia el envio
+    useEffect(() => {
+        if (!session || !coupon) { setPreview(null); return }
+        previewCoupon(session, { code: coupon, shippingMethodId: selectedShippingId || undefined })
+            .then(setPreview)
+            .catch(() => setPreview(null))
+    }, [session, coupon, selectedShippingId])
+
     // Calcular totales
     const selectedShipping = shipping.find((s) => s.id === selectedShippingId) ?? shipping[0]
     const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
     const shipFee = selectedShipping?.fee ?? 0
-    const total = subtotal + shipFee
+    const discount = preview?.discountAmount ?? 0
+    const total = subtotal + shipFee - discount
 
     // Mapear método de pago frontend → backend
     const paymentMethodMap: Record<string, string> = {
@@ -138,6 +162,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
         if (!session) return
         if (!selectedAddressId) { setError('Selecciona una dirección de envío'); return }
         if (!selectedShippingId) { setError('Selecciona un método de envío'); return }
+        if (!accepted) { setError('Debes aceptar los términos para continuar'); return }
 
         setBusy(true)
         setError(null)
@@ -152,7 +177,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                     customerId: userId,
                     shippingAddressId: selectedAddressId,
                     shippingMethodId: selectedShippingId,
-                    couponId: null,
+                    couponId: preview?.couponId ?? null,
                     notes: null,
                 }),
             })
@@ -195,8 +220,12 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                 throw new Error(payJson?.message ?? 'Error al procesar el pago')
             }
 
+            // Guardar el resumen antes de vaciar el carrito
+            setConfirmed({ items, subtotal, discount, shipFee, total })
+
             // 4. Vaciar el carrito
             await clearCart(session)
+            setCoupon(null)
             await refreshCart()
 
             // 5. Mostrar confirmación
@@ -346,16 +375,27 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     />
                                     <ReviewRow label="Método" value={`${selectedShipping?.name} · ${selectedShipping?.eta}`} />
                                     <ReviewRow label="Pago" value={PAYMENT_METHODS.find((x) => x.id === paymentMethod)?.label ?? ''} />
-                                    <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 24, color: 'var(--text-dim)' }}>
-                    <span style={{ width: 14, height: 14, border: '1px solid var(--text)', background: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-0)', flexShrink: 0, marginTop: 3 }}>
-                      <Icon.Check />
-                    </span>
+                                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 24, color: 'var(--text-dim)' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAccepted((v) => !v)}
+                                            aria-pressed={accepted}
+                                            style={{
+                                                width: 14, height: 14, flexShrink: 0, marginTop: 3, padding: 0, cursor: 'pointer',
+                                                border: '1px solid var(--text)',
+                                                background: accepted ? 'var(--text)' : 'transparent',
+                                                color: 'var(--bg-0)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >
+                                            {accepted && <Icon.Check />}
+                                        </button>
                                         <span style={{ fontSize: 12, lineHeight: 1.6 }}>
                       Confirmo que todas las piezas de este pedido han sido verificadas por el equipo de autenticación de K LAB. Acepto los{' '}
-                                            <a style={{ textDecoration: 'underline' }}>Términos de venta</a> y la{' '}
-                                            <a style={{ textDecoration: 'underline' }}>Política de devoluciones</a>.
+                                            <Link href="/terms" target="_blank" style={{ textDecoration: 'underline' }}>Términos de venta</Link> y la{' '}
+                                            <Link href="/privacy" target="_blank" style={{ textDecoration: 'underline' }}>Política de devoluciones</Link>.
                     </span>
-                                    </label>
+                                    </div>
                                 </Section>
                             )}
 
@@ -371,16 +411,16 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 </button>
                                 {step < 5 && (
                                     <button className="btn" onClick={() => setStep(step + 1)}>
-                                        Continuar → Paso {step + 1}
+                                        Continuar →
                                     </button>
                                 )}
                                 {step === 5 && (
                                     <button
                                         className="btn btn-lg"
                                         onClick={handleConfirm}
-                                        disabled={busy}
+                                        disabled={busy || !accepted}
                                     >
-                                        {busy ? 'Procesando...' : `Confirmar y pagar $${total}`} <Icon.ArrowR />
+                                        {busy ? 'Procesando...' : 'Confirmar y pagar'} <Icon.ArrowR />
                                     </button>
                                 )}
                             </div>
@@ -391,11 +431,17 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                 {/* Right — order summary */}
                 <div>
                     <div className="card" style={{ padding: 24, position: 'sticky', top: 120 }}>
+                        {(() => {
+                            const sum = step === 6 && confirmed
+                                ? confirmed
+                                : { items, subtotal, discount, shipFee, total }
+                            return (
+                                <>
                         <div className="display" style={{ fontSize: 18, marginBottom: 20 }}>
-                            TU BOLSA · {items.length} PIEZAS
+                            TU BOLSA · {sum.items.length} PIEZAS
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-                            {items.map((it) => (
+                            {sum.items.map((it) => (
                                 <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
                                     <div>
                                         <div style={{ fontFamily: 'var(--font-display)', fontSize: 13 }}>{it.productName}</div>
@@ -405,13 +451,17 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 </div>
                             ))}
                         </div>
-                        <Line label="Subtotal" value={`$${subtotal}`} />
-                        <Line label="Envío" value={shipFee === 0 ? 'GRATIS' : `$${shipFee}`} />
+                        <Line label="Subtotal" value={`$${sum.subtotal}`} />
+                        {sum.discount > 0 && <Line label="Descuento Cupon" value={`-$${sum.discount}`} accent />}
+                        <Line label="Envío" value={sum.shipFee === 0 ? 'GRATIS' : `$${sum.shipFee}`} />
                         <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span className="display" style={{ fontSize: 16 }}>TOTAL</span>
-                            <span className="display" style={{ fontSize: 28 }}>${total}</span>
+                            <span className="display" style={{ fontSize: 28 }}>${sum.total}</span>
                         </div>
+                                </>
+                            )
+                        })()}
                         <div className="mono mute" style={{ marginTop: 14, fontSize: 11, textAlign: 'center' }}>
                             ✓ CADA PIEZA ESTÁ VERIFICADA POR EL LAB
                         </div>

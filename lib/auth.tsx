@@ -1,7 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
-const AUTH_API = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
+const AUTH_API = process.env.NEXT_PUBLIC_BACKEND_URL
 const STORAGE_KEY = 'klab_session'
 
 export type Role = 'ADMIN' | 'SELLER' | 'BUYER'
