@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/useToast";
 
-const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
+const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 function PasswordInput({
   value,

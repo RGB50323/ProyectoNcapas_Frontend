@@ -9,6 +9,7 @@ import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
 import ColorPicker from '@/components/ColorPicker'
 import NumberField from '@/components/NumberField'
+import { useToast } from '@/hooks/useToast'
 
 const MAX_IMAGE_MB = 5
 
@@ -19,8 +20,7 @@ const CONDITIONS = [
   { value: 'REFURBISHED', label: 'Reacondicionado' },
 ]
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
 
@@ -99,8 +99,9 @@ export default function NewProductClient({
   const router = useRouter()
   const { session } = useAuth()
 
+  const { show, ToastContainer } = useToast()
+
   const [status, setStatus] = useState<SaveStatus>('idle')
-  const [error, setError] = useState('')
 
   const [form, setForm] = useState({
     name: '',
@@ -216,22 +217,19 @@ export default function NewProductClient({
 
   async function handleSave() {
     if (!session?.accessToken) {
-      setStatus('error')
-      setError('Debes iniciar sesión como SELLER o ADMIN para crear productos.')
+      show('Debes iniciar sesión como SELLER o ADMIN para crear productos.', 'error')
       return
     }
 
     const userId = getUserIdFromToken(session.accessToken)
 
     if (!userId) {
-      setStatus('error')
-      setError('No se pudo obtener el userId desde la sesión.')
+      show('No se pudo obtener el userId desde la sesión.', 'error')
       return
     }
 
     if (!form.name.trim() || !form.price || !form.categoryId || !form.brandId) {
-      setStatus('error')
-      setError('Completa nombre, precio, categoría y marca.')
+      show('Completa nombre, precio, categoría y marca.', 'error')
       return
     }
 
@@ -241,8 +239,7 @@ export default function NewProductClient({
     )
 
     if (!sellerId) {
-    setStatus('error')
-    setError('No se encontró un perfil de seller asociado a este usuario.')
+    show('No se encontró un perfil de seller asociado a este usuario.', 'error')
     return
     }
 
@@ -255,19 +252,16 @@ export default function NewProductClient({
     )
 
     if (validVariants.length === 0) {
-      setStatus('error')
-      setError('Agrega al menos una variante válida.')
+      show('Agrega al menos una variante válida.', 'error')
       return
     }
 
     if (validImages.length === 0) {
-      setStatus('error')
-      setError('Agrega al menos una imagen válida.')
+      show('Agrega al menos una imagen válida.', 'error')
       return
     }
 
     setStatus('saving')
-    setError('')
 
     try {
       const totalStock = validVariants.reduce(
@@ -335,19 +329,21 @@ export default function NewProductClient({
       )
 
       setStatus('success')
+      show('Pieza creada', 'success')
 
       setTimeout(() => {
         router.push('/seller/dashboard')
         router.refresh()
       }, 900)
     } catch (err) {
-      setStatus('error')
-      setError(err instanceof Error ? err.message : 'No se pudo crear la pieza.')
+      setStatus('idle')
+      show(err instanceof Error ? err.message : 'No se pudo crear la pieza.', 'error')
     }
   }
 
   return (
     <div>
+      <ToastContainer />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24 }}>
         <div>
           <div className="eyebrow accent">◇ NUEVA PIEZA</div>
@@ -522,27 +518,14 @@ export default function NewProductClient({
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <span
-              className="mono"
-              style={{
-                fontSize: 12,
-                letterSpacing: '0.04em',
-                color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
-                visibility: status === 'error' || status === 'success' ? 'visible' : 'hidden',
-              }}
-            >
-              {status === 'error' ? error : 'Pieza creada ✓'}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>
-                Cancelar
-              </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>
+              Cancelar
+            </button>
 
-              <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
-                {status === 'saving' ? 'Creando...' : 'Crear pieza'}
-              </button>
-            </div>
+            <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+              {status === 'saving' ? 'Creando...' : 'Crear pieza'}
+            </button>
           </div>
         </div>
       </div>

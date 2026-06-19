@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ToastType = "success" | "error" | "info" | "warning";
 
@@ -25,14 +25,19 @@ export function Toast({
 }: ToastProps) {
   const [visible, setVisible] = useState(false);
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onClose, 350);
+      setTimeout(() => onCloseRef.current(), 350);
     }, duration);
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration]);
 
   const { icon, accent } = config[type];
 

@@ -21,13 +21,13 @@ export function useToast() {
     setToasts(prev => prev.filter(t => t.id !== id))
   }, [])
 
-  const ToastContainer = () => (
+  const ToastContainer = useCallback(() => (
     <>
       {toasts.map(t => (
         <Toast key={t.id} message={t.message} type={t.type} onClose={() => remove(t.id)} />
       ))}
     </>
-  )
+  ), [toasts, remove])
 
   return { show, ToastContainer }
 }

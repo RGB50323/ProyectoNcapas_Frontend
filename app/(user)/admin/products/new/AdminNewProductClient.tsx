@@ -10,6 +10,7 @@ import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
 import ColorPicker from '@/components/ColorPicker'
 import NumberField from '@/components/NumberField'
+import { useToast } from '@/hooks/useToast'
 
 const MAX_IMAGE_MB = 5
 
@@ -62,9 +63,10 @@ export default function AdminNewProductClient({
   const router = useRouter()
   const { session } = useAuth()
 
+  const { show, ToastContainer } = useToast()
+
   const [sellers, setSellers] = useState<AdminSeller[]>([])
   const [status, setStatus] = useState<SaveStatus>('idle')
-  const [error, setError] = useState('')
 
   const [form, setForm] = useState({
     sellerId: '',
@@ -171,14 +173,12 @@ export default function AdminNewProductClient({
 
   async function handleSave() {
     if (!session?.accessToken) {
-      setStatus('error')
-      setError('Debes iniciar sesion como ADMIN para crear productos.')
+      show('Debes iniciar sesion como ADMIN para crear productos.', 'error')
       return
     }
 
     if (!form.sellerId || !form.name.trim() || !form.price || !form.categoryId || !form.brandId) {
-      setStatus('error')
-      setError('Completa tienda, nombre, precio, categoria y marca.')
+      show('Completa tienda, nombre, precio, categoria y marca.', 'error')
       return
     }
 
@@ -186,19 +186,16 @@ export default function AdminNewProductClient({
     const validImages = images.filter((image) => image.url.trim())
 
     if (validVariants.length === 0) {
-      setStatus('error')
-      setError('Agrega al menos una variante valida.')
+      show('Agrega al menos una variante valida.', 'error')
       return
     }
 
     if (validImages.length === 0) {
-      setStatus('error')
-      setError('Agrega al menos una imagen valida.')
+      show('Agrega al menos una imagen valida.', 'error')
       return
     }
 
     setStatus('saving')
-    setError('')
 
     try {
       const totalStock = validVariants.reduce((sum, variant) => sum + Number(variant.stock), 0)
@@ -263,18 +260,20 @@ export default function AdminNewProductClient({
       )
 
       setStatus('success')
+      show('Producto creado', 'success')
       setTimeout(() => {
         router.push('/admin/products')
         router.refresh()
       }, 900)
     } catch (err) {
-      setStatus('error')
-      setError(err instanceof Error ? err.message : 'No se pudo crear el producto.')
+      setStatus('idle')
+      show(err instanceof Error ? err.message : 'No se pudo crear el producto.', 'error')
     }
   }
 
   return (
     <div>
+      <ToastContainer />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div className="eyebrow accent">◆ ADMIN PRODUCTOS</div>
@@ -426,16 +425,11 @@ export default function AdminNewProductClient({
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <span className="mono" style={{ fontSize: 12, letterSpacing: '0.04em', color: status === 'error' ? 'var(--danger)' : 'var(--ok)', visibility: status === 'error' || status === 'success' ? 'visible' : 'hidden' }}>
-              {status === 'error' ? error : 'Producto creado'}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn btn-ghost" onClick={() => router.push('/admin/products')} disabled={status === 'saving'}>Cancelar</button>
-              <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
-                {status === 'saving' ? 'Creando...' : 'Crear producto'}
-              </button>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={() => router.push('/admin/products')} disabled={status === 'saving'}>Cancelar</button>
+            <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+              {status === 'saving' ? 'Creando...' : 'Crear producto'}
+            </button>
           </div>
         </div>
       </div>

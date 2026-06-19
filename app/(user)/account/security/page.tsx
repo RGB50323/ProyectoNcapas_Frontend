@@ -148,7 +148,7 @@ export default function SecurityPage() {
     setBusy(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080"}/auth/change-password`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/change-password`,
         {
           method: "PUT",
           headers: {

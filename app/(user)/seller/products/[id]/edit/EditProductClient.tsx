@@ -18,6 +18,7 @@ import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
 import ColorPicker from '@/components/ColorPicker'
 import NumberField from '@/components/NumberField'
+import { useToast } from '@/hooks/useToast'
 
 const MAX_IMAGE_MB = 5
 const CONDITIONS = [
@@ -55,8 +56,9 @@ export default function EditProductClient({
   const { session } = useAuth()
   const isStockMode = mode === 'stock'
 
+  const { show, ToastContainer } = useToast()
+
   const [status, setStatus] = useState<SaveStatus>('idle')
-  const [error, setError] = useState('')
 
   const [form, setForm] = useState({
     name: product.name,
@@ -199,13 +201,11 @@ function markPrimaryImage(index: number) {
 
 async function handleSave() {
   if (!session?.accessToken) {
-    setStatus('error')
-    setError('Debes iniciar sesión como SELLER o ADMIN para editar.')
+    show('Debes iniciar sesión como SELLER o ADMIN para editar.', 'error')
     return
   }
 
   setStatus('saving')
-  setError('')
 
   try {
     if (!isStockMode) {
@@ -280,19 +280,21 @@ await Promise.all(
 )
 
     setStatus('success')
+    show('Cambios guardados', 'success')
 
     setTimeout(() => {
       router.push('/seller/dashboard')
       router.refresh()
     }, 900)
   } catch (err) {
-    setStatus('error')
-    setError(err instanceof Error ? err.message : 'No se pudo guardar.')
+    setStatus('idle')
+    show(err instanceof Error ? err.message : 'No se pudo guardar.', 'error')
   }
 }
 
 return (
   <div>
+    <ToastContainer />
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24 }}>
       <div>
         <div className="eyebrow accent">
@@ -528,26 +530,11 @@ return (
         )}
 
         {!isStockMode && (
-          <div style={{ display: 'grid', justifyItems: 'end', gap: 10 }}>
-            {(status === 'error' || status === 'success') && (
-              <span
-                className="mono"
-                style={{
-                  fontSize: 12,
-                  letterSpacing: '0.04em',
-                  color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
-                  textAlign: 'right',
-                }}
-              >
-                {status === 'error' ? error : 'Cambios guardados'}
-              </span>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>Cancelar</button>
-              <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
-                {status === 'saving' ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>Cancelar</button>
+            <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+              {status === 'saving' ? 'Guardando...' : 'Guardar cambios'}
+            </button>
           </div>
         )}
 
@@ -603,26 +590,11 @@ return (
         )}
 
         {isStockMode && (
-          <div style={{ display: 'grid', justifyItems: 'end', gap: 10 }}>
-            {(status === 'error' || status === 'success') && (
-              <span
-                className="mono"
-                style={{
-                  fontSize: 12,
-                  letterSpacing: '0.04em',
-                  color: status === 'error' ? 'var(--danger)' : 'var(--ok)',
-                  textAlign: 'right',
-                }}
-              >
-                {status === 'error' ? error : 'Cambios guardados'}
-              </span>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>Cancelar</button>
-              <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
-                {status === 'saving' ? 'Guardando...' : 'Guardar stock'}
-              </button>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={() => router.push('/seller/dashboard')} disabled={status === 'saving'}>Cancelar</button>
+            <button className="btn" onClick={handleSave} disabled={status === 'saving'} style={{ minWidth: 180 }}>
+              {status === 'saving' ? 'Guardando...' : 'Guardar stock'}
+            </button>
           </div>
         )}
       </div>
