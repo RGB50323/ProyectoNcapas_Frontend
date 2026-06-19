@@ -53,7 +53,6 @@ export function AdminSidebar() {
       <Item href="/admin/drops">Drops</Item>
 
       <div className="group">Operaciones</div>
-      <Item href="/admin/auth-alerts">Alertas</Item>
       <Item href="/admin/orders">Pedidos</Item>
       <Item href="/admin/verifications">Verificaciones</Item>
     </aside>
