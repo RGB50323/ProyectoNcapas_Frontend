@@ -27,7 +27,7 @@ import {
   stripeImg,
 } from './mock-data'
 
-import { authFetch, type Session } from './auth'
+import { authFetch, getUserId, type Session } from './auth'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080'
@@ -333,16 +333,20 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 }
 
 export async function getPublicProducts(): Promise<Product[]> {
-  const products = await getProducts()
-  return products.filter((product) => product.auth === 'AUTHENTICATED')
+    try {
+        const products = await getProducts()
+        return products.filter((product) => product.auth === 'AUTHENTICATED')
+    } catch {
+        return []
+    }
 }
 
 export async function getPublicProduct(id: string): Promise<Product | undefined> {
-  const products = await getPublicProducts()
+    const products = await getPublicProducts()
 
-  return products.find(
-    (product) => product.id === id || product.sku === id
-  )
+    return products.find(
+        (product) => product.id === id || product.sku === id
+    )
 }
 
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
@@ -531,6 +535,41 @@ export async function getDrops(): Promise<Drop[]> {
       type: d.type === 'PRIVATE' ? 'DROP PRIVADO' : 'PÚBLICO',
       img: d.coverImageUrl || stripeImg(d.title, '#1b1b1b', '#111111', '#e8e3d6'),
     }))
+}
+
+export async function getOrdersByCustomer(session: Session): Promise<Order[]> {
+    try {
+        const userId = getUserId(session)
+        if (!userId) return []
+
+        const res = await authFetch(`/orders/customer/${userId}`, session)
+        const json = await res.json()
+        const data = json?.data ?? []
+
+        return data.map((o: any) => ({
+            id: o.id,
+            status: o.status,
+            date: new Date(o.createdAt).toLocaleDateString('es-SV', {
+                day: 'numeric', month: 'short', year: 'numeric',
+            }),
+            total: o.total,
+            items: 0,
+            tracking: o.trackingNumber ?? '—',
+            customerId: o.customerId,
+            customerFullName: o.customerFullName,
+            subtotal: o.subtotal,
+            shippingCost: o.shippingCost,
+            discountAmount: o.discountAmount,
+            couponCode: o.couponCode ?? undefined,
+            shippingMethodName: o.shippingMethodName ?? undefined,
+            shippingAddressStreet: o.shippingAddressStreet ?? undefined,
+            shippingAddressCity: o.shippingAddressCity ?? undefined,
+            shippingAddressCountry: o.shippingAddressCountry ?? undefined,
+            notes: o.notes ?? undefined,
+        }))
+    } catch {
+        return []
+    }
 }
 
 export async function getOrders(): Promise<Order[]> {
