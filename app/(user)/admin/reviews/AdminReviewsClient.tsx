@@ -49,11 +49,19 @@ function PhotosCell({
   }, [load]);
 
   if (photos === null) {
-    return <span className="mono mute" style={{ fontSize: 11 }}>…</span>;
+    return (
+      <span className="mono mute" style={{ fontSize: 11 }}>
+        …
+      </span>
+    );
   }
 
   if (photos.length === 0) {
-    return <span className="mono mute" style={{ fontSize: 11 }}>—</span>;
+    return (
+      <span className="mono mute" style={{ fontSize: 11 }}>
+        —
+      </span>
+    );
   }
 
   return (
@@ -85,7 +93,9 @@ function PhotosCell({
             <button
               onClick={() => {
                 onDeletePhoto(ph.id);
-                setPhotos((prev) => prev?.filter((p) => p.id !== ph.id) ?? null);
+                setPhotos(
+                  (prev) => prev?.filter((p) => p.id !== ph.id) ?? null,
+                );
               }}
               style={{
                 position: "absolute",
@@ -119,7 +129,7 @@ export default function AdminReviewsClient() {
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Review | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const { show: addToast } = useToast();
+  const { show: addToast, ToastContainer } = useToast();
 
   const load = useCallback(async () => {
     if (!session) return;
@@ -174,7 +184,7 @@ export default function AdminReviewsClient() {
         (r) =>
           r.productName.toLowerCase().includes(q) ||
           `${r.userFirstName} ${r.userLastName}`.toLowerCase().includes(q) ||
-          r.body.toLowerCase().includes(q)
+          r.body.toLowerCase().includes(q),
       );
     }
     return list;
@@ -250,7 +260,10 @@ export default function AdminReviewsClient() {
             {n}★
           </button>
         ))}
-        <span className="mono mute" style={{ fontSize: 11, marginLeft: "auto" }}>
+        <span
+          className="mono mute"
+          style={{ fontSize: 11, marginLeft: "auto" }}
+        >
           {filtered.length} de {reviews.length}
         </span>
       </div>
@@ -312,9 +325,15 @@ export default function AdminReviewsClient() {
                     </span>
                   </td>
                   <td style={{ minWidth: 100 }}>
-                    <PhotosCell reviewId={r.id} onDeletePhoto={handleDeletePhoto} />
+                    <PhotosCell
+                      reviewId={r.id}
+                      onDeletePhoto={handleDeletePhoto}
+                    />
                   </td>
-                  <td className="mono mute" style={{ fontSize: 11, whiteSpace: "nowrap" }}>
+                  <td
+                    className="mono mute"
+                    style={{ fontSize: 11, whiteSpace: "nowrap" }}
+                  >
                     {new Date(r.createdAt).toLocaleDateString("es-SV", {
                       day: "numeric",
                       month: "short",
@@ -324,7 +343,11 @@ export default function AdminReviewsClient() {
                   <td>
                     <button
                       className="btn btn-ghost"
-                      style={{ fontSize: 12, padding: "6px 12px", color: "var(--red, #e55)" }}
+                      style={{
+                        fontSize: 12,
+                        padding: "6px 12px",
+                        color: "var(--red, #e55)",
+                      }}
                       onClick={() => setConfirmDelete(r)}
                     >
                       Eliminar
@@ -352,12 +375,18 @@ export default function AdminReviewsClient() {
           eliminarán todas sus fotos. Esta acción no se puede deshacer.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => setConfirmDelete(null)}
+          >
             Cancelar
           </button>
           <button
             className="btn"
-            style={{ background: "var(--red, #e55)", borderColor: "var(--red, #e55)" }}
+            style={{
+              background: "var(--red, #e55)",
+              borderColor: "var(--red, #e55)",
+            }}
             onClick={handleDeleteReview}
             disabled={deleting}
           >
@@ -365,6 +394,7 @@ export default function AdminReviewsClient() {
           </button>
         </div>
       </Modal>
+      <ToastContainer />
     </div>
   );
 }

@@ -86,6 +86,10 @@ export function AdminSidebar() {
       <Item href="/admin/addresses">Direcciones</Item>
       <Item href="/admin/reviews">Reseñas</Item>
 
+      <div className="group">Operaciones</div>
+      <Item href="/admin/orders">Pedidos</Item>
+      <Item href="/admin/verifications">Verificaciones</Item>
+
       <div className="group">Catálogo</div>
       <Item href="/admin/products">Productos</Item>
       <Item href="/admin/categories">Categorías</Item>
@@ -96,10 +100,6 @@ export function AdminSidebar() {
       <Item href="/admin/shipping">Métodos de envío</Item>
       <Item href="/admin/coupons">Cupones</Item>
       <Item href="/admin/drops">Drops</Item>
-
-      <div className="group">Operaciones</div>
-      <Item href="/admin/orders">Pedidos</Item>
-      <Item href="/admin/verifications">Verificaciones</Item>
     </aside>
   );
 }
