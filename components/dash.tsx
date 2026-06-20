@@ -67,6 +67,7 @@ export function SellerSidebar() {
 
       <div className="group">Productos</div>
       <Item href="/seller/products">Mis productos</Item>
+      <Item href="/seller/reviews">Reseñas</Item>
 
       <div className="group">Cuenta</div>
       <Item href="/seller/profile">Perfil de tienda</Item>

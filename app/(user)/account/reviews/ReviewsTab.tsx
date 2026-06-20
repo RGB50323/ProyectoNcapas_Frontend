@@ -187,7 +187,6 @@ function CreateReviewModal({
           </div>
         </div>
 
-        {/* Fotos */}
         <div>
           <div className="label" style={{ marginBottom: 6 }}>
             FOTOS (máx. 5)
@@ -274,6 +273,12 @@ function CreateReviewModal({
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {files.length >= 5 && (
+            <div className="mono mute" style={{ fontSize: 11, marginTop: 8 }}>
+              Llegaste al máximo de 5 fotos.
             </div>
           )}
         </div>
@@ -430,14 +435,20 @@ function PhotosModal({
     const dropped = Array.from(e.dataTransfer.files).filter((f) =>
       f.type.startsWith("image/"),
     );
-    setFiles((prev) => [...prev, ...dropped].slice(0, 5));
+    setFiles((prev) => {
+      const remaining = Math.max(0, 5 - photos.length - prev.length);
+      return [...prev, ...dropped.slice(0, remaining)];
+    });
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []).filter((f) =>
       f.type.startsWith("image/"),
     );
-    setFiles((prev) => [...prev, ...selected].slice(0, 5));
+    setFiles((prev) => {
+      const remaining = Math.max(0, 5 - photos.length - prev.length);
+      return [...prev, ...selected.slice(0, remaining)];
+    });
     e.target.value = "";
   }
 
@@ -487,7 +498,6 @@ function PhotosModal({
       width={600}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* Fotos existentes */}
         {photos.length === 0 ? (
           <div
             className="mono mute"
@@ -555,7 +565,6 @@ function PhotosModal({
           </div>
         )}
 
-        {/* Agregar fotos */}
         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
           <div className="label" style={{ marginBottom: 10 }}>
             AGREGAR FOTOS (máx. 5)
@@ -567,7 +576,9 @@ function PhotosModal({
             }}
             onDragLeave={() => setDrag(false)}
             onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
+            onClick={() => {
+              if (photos.length + files.length < 5) inputRef.current?.click();
+            }}
             style={{
               border: `2px dashed ${drag ? "var(--accent)" : "var(--border)"}`,
               borderRadius: 4,
@@ -645,6 +656,12 @@ function PhotosModal({
             </div>
           )}
 
+          {photos.length + files.length >= 5 && (
+            <div className="mono mute" style={{ fontSize: 11, marginTop: 8 }}>
+              Llegaste al máximo de 5 fotos.
+            </div>
+          )}
+
           {err && (
             <div
               className="mono"
@@ -677,7 +694,11 @@ function PhotosModal({
   );
 }
 
-export default function ReviewsTab() {
+export default function ReviewsTab({
+  onCountChange,
+}: {
+  onCountChange?: (n: number) => void;
+}) {
   const { session } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -690,6 +711,10 @@ export default function ReviewsTab() {
   const { show: addToast } = useToast();
 
   const userId = session ? getUserId(session) : null;
+
+  useEffect(() => {
+    onCountChange?.(reviews.length);
+  }, [reviews, onCountChange]);
 
   const load = useCallback(async () => {
     if (!userId) return;

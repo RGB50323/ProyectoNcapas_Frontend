@@ -479,6 +479,18 @@ export async function getReviewsByUser(userId: string): Promise<Review[]> {
   return res.data
 }
 
+export async function getReviewsBySeller(sellerId: string, token: string): Promise<Review[]> {
+  const res = await fetch(`${API_BASE_URL}/reviews/seller/${sellerId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al cargar las reviews`)
+  }
+  return json.data as Review[]
+}
+
 export async function createReview(body: {
   productId: string
   userId: string

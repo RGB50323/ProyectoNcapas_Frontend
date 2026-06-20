@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, getUserId, authFetch } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
-import { getOrdersByCustomer } from "@/lib/api";
+import { getOrdersByCustomer, getReviewsByUser } from "@/lib/api";
 import type { Order, Product, Review } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 import { StatusPill } from "@/components/ui";
@@ -345,14 +345,15 @@ export default function AccountClient() {
     const { session, loading, logout } = useAuth();
     const { count: wishCount } = useWishlist();
     const [reviews, setReviews] = useState<Review[]>([]);
+    const [reviewCount, setReviewCount] = useState(0);
 
     const tabsWithCounts = TABS.map(([k, label, count]) => {
-        if (k === "addresses") return [k, label, String(addressCount)];
-        if (k === "wishlist") return [k, label, String(wishCount)];
-        if (k === "orders") return [k, label, String(orders.length)];
-        if (k === "reviews") return [k, label, String(reviews.length)];
-        return [k, label, count ?? ""];
-    });
+    if (k === "addresses") return [k, label, String(addressCount)];
+    if (k === "wishlist") return [k, label, String(wishCount)];
+    if (k === "orders") return [k, label, String(orders.length)];
+    if (k === "reviews") return [k, label, String(reviewCount)];
+    return [k, label, count ?? ""];
+});
 
     useEffect(() => {
         if (!loading && !session) router.replace("/login");
@@ -372,6 +373,15 @@ export default function AccountClient() {
             .then(setProducts)
             .catch(() => setProducts([]))
     }, [session])
+
+    useEffect(() => {
+    if (!session) return;
+    const userId = getUserId(session);
+    if (!userId) return;
+    getReviewsByUser(userId)
+        .then((data) => setReviewCount(data.length))
+        .catch(() => setReviewCount(0));
+}, [session]);
 
     // Cargar direcciones
     useEffect(() => {
@@ -481,7 +491,7 @@ export default function AccountClient() {
                     {tab === "orders" && <OrdersTab orders={orders} />}
                     {tab === "wishlist" && <WishlistTab products={products} />}
                     {tab === "addresses" && <AddressPage />}
-                    {tab === "reviews" && <ReviewsTab />}
+                    {tab === "reviews" && <ReviewsTab onCountChange={setReviewCount} />}
                 </div>
             </div>
         </div>
