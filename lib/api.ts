@@ -12,7 +12,8 @@ import type {
   Condition,
   AuthStatus,
   BrandOption,
-  Verification
+  Verification,
+  StockAlert
 } from './types'
 
 import {
@@ -725,4 +726,36 @@ export async function getVerificationById(id: string, token: string): Promise<Ve
   })
   const json = await res.json()
   return json.data as Verification
+}
+
+export async function getMyStockAlerts(session: Session): Promise<StockAlert[]> {
+  try {
+    const userId = getUserId(session)
+    if (!userId) return []
+    const res = await authFetch(`/stock-alerts/user/${userId}`, session)
+    const json = await res.json()
+    return json?.data ?? []
+  } catch {
+    return []
+  }
+}
+
+export async function createStockAlert(
+    productId: string,
+    session: Session
+): Promise<void> {
+  await authFetch('/stock-alerts/create', session, {
+    method: 'POST',
+    body: JSON.stringify({
+      userId: getUserId(session),
+      productId,
+    }),
+  })
+}
+
+export async function deleteStockAlert(
+    id: string,
+    session: Session
+): Promise<void> {
+  await authFetch(`/stock-alerts/${id}`, session, { method: 'DELETE' })
 }
