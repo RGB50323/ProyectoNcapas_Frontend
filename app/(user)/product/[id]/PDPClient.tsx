@@ -327,24 +327,31 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
           <div className="meta">{product.reviews} RESEÑAS · {product.rating}/5.0 PROM.</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
-          {reviews.map((r, i) => (
-            <div key={i} className="card" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div className="display" style={{ fontSize: 14 }}>{r.name}</div>
-                <div className="mono mute">{r.date}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 2, color: 'var(--accent-2)', marginBottom: 12 }}>
-                {[1, 2, 3, 4, 5].map((j) => <Icon.Star key={j} filled={j <= r.rating} />)}
-              </div>
-              <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.7, margin: 0 }}>&ldquo;{r.text}&rdquo;</p>
-              <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
-                {Array.from({ length: r.photos }).map((_, j) => (
-                  <div key={j} style={{ width: 56, height: 56, background: REVIEW_PHOTO_PALETTE[j % 3], border: '1px solid var(--border)', borderRadius: 2 }} />
-                ))}
-              </div>
-              <div className="mono mute" style={{ marginTop: 14, fontSize: 11, color: 'var(--accent-2)' }}>✓ COMPRA VERIFICADA</div>
+          {reviews.map((r) => (
+        <div key={r.id} className="card" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div className="display" style={{ fontSize: 14 }}>
+              {r.userFirstName} {r.userLastName}
             </div>
-          ))}
+            <div className="mono mute">
+              {new Date(r.createdAt).toLocaleDateString('es-SV', {
+                day: 'numeric', month: 'short', year: 'numeric',
+              })}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 2, color: 'var(--accent-2)', marginBottom: 12 }}>
+            {[1, 2, 3, 4, 5].map((j) => <Icon.Star key={j} filled={j <= r.rating} />)}
+          </div>
+          <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+            &ldquo;{r.body}&rdquo;
+          </p>
+          {r.isVerifiedPurchase && (
+            <div className="mono mute" style={{ marginTop: 14, fontSize: 11, color: 'var(--accent-2)' }}>
+              ✓ COMPRA VERIFICADA
+            </div>
+          )}
+        </div>
+      ))}
         </div>
       </div>
 

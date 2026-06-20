@@ -479,6 +479,18 @@ export async function getReviewsByUser(userId: string): Promise<Review[]> {
   return res.data
 }
 
+export async function getReviewsBySeller(sellerId: string, token: string): Promise<Review[]> {
+  const res = await fetch(`${API_BASE_URL}/reviews/seller/${sellerId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al cargar las reviews`)
+  }
+  return json.data as Review[]
+}
+
 export async function createReview(body: {
   productId: string
   userId: string
@@ -529,6 +541,19 @@ export async function createReviewPhoto(body: {
   sortOrder?: number
 }, token: string): Promise<ReviewPhoto> {
   return apiWrite('/review-photos/create', token, 'POST', body)
+}
+
+export async function uploadReviewPhoto(file: File, token: string): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch(`${API_BASE_URL}/review-photos/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(json?.message || `Error ${res.status} al subir la foto`)
+  return json?.data?.url as string
 }
 
 export async function updateReviewPhoto(id: string, body: {

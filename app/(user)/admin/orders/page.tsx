@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { admin, type AdminOrder, type AdminOrderItem } from '@/lib/admin'
@@ -83,8 +84,8 @@ export default function AdminOrdersPage() {
             </thead>
             <tbody>
             {orders.map((o) => (
-                <>
-                  <tr key={o.id}>
+              <React.Fragment key={o.id}>
+                <tr>
                     <td>
                     <span className="display" style={{ fontSize: 13 }}>
                       {o.id.slice(0, 8).toUpperCase()}
@@ -185,7 +186,7 @@ export default function AdminOrdersPage() {
                         </td>
                       </tr>
                   )}
-                </>
+                </React.Fragment>
             ))}
             </tbody>
           </table>
