@@ -1,4 +1,5 @@
 import { authFetch, type Session, type Role } from './auth'
+import type { Review, ReviewPhoto } from './types'
 
 export type DiscountType = string
 export type DropType = 'PUBLIC' | 'PRIVATE'
@@ -199,4 +200,9 @@ export const admin = {
   createProductBadge: (s: Session, b: unknown) => create(s, '/product-badges/create', b),
   updateProductBadge: (s: Session, id: string, b: unknown) => put(s, `/product-badges/update/${id}`, b),
   deleteProductBadge: (s: Session, id: string) => del(s, `/product-badges/${id}`),
+
+  listReviews: (s: Session) => list<Review>(s, '/reviews/'),
+  deleteReview: (s: Session, id: string) => del(s, `/reviews/${id}`),
+  reviewPhotosByReview: (s: Session, reviewId: string) => list<ReviewPhoto>(s, `/review-photos/review/${reviewId}`),
+  deleteReviewPhoto: (s: Session, id: string) => del(s, `/review-photos/${id}`),
 }
