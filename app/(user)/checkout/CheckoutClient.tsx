@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ShippingMethod, CartItem, CouponPreview } from '@/lib/types'
@@ -96,27 +96,26 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
 
     // Método de envío seleccionado
-    const [selectedShippingId, setSelectedShippingId] = useState(
-        shipping[0]?.id ?? ''
-    )
+    const [selectedShippingId, setSelectedShippingId] = useState(shipping[0]?.id ?? '')
 
     // Pago
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].id)
     const [transactionId, setTransactionId] = useState('')
 
-    // Aceptacion de terminos en el paso de revision
+    // Aceptación de términos en el paso de revisión
     const [accepted, setAccepted] = useState(false)
 
-    // Snapshot del resumen al confirmar, el carrito se vacia despues
+    // Snapshot del resumen al confirmar, el carrito se vacía después
     const [confirmed, setConfirmed] = useState<{
         items: CartItem[]
         subtotal: number
         discount: number
         shipFee: number
+        extraFee: number
         total: number
     } | null>(null)
 
-    // Cupon aplicado en la bolsa, recalculado con el envio elegido
+    // Cupón aplicado en la bolsa, recalculado con el envío elegido
     const [preview, setPreview] = useState<CouponPreview | null>(null)
 
     // Cargar direcciones del usuario
@@ -135,7 +134,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
             .catch(() => {})
     }, [session])
 
-    // Recalcular el cupon cuando cambia el envio
+    // Recalcular el cupón cuando cambia el envío
     useEffect(() => {
         if (!session || !coupon) { setPreview(null); return }
         previewCoupon(session, { code: coupon, shippingMethodId: selectedShippingId || undefined })
@@ -148,7 +147,9 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
     const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
     const shipFee = selectedShipping?.fee ?? 0
     const discount = preview?.discountAmount ?? 0
-    const total = subtotal + shipFee - discount
+    const selectedPaymentMethod = PAYMENT_METHODS.find((x) => x.id === paymentMethod)
+    const extraFee = selectedPaymentMethod?.extraFee?.(subtotal) ?? 0
+    const total = subtotal + shipFee - discount + extraFee
 
     // Mapear método de pago frontend → backend
     const paymentMethodMap: Record<string, string> = {
@@ -221,7 +222,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
             }
 
             // Guardar el resumen antes de vaciar el carrito
-            setConfirmed({ items, subtotal, discount, shipFee, total })
+            setConfirmed({ items, subtotal, discount, shipFee, extraFee, total })
 
             // 4. Vaciar el carrito
             await clearCart(session)
@@ -273,6 +274,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                         <CheckoutDone orderId={orderId} />
                     ) : (
                         <>
+                            {/* Paso 1 — Datos */}
                             {step === 1 && (
                                 <Section title="Datos personales" eyebrow="◇ PASO 01">
                                     <Grid2>
@@ -283,6 +285,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 </Section>
                             )}
 
+                            {/* Paso 2 — Dirección */}
                             {step === 2 && (
                                 <Section title="Dirección de envío" eyebrow="◇ PASO 02">
                                     {addresses.length === 0 ? (
@@ -316,6 +319,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 </Section>
                             )}
 
+                            {/* Paso 3 — Envío */}
                             {step === 3 && (
                                 <Section title="Método de envío" eyebrow="◇ PASO 03">
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -352,29 +356,49 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 </Section>
                             )}
 
+                            {/* Paso 4 — Pago */}
                             {step === 4 && (
                                 <Section title="Método de pago" eyebrow="◇ PASO 04">
                                     <PaymentPicker
                                         selected={paymentMethod}
-                                        onChange={setPaymentMethod}
+                                        onChange={(id) => {
+                                            setPaymentMethod(id)
+                                            setError(null)
+                                        }}
                                         transactionId={transactionId}
-                                        onTransactionIdChange={setTransactionId}
+                                        onTransactionIdChange={(v) => {
+                                            setTransactionId(v)
+                                            if (v.trim()) setError(null)
+                                        }}
                                     />
                                 </Section>
                             )}
 
+                            {/* Paso 5 — Revisión con botones EDITAR funcionando */}
                             {step === 5 && (
                                 <Section title="Revisa tu pedido" eyebrow="◇ PASO 05">
-                                    <ReviewRow label="Contacto" value={session?.email ?? ''} />
+                                    <ReviewRow
+                                        label="Contacto"
+                                        value={session?.email ?? ''}
+                                    />
                                     <ReviewRow
                                         label="Enviar a"
                                         value={(() => {
                                             const a = addresses.find((x) => x.id === selectedAddressId)
                                             return a ? `${a.street}, ${a.city}, ${a.country}` : '—'
                                         })()}
+                                        onEdit={() => setStep(2)}
                                     />
-                                    <ReviewRow label="Método" value={`${selectedShipping?.name} · ${selectedShipping?.eta}`} />
-                                    <ReviewRow label="Pago" value={PAYMENT_METHODS.find((x) => x.id === paymentMethod)?.label ?? ''} />
+                                    <ReviewRow
+                                        label="Método"
+                                        value={`${selectedShipping?.name} · ${selectedShipping?.eta}`}
+                                        onEdit={() => setStep(3)}
+                                    />
+                                    <ReviewRow
+                                        label="Pago"
+                                        value={PAYMENT_METHODS.find((x) => x.id === paymentMethod)?.label ?? ''}
+                                        onEdit={() => setStep(4)}
+                                    />
                                     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 24, color: 'var(--text-dim)' }}>
                                         <button
                                             type="button"
@@ -410,7 +434,17 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     ← Atrás
                                 </button>
                                 {step < 5 && (
-                                    <button className="btn" onClick={() => setStep(step + 1)}>
+                                    <button
+                                        className="btn"
+                                        onClick={() => {
+                                            if (step === 4 && paymentMethod === 'bank' && !transactionId.trim()) {
+                                                setError('Debes ingresar el ID de transacción para continuar')
+                                                return
+                                            }
+                                            setError(null)
+                                            setStep(step + 1)
+                                        }}
+                                    >
                                         Continuar →
                                     </button>
                                 )}
@@ -434,31 +468,32 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                         {(() => {
                             const sum = step === 6 && confirmed
                                 ? confirmed
-                                : { items, subtotal, discount, shipFee, total }
+                                : { items, subtotal, discount, shipFee, extraFee, total }
                             return (
                                 <>
-                        <div className="display" style={{ fontSize: 18, marginBottom: 20 }}>
-                            TU BOLSA · {sum.items.length} PIEZAS
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-                            {sum.items.map((it) => (
-                                <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
-                                    <div>
-                                        <div style={{ fontFamily: 'var(--font-display)', fontSize: 13 }}>{it.productName}</div>
-                                        <div className="mono mute">{it.variantSize} · {it.variantColorName} · ×{it.quantity}</div>
+                                    <div className="display" style={{ fontSize: 18, marginBottom: 20 }}>
+                                        TU BOLSA · {sum.items.length} PIEZAS
                                     </div>
-                                    <div className="mono">${it.unitPrice * it.quantity}</div>
-                                </div>
-                            ))}
-                        </div>
-                        <Line label="Subtotal" value={`$${sum.subtotal}`} />
-                        {sum.discount > 0 && <Line label="Descuento Cupon" value={`-$${sum.discount}`} accent />}
-                        <Line label="Envío" value={sum.shipFee === 0 ? 'GRATIS' : `$${sum.shipFee}`} />
-                        <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="display" style={{ fontSize: 16 }}>TOTAL</span>
-                            <span className="display" style={{ fontSize: 28 }}>${sum.total}</span>
-                        </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+                                        {sum.items.map((it) => (
+                                            <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 13 }}>{it.productName}</div>
+                                                    <div className="mono mute">{it.variantSize} · {it.variantColorName} · ×{it.quantity}</div>
+                                                </div>
+                                                <div className="mono">${it.unitPrice * it.quantity}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Line label="Subtotal" value={`$${sum.subtotal}`} />
+                                    {sum.discount > 0 && <Line label="Descuento Cupón" value={`-$${sum.discount}`} accent />}
+                                    <Line label="Envío" value={sum.shipFee === 0 ? 'GRATIS' : `$${sum.shipFee}`} />
+                                    {sum.extraFee > 0 && <Line label="Contra entrega" value={`+$${sum.extraFee}`} />}
+                                    <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span className="display" style={{ fontSize: 16 }}>TOTAL</span>
+                                        <span className="display" style={{ fontSize: 28 }}>${sum.total}</span>
+                                    </div>
                                 </>
                             )
                         })()}

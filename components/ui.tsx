@@ -60,14 +60,26 @@ export function Section({ title, eyebrow, children }: { title: string; eyebrow?:
   )
 }
 
-export function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr auto', padding: '14px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
-      <div className="mono mute">{label}</div>
-      <div style={{ fontSize: 13 }}>{value}</div>
-      <button className="mono" style={{ background: 'none', border: 'none', color: 'var(--accent-2)', cursor: 'pointer' }}>EDITAR</button>
-    </div>
-  )
+export function ReviewRow({ label, value, onEdit }: {
+    label: string
+    value: string
+    onEdit?: () => void
+}) {
+    return (
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr auto', padding: '14px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+            <div className="mono mute">{label}</div>
+            <div style={{ fontSize: 13 }}>{value}</div>
+            {onEdit && (
+                <button
+                    className="mono"
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-2)', cursor: 'pointer' }}
+                    onClick={onEdit}
+                >
+                    EDITAR
+                </button>
+            )}
+        </div>
+    )
 }
 
 export function KPI({ label, value, delta, neg }: { label: string; value: string; delta?: string; neg?: boolean }) {

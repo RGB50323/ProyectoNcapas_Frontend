@@ -159,11 +159,12 @@ export const admin = {
   listOrders: (s: Session) => list<AdminOrder>(s, '/orders/'),
   ordersByCustomer: (s: Session, customerId: string) => list<AdminOrder>(s, `/orders/customer/${customerId}`),
   orderItems: (s: Session, orderId: string) => list<AdminOrderItem>(s, `/order-items/order/${orderId}`),
+  patchOrder: (s: Session, id: string, status: string) => patch(s, `/orders/patch/${id}`, { status }), // ← nuevo
   addressesByUser: (s: Session, userId: string) => list<AdminAddress>(s, `/addresses/user/${userId}`),
 
   listSellers: (s: Session) => list<AdminSeller>(s, '/seller_profiles/'),
   updateSeller: (s: Session, id: string, body: { storeName: string; storeDescription: string }) =>
-    put(s, `/seller_profiles/update/${id}`, body),
+      put(s, `/seller_profiles/update/${id}`, body),
   verifySeller: (s: Session, id: string, verified: boolean) => patch(s, `/seller_profiles/${id}/verify`, { verified }),
   deleteSeller: (s: Session, id: string) => del(s, `/seller_profiles/${id}`),
 

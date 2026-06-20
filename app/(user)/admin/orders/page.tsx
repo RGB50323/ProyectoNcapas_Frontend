@@ -7,6 +7,15 @@ import type { OrderStatus } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import { StatusPill } from '@/components/ui'
 
+const ORDER_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+  'REFUNDED',
+]
+
 export default function AdminOrdersPage() {
   const { session } = useAuth()
   const [orders, setOrders] = useState<AdminOrder[]>([])
@@ -14,6 +23,7 @@ export default function AdminOrdersPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [items, setItems] = useState<Record<string, AdminOrderItem[]>>({})
   const [loadingItems, setLoadingItems] = useState<string | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   useEffect(() => {
     if (!session) return
@@ -39,6 +49,23 @@ export default function AdminOrdersPage() {
       } finally {
         setLoadingItems(null)
       }
+    }
+  }
+
+  // ← Función nueva para cambiar el estado
+  async function handleStatusChange(orderId: string, newStatus: string) {
+    if (!session) return
+    setUpdatingStatus(orderId)
+    try {
+      await admin.patchOrder(session, orderId, newStatus)
+      // Actualizar el estado localmente sin recargar toda la lista
+      setOrders((prev) =>
+          prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o)
+      )
+    } catch (err) {
+      alert('Error al actualizar el estado')
+    } finally {
+      setUpdatingStatus(null)
     }
   }
 
@@ -84,8 +111,8 @@ export default function AdminOrdersPage() {
             </thead>
             <tbody>
             {orders.map((o) => (
-              <React.Fragment key={o.id}>
-                <tr>
+                <React.Fragment key={o.id}>
+                  <tr>
                     <td>
                     <span className="display" style={{ fontSize: 13 }}>
                       {o.id.slice(0, 8).toUpperCase()}
@@ -97,27 +124,49 @@ export default function AdminOrdersPage() {
                         day: 'numeric', month: 'short', year: 'numeric',
                       })}
                     </td>
-                    <td><StatusPill status={o.status as OrderStatus} /></td>
+
+                    {/* ← Dropdown de estado */}
+                    <td>
+                      <select
+                          value={o.status}
+                          disabled={updatingStatus === o.id}
+                          onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                          style={{
+                            background: 'var(--card)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--text)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 11,
+                            letterSpacing: '0.1em',
+                            padding: '6px 10px',
+                            cursor: 'pointer',
+                            opacity: updatingStatus === o.id ? 0.5 : 1,
+                          }}
+                      >
+                        {ORDER_STATUSES.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </td>
+
                     <td className="mono">${o.subtotal}</td>
                     <td className="mono">${o.shippingCost}</td>
                     <td><span className="display" style={{ fontSize: 14 }}>${o.total}</span></td>
                     <td className="mono mute">{o.trackingNumber ?? '—'}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                            className="mono accent"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                            onClick={() => toggleOrder(o.id)}
-                        >
-                          {openId === o.id ? 'CERRAR' : 'ABRIR →'}
-                        </button>
-                      </div>
+                      <button
+                          className="mono accent"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                          onClick={() => toggleOrder(o.id)}
+                      >
+                        {openId === o.id ? 'CERRAR' : 'ABRIR →'}
+                      </button>
                     </td>
                   </tr>
 
                   {/* Detalle de items */}
                   {openId === o.id && (
-                      <tr key={`${o.id}-detail`}>
+                      <tr>
                         <td colSpan={9} style={{ padding: 0 }}>
                           <div style={{ padding: 20, background: 'var(--bg-1)', borderTop: '1px solid var(--border)' }}>
                             {loadingItems === o.id ? (
@@ -153,7 +202,6 @@ export default function AdminOrdersPage() {
                                 </table>
                             )}
 
-                            {/* Info adicional de la orden */}
                             <div style={{ marginTop: 16, display: 'flex', gap: 32, flexWrap: 'wrap' }}>
                               {o.shippingAddressStreet && (
                                   <div>
