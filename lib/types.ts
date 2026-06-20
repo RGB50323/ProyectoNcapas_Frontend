@@ -164,11 +164,23 @@ export interface StockAlert {
 }
 
 export interface Review {
-  name: string
-  date: string
+  id: string
+  productId: string
+  productName: string
+  userId: string
+  userFirstName: string
+  userLastName: string
   rating: number
-  text: string
-  photos: number
+  body: string
+  isVerifiedPurchase: boolean
+  createdAt: string
+}
+
+export interface ReviewPhoto {
+  id: string
+  reviewId: string
+  url: string
+  sortOrder: number
 }
 
 export interface CartLine {

@@ -7,11 +7,11 @@ import type {
   Drop,
   Order,
   Review,
+  ReviewPhoto,
   Variant,
   Condition,
   AuthStatus,
   BrandOption,
-  ProductImage,
   Verification
 } from './types'
 
@@ -332,20 +332,20 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 }
 
 export async function getPublicProducts(): Promise<Product[]> {
-    try {
-        const products = await getProducts()
-        return products.filter((product) => product.auth === 'AUTHENTICATED')
-    } catch {
-        return []
-    }
+  try {
+    const products = await getProducts()
+    return products.filter((product) => product.auth === 'AUTHENTICATED')
+  } catch {
+    return []
+  }
 }
 
 export async function getPublicProduct(id: string): Promise<Product | undefined> {
-    const products = await getPublicProducts()
+  const products = await getPublicProducts()
 
-    return products.find(
-        (product) => product.id === id || product.sku === id
-    )
+  return products.find(
+    (product) => product.id === id || product.sku === id
+  )
 }
 
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
@@ -459,11 +459,96 @@ export async function deleteProduct(id: string, token: string): Promise<void> {
   }
 }
 
-export async function getReviews(productId: string): Promise<Review[]> {
-  if (USE_MOCK) return REVIEWS
-
-  return REVIEWS
+export async function getReviewsByProduct(productId: string): Promise<Review[]> {
+  const res = await apiGet<ApiResponse<Review[]>>(`/reviews/product/${productId}`)
+  return res.data
 }
+
+export async function getAllReviews(): Promise<Review[]> {
+  const res = await apiGet<ApiResponse<Review[]>>('/reviews/')
+  return res.data
+}
+
+export async function getReviewById(id: string): Promise<Review> {
+  const res = await apiGet<ApiResponse<Review>>(`/reviews/${id}`)
+  return res.data
+}
+
+export async function getReviewsByUser(userId: string): Promise<Review[]> {
+  const res = await apiGet<ApiResponse<Review[]>>(`/reviews/user/${userId}`)
+  return res.data
+}
+
+export async function createReview(body: {
+  productId: string
+  userId: string
+  rating: number
+  body: string
+  isVerifiedPurchase: boolean
+}, token: string): Promise<Review> {
+  return apiWrite('/reviews/create', token, 'POST', body)
+}
+
+export async function updateReview(id: string, body: {
+  rating: number
+  title: string
+  body: string
+}, token: string): Promise<Review> {
+  return apiWrite(`/reviews/update/${id}`, token, 'PUT', body)
+}
+
+export async function patchReview(id: string, body: {
+  rating?: number
+  body?: string
+}, token: string): Promise<Review> {
+  return apiWrite(`/reviews/patch/${id}`, token, 'PATCH', body)
+}
+
+export async function deleteReview(id: string, token: string): Promise<void> {
+  await apiWrite(`/reviews/${id}`, token, 'DELETE')
+}
+
+export async function getAllReviewPhotos(): Promise<ReviewPhoto[]> {
+  const res = await apiGet<ApiResponse<ReviewPhoto[]>>('/review-photos/')
+  return res.data
+}
+
+export async function getReviewPhotoById(id: string): Promise<ReviewPhoto> {
+  const res = await apiGet<ApiResponse<ReviewPhoto>>(`/review-photos/${id}`)
+  return res.data
+}
+
+export async function getReviewPhotosByReview(reviewId: string): Promise<ReviewPhoto[]> {
+  const res = await apiGet<ApiResponse<ReviewPhoto[]>>(`/review-photos/review/${reviewId}`)
+  return res.data
+}
+
+export async function createReviewPhoto(body: {
+  reviewId: string
+  url: string
+  sortOrder?: number
+}, token: string): Promise<ReviewPhoto> {
+  return apiWrite('/review-photos/create', token, 'POST', body)
+}
+
+export async function updateReviewPhoto(id: string, body: {
+  url: string
+  sortOrder: number
+}, token: string): Promise<ReviewPhoto> {
+  return apiWrite(`/review-photos/update/${id}`, token, 'PUT', body)
+}
+
+export async function patchReviewPhoto(id: string, body: {
+  url?: string
+  sortOrder?: number
+}, token: string): Promise<ReviewPhoto> {
+  return apiWrite(`/review-photos/patch/${id}`, token, 'PATCH', body)
+}
+
+export async function deleteReviewPhoto(id: string, token: string): Promise<void> {
+  await apiWrite(`/review-photos/${id}`, token, 'DELETE')
+}
+
 
 export async function getCoupons(): Promise<Coupon[]> {
   if (USE_MOCK) return COUPONS
@@ -537,38 +622,38 @@ export async function getDrops(): Promise<Drop[]> {
 }
 
 export async function getOrdersByCustomer(session: Session): Promise<Order[]> {
-    try {
-        const userId = getUserId(session)
-        if (!userId) return []
+  try {
+    const userId = getUserId(session)
+    if (!userId) return []
 
-        const res = await authFetch(`/orders/customer/${userId}`, session)
-        const json = await res.json()
-        const data = json?.data ?? []
+    const res = await authFetch(`/orders/customer/${userId}`, session)
+    const json = await res.json()
+    const data = json?.data ?? []
 
-        return data.map((o: any) => ({
-            id: o.id,
-            status: o.status,
-            date: new Date(o.createdAt).toLocaleDateString('es-SV', {
-                day: 'numeric', month: 'short', year: 'numeric',
-            }),
-            total: o.total,
-            items: 0,
-            tracking: o.trackingNumber ?? '—',
-            customerId: o.customerId,
-            customerFullName: o.customerFullName,
-            subtotal: o.subtotal,
-            shippingCost: o.shippingCost,
-            discountAmount: o.discountAmount,
-            couponCode: o.couponCode ?? undefined,
-            shippingMethodName: o.shippingMethodName ?? undefined,
-            shippingAddressStreet: o.shippingAddressStreet ?? undefined,
-            shippingAddressCity: o.shippingAddressCity ?? undefined,
-            shippingAddressCountry: o.shippingAddressCountry ?? undefined,
-            notes: o.notes ?? undefined,
-        }))
-    } catch {
-        return []
-    }
+    return data.map((o: any) => ({
+      id: o.id,
+      status: o.status,
+      date: new Date(o.createdAt).toLocaleDateString('es-SV', {
+        day: 'numeric', month: 'short', year: 'numeric',
+      }),
+      total: o.total,
+      items: 0,
+      tracking: o.trackingNumber ?? '—',
+      customerId: o.customerId,
+      customerFullName: o.customerFullName,
+      subtotal: o.subtotal,
+      shippingCost: o.shippingCost,
+      discountAmount: o.discountAmount,
+      couponCode: o.couponCode ?? undefined,
+      shippingMethodName: o.shippingMethodName ?? undefined,
+      shippingAddressStreet: o.shippingAddressStreet ?? undefined,
+      shippingAddressCity: o.shippingAddressCity ?? undefined,
+      shippingAddressCountry: o.shippingAddressCountry ?? undefined,
+      notes: o.notes ?? undefined,
+    }))
+  } catch {
+    return []
+  }
 }
 
 export async function getOrders(): Promise<Order[]> {
