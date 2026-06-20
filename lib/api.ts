@@ -531,6 +531,19 @@ export async function createReviewPhoto(body: {
   return apiWrite('/review-photos/create', token, 'POST', body)
 }
 
+export async function uploadReviewPhoto(file: File, token: string): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch(`${API_BASE_URL}/review-photos/upload`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(json?.message || `Error ${res.status} al subir la foto`)
+  return json?.data?.url as string
+}
+
 export async function updateReviewPhoto(id: string, body: {
   url: string
   sortOrder: number
