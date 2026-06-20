@@ -10,10 +10,10 @@ import {
   deleteReview,
   createReviewPhoto,
   deleteReviewPhoto,
-  getPublicProducts,
+  getReviewableProducts,
   uploadReviewPhoto,
 } from "@/lib/api";
-import type { Review, ReviewPhoto, Product } from "@/lib/types";
+import type { Review, ReviewPhoto, ReviewableProduct } from "@/lib/types";
 import Modal from "@/components/Modal";
 import { useToast } from "@/hooks/useToast";
 
@@ -55,13 +55,18 @@ function CreateReviewModal({
   token,
   onClose,
   onCreated,
+  addToast,
 }: {
   open: boolean;
-  products: Product[];
+  products: ReviewableProduct[];
   userId: string;
   token: string;
   onClose: () => void;
   onCreated: () => void;
+  addToast: (
+    message: string,
+    type?: "success" | "error" | "info" | "warning",
+  ) => void;
 }) {
   const [productId, setProductId] = useState("");
   const [rating, setRating] = useState(5);
@@ -71,7 +76,6 @@ function CreateReviewModal({
   const [files, setFiles] = useState<File[]>([]);
   const [drag, setDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { show: addToast } = useToast();
 
   function reset() {
     setProductId("");
@@ -109,7 +113,7 @@ function CreateReviewModal({
     setSaving(true);
     try {
       const review = await createReview(
-        { productId, userId, rating, body, isVerifiedPurchase: false },
+        { productId, userId, rating, body },
         token,
       );
       if (files.length > 0) {
@@ -156,8 +160,8 @@ function CreateReviewModal({
           >
             <option value="">— Seleccioná —</option>
             {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
+              <option key={p.productId} value={p.productId}>
+                {p.productName}
               </option>
             ))}
           </select>
@@ -316,17 +320,21 @@ function EditReviewModal({
   token,
   onClose,
   onSaved,
+  addToast,
 }: {
   review: Review | null;
   token: string;
   onClose: () => void;
   onSaved: () => void;
+  addToast: (
+    message: string,
+    type?: "success" | "error" | "info" | "warning",
+  ) => void;
 }) {
   const [rating, setRating] = useState(review?.rating ?? 5);
   const [body, setBody] = useState(review?.body ?? "");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
-  const { show: addToast } = useToast();
 
   useEffect(() => {
     if (review) {
@@ -343,7 +351,7 @@ function EditReviewModal({
     setSaving(true);
     try {
       await patchReview(review.id, { rating, body }, token);
-      addToast("Review actualizada.", "success");
+      addToast("Reseña actualizada.", "success");
       onSaved();
       onClose();
     } catch (e: any) {
@@ -402,10 +410,15 @@ function PhotosModal({
   review,
   token,
   onClose,
+  addToast,
 }: {
   review: Review | null;
   token: string;
   onClose: () => void;
+  addToast: (
+    message: string,
+    type?: "success" | "error" | "info" | "warning",
+  ) => void;
 }) {
   const [photos, setPhotos] = useState<ReviewPhoto[]>([]);
   const [files, setFiles] = useState<File[]>([]);
@@ -413,7 +426,6 @@ function PhotosModal({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { show: addToast } = useToast();
 
   const load = useCallback(async () => {
     if (!review) return;
@@ -701,14 +713,14 @@ export default function ReviewsTab({
 }) {
   const { session } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ReviewableProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Review | null>(null);
   const [photosTarget, setPhotosTarget] = useState<Review | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const { show: addToast } = useToast();
+  const { show: addToast, ToastContainer } = useToast();
 
   const userId = session ? getUserId(session) : null;
 
@@ -717,21 +729,22 @@ export default function ReviewsTab({
   }, [reviews, onCountChange]);
 
   const load = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !session) return;
     setLoading(true);
     try {
       const [rev, prods] = await Promise.all([
         getReviewsByUser(userId),
-        getPublicProducts(),
+        getReviewableProducts(userId, session.accessToken),
       ]);
       setReviews(rev);
       setProducts(prods);
     } catch {
       setReviews([]);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, session]);
 
   useEffect(() => {
     load();
@@ -743,7 +756,7 @@ export default function ReviewsTab({
     try {
       await deleteReview(id, session.accessToken);
       addToast("Review eliminada.", "success");
-      setReviews((prev) => prev.filter((r) => r.id !== id));
+      await load();
     } catch (e: any) {
       addToast(e.message ?? "Error al eliminar.", "error");
     } finally {
@@ -765,10 +778,19 @@ export default function ReviewsTab({
         }}
       >
         <div className="display" style={{ fontSize: 24 }}>
-          MIS REVIEWS · {reviews.length}
+          MIS RESEÑAS · {reviews.length}
         </div>
-        <button className="btn" onClick={() => setShowCreate(true)}>
-          + Nueva review
+        <button
+          className="btn"
+          onClick={() => setShowCreate(true)}
+          disabled={products.length === 0}
+          title={
+            products.length === 0
+              ? "No tenés productos entregados pendientes de reseñar"
+              : undefined
+          }
+        >
+          + Nueva reseña
         </button>
       </div>
 
@@ -779,15 +801,21 @@ export default function ReviewsTab({
       ) : reviews.length === 0 ? (
         <div className="card" style={{ padding: 48, textAlign: "center" }}>
           <div className="display" style={{ fontSize: 20 }}>
-            Todavía no escribiste ninguna review.
+            Todavía no escribiste ninguna reseña.
           </div>
-          <button
-            className="btn"
-            style={{ marginTop: 16 }}
-            onClick={() => setShowCreate(true)}
-          >
-            Escribir tu primera review
-          </button>
+          {products.length === 0 ? (
+            <p className="mono mute" style={{ fontSize: 12, marginTop: 12 }}>
+              Vas a poder dejar una reseña cuando tengas un pedido entregado.
+            </p>
+          ) : (
+            <button
+              className="btn"
+              style={{ marginTop: 16 }}
+              onClick={() => setShowCreate(true)}
+            >
+              Escribir tu primera reseña
+            </button>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -890,7 +918,7 @@ export default function ReviewsTab({
         width={420}
       >
         <p style={{ fontSize: 14, color: "var(--text-dim)", marginBottom: 24 }}>
-          ¿Seguro que querés eliminar esta review? También se eliminarán todas
+          ¿Seguro que querés eliminar esta reseña? También se eliminarán todas
           sus fotos. Esta acción no se puede deshacer.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -913,7 +941,6 @@ export default function ReviewsTab({
           </button>
         </div>
       </Modal>
-
       <CreateReviewModal
         open={showCreate}
         products={products}
@@ -921,18 +948,22 @@ export default function ReviewsTab({
         token={session.accessToken}
         onClose={() => setShowCreate(false)}
         onCreated={load}
+        addToast={addToast}
       />
       <EditReviewModal
         review={editing}
         token={session.accessToken}
         onClose={() => setEditing(null)}
         onSaved={load}
+        addToast={addToast}
       />
       <PhotosModal
         review={photosTarget}
         token={session.accessToken}
         onClose={() => setPhotosTarget(null)}
+        addToast={addToast}
       />
+      <ToastContainer />
     </div>
   );
 }

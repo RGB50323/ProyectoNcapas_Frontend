@@ -176,6 +176,12 @@ export interface Review {
   createdAt: string
 }
 
+export interface ReviewableProduct {
+  productId: string
+  productName: string
+  productSku: string
+}
+
 export interface ReviewPhoto {
   id: string
   reviewId: string

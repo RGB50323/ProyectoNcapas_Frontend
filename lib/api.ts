@@ -1,4 +1,3 @@
-// Capa de datos: único punto de cambio a la API real de Spring Boot
 import type {
   Product,
   Category,
@@ -8,6 +7,7 @@ import type {
   Order,
   Review,
   ReviewPhoto,
+  ReviewableProduct,
   Variant,
   Condition,
   AuthStatus,
@@ -497,9 +497,20 @@ export async function createReview(body: {
   userId: string
   rating: number
   body: string
-  isVerifiedPurchase: boolean
 }, token: string): Promise<Review> {
   return apiWrite('/reviews/create', token, 'POST', body)
+}
+
+export async function getReviewableProducts(userId: string, token: string): Promise<ReviewableProduct[]> {
+  const res = await fetch(`${API_BASE_URL}/reviews/reviewable-products/${userId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al cargar los productos`)
+  }
+  return json.data as ReviewableProduct[]
 }
 
 export async function updateReview(id: string, body: {

@@ -127,7 +127,7 @@ export default function AdminOrdersPage() {
 
                     {/* ← Dropdown de estado */}
                     <td>
-                      <select
+                     <select
                           value={o.status}
                           disabled={updatingStatus === o.id}
                           onChange={(e) => handleStatusChange(o.id, e.target.value)}
@@ -143,7 +143,10 @@ export default function AdminOrdersPage() {
                             opacity: updatingStatus === o.id ? 0.5 : 1,
                           }}
                       >
-                        {ORDER_STATUSES.map((s) => (
+                        {(o.status === 'DELIVERED'
+                            ? ['DELIVERED', 'REFUNDED']
+                            : ORDER_STATUSES
+                        ).map((s) => (
                             <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
