@@ -50,6 +50,23 @@ async function postAuth<T>(path: string, body: unknown): Promise<T> {
   return json?.data as T
 }
 
+// true si expiresAt ya pasó
+function isSessionExpired(session: Session): boolean {
+  if (!session?.expiresAt) return false
+  const t = new Date(session.expiresAt).getTime()
+  return Number.isFinite(t) && t <= Date.now()
+}
+
+// limpia la sesión y manda al login
+function forceLogout() {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {}
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login'
+  }
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -59,7 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setSession(JSON.parse(raw))
+      if (raw) {
+        const parsed = JSON.parse(raw) as Session
+        // si el token ya cumplió las 24h, descartamos la sesión
+        if (isSessionExpired(parsed)) localStorage.removeItem(STORAGE_KEY)
+        else setSession(parsed)
+      }
     } catch {
       localStorage.removeItem(STORAGE_KEY)
     }
@@ -113,8 +135,14 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
-export function authFetch(path: string, session: Session, init: RequestInit = {}) {
-  return fetch(`${AUTH_API}${path}`, {
+export async function authFetch(path: string, session: Session, init: RequestInit = {}) {
+  // si ya pasaron las 24h ni intentamos: directo al login
+  if (isSessionExpired(session)) {
+    forceLogout()
+    throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+  }
+
+  const res = await fetch(`${AUTH_API}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -122,4 +150,9 @@ export function authFetch(path: string, session: Session, init: RequestInit = {}
       Authorization: `Bearer ${session.accessToken}`,
     },
   })
+
+  // token rechazado por el backend: cerramos sesión y al login
+  if (res.status === 401) forceLogout()
+
+  return res
 }

@@ -83,6 +83,7 @@ export function AdminSidebar() {
       <div className="group">Personas</div>
       <Item href="/admin/users">Usuarios</Item>
       <Item href="/admin/sellers">Tiendas</Item>
+      <Item href="/admin/store-requests">Solicitudes de tienda</Item>
       <Item href="/admin/addresses">Direcciones</Item>
       <Item href="/admin/reviews">Reseñas</Item>
 
