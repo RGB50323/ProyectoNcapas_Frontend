@@ -1,11 +1,23 @@
 "use client";
 
 import { PageLoader } from "@/components/PageLoader";
-import { useAuth, authFetch, getUserId } from "@/lib/auth";
+import { useAuth, authFetch } from "@/lib/auth";
 import { formatSvPhone, cleanPhone, isValidPhone, hasLocalNumber } from "@/lib/phone";
+import {
+  getMyStoreRequest,
+  getStoreCategories,
+  createStoreRequest,
+  STORE_CATEGORY_LABELS,
+  STORE_STATUS_LABELS,
+  type StoreRequest,
+  type StoreRequestStatus,
+  type StoreCategory,
+} from "@/lib/storeRequest";
+import { Select } from "@/components/Select";
+import Modal from "@/components/Modal";
+import { useToast } from "@/hooks/useToast";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import Modal from "@/components/Modal";
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
@@ -16,21 +28,74 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   }
 }
 
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("es-SV", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// traduce errores comunes del backend a mensajes claros para el toast
+function friendlyError(status: number, msg: string | null): string {
+  if (status === 401) return "Tu sesión expiró. Vuelve a iniciar sesión.";
+  if (!msg) return `Error ${status}`;
+  if (msg.includes("Phone already exists")) return "Ese teléfono ya está registrado en otra cuenta.";
+  if (msg.includes("Email already exists")) return "Ese correo ya está registrado en otra cuenta.";
+  return msg;
+}
+
+function StatusBadge({ status }: { status: StoreRequestStatus }) {
+  const color =
+    status === "APROBADA"
+      ? "var(--ok)"
+      : status === "RECHAZADA"
+        ? "var(--danger, #e05252)"
+        : "var(--accent-2)";
+  return (
+    <span
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        letterSpacing: "0.12em",
+        color,
+        border: `1px solid ${color}`,
+        padding: "2px 8px",
+      }}
+    >
+      {STORE_STATUS_LABELS[status].toUpperCase()}
+    </span>
+  );
+}
+
+function StoreSummary({ req }: { req: StoreRequest }) {
+  const rows = [
+    { label: "TIENDA", value: req.storeName },
+    { label: "RUBRO", value: STORE_CATEGORY_LABELS[req.storeCategory] },
+    { label: "UBICACIÓN", value: req.location },
+    { label: "VENTAS/MES", value: String(req.monthlySalesEstimate) },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px" }}>
+      {rows.map((r) => (
+        <div key={r.label}>
+          <div className="mono mute" style={{ fontSize: 11, marginBottom: 6 }}>
+            {r.label}
+          </div>
+          <div style={{ fontSize: 14, color: "var(--text-dim)" }}>{r.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Profile() {
   const router = useRouter();
   const { session, loading } = useAuth();
 
+  const { show, ToastContainer } = useToast();
+
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [submittingStore, setSubmittingStore] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [storeForm, setStoreForm] = useState({
-    storeName: "",
-    storeDescription: "",
-  });
 
   const [form, setForm] = useState(() => ({
     firstName: session?.firstName ?? "",
@@ -39,18 +104,21 @@ export default function Profile() {
     phone: (session as any)?.phone ?? "",
   }));
 
-  const [sellerProfile, setSellerProfile] = useState<any>(null);
-  const [editingStore, setEditingStore] = useState(false);
-  const [savingStore, setSavingStore] = useState(false);
-  const [storeEditForm, setStoreEditForm] = useState({
+  // estado de la solicitud de tienda, solo para BUYER
+  const [storeReq, setStoreReq] = useState<StoreRequest | null>(null);
+  const [reqLoading, setReqLoading] = useState(true);
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
+
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [applyForm, setApplyForm] = useState({
     storeName: "",
     storeDescription: "",
+    storeCategory: "" as StoreCategory | "",
+    location: "",
+    monthlySalesEstimate: "",
   });
-  const [storeEditError, setStoreEditError] = useState<string | null>(null);
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deletingStore, setDeletingStore] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (session) {
@@ -64,21 +132,25 @@ export default function Profile() {
   }, [session]);
 
   useEffect(() => {
-    if (!session || !isSeller) return;
-    const userId = getUserId(session);
-    authFetch("/seller_profiles/", session)
-      .then((r) => r.json())
-      .then((json) => {
-        const profile = json?.data?.find((p: any) => p.user.uuid === userId);
-        if (profile) {
-          setSellerProfile(profile);
-          setStoreEditForm({
-            storeName: profile.storeName,
-            storeDescription: profile.storeDescription,
-          });
-        }
+    if (!session) return;
+    if (session.role !== "BUYER") {
+      setReqLoading(false);
+      return;
+    }
+    let active = true;
+    Promise.all([getMyStoreRequest(session), getStoreCategories(session)])
+      .then(([req, cats]) => {
+        if (!active) return;
+        setStoreReq(req);
+        setCategories(cats);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (active) setReqLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [session]);
 
   if (loading) return <PageLoader />;
@@ -87,19 +159,14 @@ export default function Profile() {
     return null;
   }
 
-  const initials =
-    `${session.firstName[0]}${session.lastName?.[0] ?? ""}`.toUpperCase();
+  const initials = `${session.firstName[0]}${session.lastName?.[0] ?? ""}`.toUpperCase();
+  const isBuyer = session.role === "BUYER";
   const isSeller = session.role === "SELLER";
   const isAdmin = session.role === "ADMIN";
+  const hasPhone = !!(session as any).phone && String((session as any).phone).trim() !== "";
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  }
-
-  function handleStoreChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) {
-    setStoreForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
   function handleCancel() {
@@ -109,22 +176,31 @@ export default function Profile() {
       email: session!.email,
       phone: (session as any)?.phone ?? "",
     });
-    setError(null);
     setEditing(false);
   }
 
+  function startEditPhone() {
+    setForm((prev) => ({
+      ...prev,
+      phone: prev.phone ? formatSvPhone(prev.phone) : "+503 ",
+    }));
+    setEditing(true);
+  }
+
   async function handleSave() {
-    setError(null);
     setSaving(true);
     try {
       const payload = decodeJwtPayload(session!.accessToken);
       const userId = payload.userId as string;
-      if (!userId)
-        throw new Error("No se pudo obtener el ID de usuario del token.");
+      if (!userId) {
+        show("No se pudo obtener tu ID de usuario.", "error");
+        return;
+      }
 
       const phoneProvided = hasLocalNumber(form.phone);
       if (phoneProvided && !isValidPhone(form.phone)) {
-        throw new Error("Teléfono inválido. Formato: +503 XXXX-XXXX");
+        show("Teléfono inválido. Formato: +503 XXXX-XXXX", "error");
+        return;
       }
 
       const body = {
@@ -142,144 +218,65 @@ export default function Profile() {
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         const msg = json?.message;
-        if (typeof msg === "string") throw new Error(msg);
-        if (msg && typeof msg === "object")
-          throw new Error(Object.values(msg).join(". "));
-        throw new Error(`Error ${res.status}`);
+        const text = typeof msg === "string" ? msg : msg && typeof msg === "object" ? Object.values(msg).join(". ") : null;
+        show(friendlyError(res.status, text), "error");
+        return;
       }
 
       const updated = json?.data;
       if (updated?.accessToken) {
         const newSession = { ...session, ...updated };
         localStorage.setItem("klab_session", JSON.stringify(newSession));
-        window.location.reload();
       }
 
       setEditing(false);
-    } catch (err: any) {
-      setError(err.message ?? "Error al guardar los cambios.");
+      show("Información actualizada", "success");
+      setTimeout(() => window.location.reload(), 900);
+    } catch {
+      show("No se pudo conectar con el servidor.", "error");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleSaveStore() {
-    setStoreEditError(null);
-    setSavingStore(true);
-    try {
-      const res = await authFetch(
-        `/seller_profiles/update/${sellerProfile.id}`,
-        session!,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            storeName: storeEditForm.storeName.trim(),
-            storeDescription: storeEditForm.storeDescription.trim(),
-          }),
-        },
-      );
-
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = json?.message;
-        if (typeof msg === "string") throw new Error(msg);
-        if (msg && typeof msg === "object")
-          throw new Error(Object.values(msg).join(". "));
-        throw new Error(`Error ${res.status}`);
-      }
-
-      setSellerProfile(json?.data);
-      setEditingStore(false);
-    } catch (err: any) {
-      setStoreEditError(err.message ?? "Error al guardar los cambios.");
-    } finally {
-      setSavingStore(false);
-    }
+  function openApply() {
+    setApplyError(null);
+    setApplyForm({
+      storeName: storeReq?.storeName ?? "",
+      storeDescription: storeReq?.storeDescription ?? "",
+      storeCategory: (storeReq?.storeCategory as StoreCategory) ?? "",
+      location: storeReq?.location ?? "",
+      monthlySalesEstimate: storeReq ? String(storeReq.monthlySalesEstimate) : "",
+    });
+    setApplyOpen(true);
   }
 
-  async function handleRegisterStore(e: React.FormEvent) {
+  async function handleApply(e: React.FormEvent) {
     e.preventDefault();
-    setModalError(null);
+    setApplyError(null);
 
-    if (!storeForm.storeName.trim()) {
-      setModalError("El nombre de la tienda es requerido");
-      return;
-    }
-    if (!storeForm.storeDescription.trim()) {
-      setModalError("La descripción de la tienda es requerido");
-      return;
-    }
+    if (!applyForm.storeName.trim()) return setApplyError("El nombre de la tienda es requerido");
+    if (!applyForm.storeDescription.trim()) return setApplyError("La descripción es requerida");
+    if (!applyForm.storeCategory) return setApplyError("Selecciona el rubro de la tienda");
+    if (!applyForm.location.trim()) return setApplyError("La ubicación es requerida");
+    const sales = Number(applyForm.monthlySalesEstimate);
+    if (!Number.isFinite(sales) || sales < 0) return setApplyError("Ingresa un estimado de ventas válido");
 
-    setSubmittingStore(true);
+    setSubmitting(true);
     try {
-      const payload = decodeJwtPayload(session!.accessToken);
-      const userId = payload.userId as string;
-      if (!userId) throw new Error("User ID can not be empty");
-
-      const body = {
-        storeName: storeForm.storeName.trim(),
-        storeDescription: storeForm.storeDescription.trim(),
-        userId: userId,
-      };
-
-      const res = await authFetch("/seller_profiles/create", session!, {
-        method: "POST",
-        body: JSON.stringify(body),
+      const created = await createStoreRequest(session!, {
+        storeName: applyForm.storeName.trim(),
+        storeDescription: applyForm.storeDescription.trim(),
+        storeCategory: applyForm.storeCategory as StoreCategory,
+        location: applyForm.location.trim(),
+        monthlySalesEstimate: sales,
       });
-
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = json?.message;
-        if (typeof msg === "string") throw new Error(msg);
-        if (msg && typeof msg === "object")
-          throw new Error(Object.values(msg).join(". "));
-        throw new Error(`Error ${res.status}`);
-      }
-
-      const updated = json?.data;
-      if (updated?.accessToken) {
-        const newSession = { ...session, ...updated };
-        localStorage.setItem("klab_session", JSON.stringify(newSession));
-        setIsModalOpen(false);
-        window.location.reload();
-      }
+      setStoreReq(created);
+      setApplyOpen(false);
     } catch (err: any) {
-      setModalError(err.message ?? "Error al registrar la tienda.");
+      setApplyError(err.message ?? "Error al enviar la solicitud.");
     } finally {
-      setSubmittingStore(false);
-    }
-  }
-
-  async function handleDeleteStore() {
-    setDeleteError(null);
-    setDeletingStore(true);
-    try {
-      const res = await authFetch(
-        `/seller_profiles/${sellerProfile.id}`,
-        session!,
-        {
-          method: "DELETE",
-        },
-      );
-
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg = json?.message;
-        if (typeof msg === "string") throw new Error(msg);
-        throw new Error(`Error ${res.status}`);
-      }
-
-      const updated = json?.data;
-      if (updated?.accessToken) {
-        const newSession = { ...session, ...updated };
-        localStorage.setItem("klab_session", JSON.stringify(newSession));
-        setDeleteModalOpen(false);
-        window.location.reload();
-      }
-    } catch (err: any) {
-      setDeleteError(err.message ?? "Error al eliminar la tienda.");
-    } finally {
-      setDeletingStore(false);
+      setSubmitting(false);
     }
   }
 
@@ -289,6 +286,7 @@ export default function Profile() {
 
   return (
     <div className="container" style={{ paddingBlock: 48 }}>
+      <ToastContainer />
       <div className="mono mute" style={{ marginBottom: 16, fontSize: 12 }}>
         {isSeller || isAdmin ? "Consola" : "Cuenta"} / Mi cuenta
       </div>
@@ -310,12 +308,7 @@ export default function Profile() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div
-          style={{
-            height: 3,
-            background: "var(--accent-2)",
-          }}
-        />
+        <div style={{ height: 3, background: "var(--accent-2)" }} />
         <div
           style={{
             padding: "32px 36px",
@@ -346,10 +339,7 @@ export default function Profile() {
               {initials}
             </div>
             <div>
-              <h1
-                className="display"
-                style={{ fontSize: 48, lineHeight: 0.92, marginBottom: 12 }}
-              >
+              <h1 className="display" style={{ fontSize: 48, lineHeight: 0.92, marginBottom: 12 }}>
                 {displayName}
               </h1>
               <p className="mono mute" style={{ fontSize: 12 }}>
@@ -370,7 +360,6 @@ export default function Profile() {
               </p>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -400,13 +389,7 @@ export default function Profile() {
               <button
                 className="btn btn-ghost"
                 style={{ padding: "8px 14px", fontSize: 11 }}
-                onClick={() => {
-                  setForm((prev) => ({
-                    ...prev,
-                    phone: prev.phone ? formatSvPhone(prev.phone) : "+503 ",
-                  }));
-                  setEditing(true);
-                }}
+                onClick={startEditPhone}
               >
                 Editar
               </button>
@@ -415,30 +398,17 @@ export default function Profile() {
 
           {editing ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "16px 24px",
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 24px" }}>
                 {(
                   [
                     { label: "NOMBRE", name: "firstName", type: "text" },
                     { label: "APELLIDO", name: "lastName", type: "text" },
-                    {
-                      label: "CORREO ELECTRÓNICO",
-                      name: "email",
-                      type: "email",
-                    },
+                    { label: "CORREO ELECTRÓNICO", name: "email", type: "email" },
                     { label: "TELÉFONO", name: "phone", type: "tel" },
                   ] as const
                 ).map((f) => (
                   <div key={f.name}>
-                    <div
-                      className="mono mute"
-                      style={{ fontSize: 11, marginBottom: 6 }}
-                    >
+                    <div className="mono mute" style={{ fontSize: 11, marginBottom: 6 }}>
                       {f.label}
                     </div>
                     <input
@@ -448,11 +418,7 @@ export default function Profile() {
                       value={form[f.name]}
                       onChange={
                         f.name === "phone"
-                          ? (e) =>
-                              setForm((prev) => ({
-                                ...prev,
-                                phone: formatSvPhone(e.target.value),
-                              }))
+                          ? (e) => setForm((prev) => ({ ...prev, phone: formatSvPhone(e.target.value) }))
                           : handleChange
                       }
                       placeholder={f.name === "phone" ? "+503 XXXX-XXXX" : f.label}
@@ -462,22 +428,7 @@ export default function Profile() {
                 ))}
               </div>
 
-              {error && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--err, #e05252)",
-                    fontFamily: "var(--font-mono)",
-                    margin: 0,
-                  }}
-                >
-                  {error}
-                </p>
-              )}
-
-              <div
-                style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
-              >
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button
                   className="btn btn-ghost"
                   style={{ padding: "8px 14px", fontSize: 11 }}
@@ -505,11 +456,7 @@ export default function Profile() {
                 {
                   label: "TELÉFONO",
                   value: (session as any).phone || (
-                    <span
-                      style={{ color: "var(--text-mute)", fontStyle: "italic" }}
-                    >
-                      No registrado
-                    </span>
+                    <span style={{ color: "var(--text-mute)", fontStyle: "italic" }}>No registrado</span>
                   ),
                 },
               ].map((f, i, arr) => (
@@ -521,21 +468,13 @@ export default function Profile() {
                     alignItems: "baseline",
                     gap: 24,
                     padding: "16px 0",
-                    borderBottom:
-                      i < arr.length - 1 ? "1px solid var(--border)" : "none",
+                    borderBottom: i < arr.length - 1 ? "1px solid var(--border)" : "none",
                   }}
                 >
-                  <div
-                    className="mono mute"
-                    style={{ fontSize: 11, letterSpacing: "0.12em" }}
-                  >
+                  <div className="mono mute" style={{ fontSize: 11, letterSpacing: "0.12em" }}>
                     {f.label}
                   </div>
-                  <div
-                    style={{ fontSize: 14, color: "var(--text)", textAlign: "right" }}
-                  >
-                    {f.value}
-                  </div>
+                  <div style={{ fontSize: 14, color: "var(--text)", textAlign: "right" }}>{f.value}</div>
                 </div>
               ))}
             </div>
@@ -543,7 +482,7 @@ export default function Profile() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {!isAdmin && !isSeller && (
+          {isBuyer && (
             <div className="card" style={{ padding: 28 }}>
               <div
                 style={{
@@ -556,210 +495,87 @@ export default function Profile() {
                 }}
               >
                 <h2 className="display" style={{ fontSize: 18 }}>
-                  {isSeller ? "MI TIENDA" : "CONVERTIRSE EN VENDEDOR"}
+                  CONVERTIRSE EN VENDEDOR
                 </h2>
-
-                <div style={{ display: "flex", gap: 8 }}>
-                  {!editingStore && sellerProfile && (
-                    <button
-                      className="btn btn-ghost"
-                      style={{ padding: "8px 14px", fontSize: 11 }}
-                      onClick={() => setEditingStore(true)}
-                    >
-                      Editar
-                    </button>
-                  )}
-                  {sellerProfile && (
-                    <button
-                      className="btn btn-ghost"
-                      style={{
-                        padding: "8px 14px",
-                        fontSize: 11,
-                        color: "var(--err, #e05252)",
-                        borderColor: "var(--err, #e05252)",
-                      }}
-                      onClick={() => setDeleteModalOpen(true)}
-                    >
-                      Eliminar tienda
-                    </button>
-                  )}
-                </div>
+                {storeReq && <StatusBadge status={storeReq.status} />}
               </div>
 
-              {isSeller ? (
+              {reqLoading ? (
+                <p className="mute" style={{ fontSize: 13 }}>
+                  Cargando estado de tu solicitud...
+                </p>
+              ) : !hasPhone ? (
                 <div>
-                  {sellerProfile ? (
-                    <>
-                      {editingStore ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 16,
-                            marginBottom: 20,
-                          }}
-                        >
-                          {(
-                            [
-                              { label: "NOMBRE DE TIENDA", name: "storeName" },
-                              {
-                                label: "DESCRIPCIÓN",
-                                name: "storeDescription",
-                              },
-                            ] as const
-                          ).map((f) => (
-                            <div key={f.name}>
-                              <div
-                                className="mono mute"
-                                style={{ fontSize: 11, marginBottom: 6 }}
-                              >
-                                {f.label}
-                              </div>
-                              <input
-                                className="input"
-                                type="text"
-                                name={f.name}
-                                value={storeEditForm[f.name]}
-                                onChange={(e) =>
-                                  setStoreEditForm((prev) => ({
-                                    ...prev,
-                                    [e.target.name]: e.target.value,
-                                  }))
-                                }
-                                disabled={savingStore}
-                              />
-                            </div>
-                          ))}
-                          {storeEditError && (
-                            <p
-                              style={{
-                                fontSize: 12,
-                                color: "var(--err, #e05252)",
-                                fontFamily: "var(--font-mono)",
-                                margin: 0,
-                              }}
-                            >
-                              {storeEditError}
-                            </p>
-                          )}
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              justifyContent: "flex-end",
-                            }}
-                          >
-                            <button
-                              className="btn btn-ghost"
-                              style={{ padding: "8px 14px", fontSize: 11 }}
-                              onClick={() => {
-                                setStoreEditForm({
-                                  storeName: sellerProfile.storeName,
-                                  storeDescription:
-                                    sellerProfile.storeDescription,
-                                });
-                                setStoreEditError(null);
-                                setEditingStore(false);
-                              }}
-                              disabled={savingStore}
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              className="btn"
-                              style={{ padding: "8px 20px", fontSize: 11 }}
-                              onClick={handleSaveStore}
-                              disabled={savingStore}
-                            >
-                              {savingStore ? "Guardando..." : "Guardar cambios"}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "16px 24px",
-                            marginBottom: 20,
-                          }}
-                        >
-                          {[
-                            { label: "TIENDA", value: sellerProfile.storeName },
-                            {
-                              label: "VENTAS TOTALES",
-                              value: sellerProfile.totalSales,
-                            },
-                            {
-                              label: "VERIFICADO",
-                              value: sellerProfile.verified ? "Sí" : "No",
-                            },
-                            {
-                              label: "DESCRIPCIÓN",
-                              value: sellerProfile.storeDescription,
-                            },
-                          ].map((f) => (
-                            <div key={f.label}>
-                              <div
-                                className="mono mute"
-                                style={{ fontSize: 11, marginBottom: 6 }}
-                              >
-                                {f.label}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 14,
-                                  color: "var(--text-dim)",
-                                }}
-                              >
-                                {f.value}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <button
-                        className="btn"
-                        style={{
-                          width: "100%",
-                          background: "transparent",
-                          border: "1px solid var(--border-bright)",
-                          color: "var(--text)",
-                        }}
-                        onClick={() => router.push("/seller/dashboard")}
-                      >
-                        Ir al Panel de Tienda →
-                      </button>
-                    </>
-                  ) : (
-                    <p
-                      className="mute"
-                      style={{ fontSize: 13, marginBottom: 20 }}
-                    >
-                      Cargando información de tienda...
-                    </p>
-                  )}
+                  <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+                    Para solicitar tu tienda primero debes completar tu información: agrega tu número de
+                    teléfono. Es obligatorio para que el equipo pueda contactarte.
+                  </p>
+                  <button className="btn" style={{ width: "100%" }} onClick={startEditPhone}>
+                    Completar perfil
+                  </button>
+                </div>
+              ) : !storeReq ? (
+                <div>
+                  <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+                    Abre tu propio espacio comercial en K LAB. Envía una solicitud con los datos de tu tienda y
+                    nuestro equipo la revisará.
+                  </p>
+                  <button className="btn" style={{ width: "100%" }} onClick={openApply}>
+                    Solicitar registro de tienda
+                  </button>
+                </div>
+              ) : storeReq.status === "PENDIENTE" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <p className="mute" style={{ fontSize: 13 }}>
+                    Tu solicitud está en revisión. Te avisaremos cuando el equipo la apruebe o rechace.
+                  </p>
+                  <StoreSummary req={storeReq} />
+                  <div className="mono mute" style={{ fontSize: 11 }}>
+                    Enviada el {formatDate(storeReq.createdAt)}
+                  </div>
+                </div>
+              ) : storeReq.status === "APROBADA" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <p style={{ fontSize: 13, color: "var(--text)" }}>
+                    ¡Tu solicitud fue aprobada! Cierra sesión y vuelve a iniciar para acceder a tu consola de
+                    tienda.
+                  </p>
+                  <StoreSummary req={storeReq} />
                 </div>
               ) : (
-                <div>
-                  <p
-                    className="mute"
-                    style={{ fontSize: 13, marginBottom: 20 }}
-                  >
-                    Abre tu propio espacio comercial en nuestra plataforma,
-                    publica inventario propio y expande tus utilidades.
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <p className="mute" style={{ fontSize: 13 }}>
+                    Tu solicitud fue rechazada por el equipo.
                   </p>
-                  <button
-                    className="btn"
-                    style={{ width: "100%" }}
-                    onClick={() => setIsModalOpen(true)}
-                  >
-                    Registrar mi tienda
-                  </button>
+                  {storeReq.reviewNote && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--text-dim)",
+                        border: "1px solid var(--border)",
+                        padding: 12,
+                      }}
+                    >
+                      <span className="mono mute" style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                        MOTIVO
+                      </span>
+                      {storeReq.reviewNote}
+                    </div>
+                  )}
+                  {storeReq.eligibleToReapply ? (
+                    <button className="btn" style={{ width: "100%" }} onClick={openApply}>
+                      Reenviar solicitud
+                    </button>
+                  ) : (
+                    <div className="mono mute" style={{ fontSize: 11 }}>
+                      Podrás volver a aplicar el {formatDate(storeReq.nextEligibleAt)}.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
+
           <div className="card" style={{ padding: 28 }}>
             <div
               style={{
@@ -789,16 +605,11 @@ export default function Profile() {
             </div>
 
             <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
-              Actualiza tus credenciales periódicamente para mantener la cuenta
-              protegida.
+              Actualiza tus credenciales periódicamente para mantener la cuenta protegida.
             </p>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button
-                className="btn"
-                style={{ flex: 1 }}
-                onClick={() => router.push("/account/security")}
-              >
+              <button className="btn" style={{ flex: 1 }} onClick={() => router.push("/account/security")}>
                 Actualizar contraseña
               </button>
             </div>
@@ -806,193 +617,121 @@ export default function Profile() {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0, 0, 0, 0.75)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              width: "100%",
-              maxWidth: 480,
-              padding: 32,
-              background: "var(--elev, #121212)",
-              border: "1px solid var(--border-bright)",
-            }}
-          >
-            <h3 className="display" style={{ fontSize: 24, marginBottom: 6 }}>
-              NUEVO PERFIL COMERCIAL
-            </h3>
-            <p className="mono mute" style={{ fontSize: 11, marginBottom: 24 }}>
-              ESTABLECER PARÁMETROS DE TIENDA
-            </p>
-
-            <form
-              onSubmit={handleRegisterStore}
-              style={{ display: "flex", flexDirection: "column", gap: 20 }}
-            >
-              <div>
-                <label
-                  className="mono mute"
-                  style={{ fontSize: 11, display: "block", marginBottom: 6 }}
-                >
-                  NOMBRE DE LA TIENDA
-                </label>
-                <input
-                  className="input"
-                  type="text"
-                  name="storeName"
-                  value={storeForm.storeName}
-                  onChange={handleStoreChange}
-                  placeholder="Ej. Mr. K"
-                  disabled={submittingStore}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  className="mono mute"
-                  style={{ fontSize: 11, display: "block", marginBottom: 6 }}
-                >
-                  DESCRIPCIÓN DE LA TIENDA
-                </label>
-                <textarea
-                  className="input"
-                  name="storeDescription"
-                  value={storeForm.storeDescription}
-                  onChange={handleStoreChange}
-                  placeholder="Descripción detallada de la tienda..."
-                  disabled={submittingStore}
-                  required
-                  style={{
-                    width: "100%",
-                    minHeight: 100,
-                    resize: "vertical",
-                    background: "transparent",
-                    color: "var(--text)",
-                    border: "1px solid var(--border)",
-                    padding: 12,
-                    fontFamily: "inherit",
-                    fontSize: 14,
-                  }}
-                />
-              </div>
-
-              {modalError && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--err, #e05252)",
-                    fontFamily: "var(--font-mono)",
-                    margin: 0,
-                  }}
-                >
-                  {modalError}
-                </p>
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  justifyContent: "flex-end",
-                  marginTop: 8,
-                }}
-              >
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  style={{ padding: "10px 16px", fontSize: 12 }}
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setStoreForm({ storeName: "", storeDescription: "" });
-                    setModalError(null);
-                  }}
-                  disabled={submittingStore}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn"
-                  style={{ padding: "10px 24px", fontSize: 12 }}
-                  disabled={submittingStore}
-                >
-                  {submittingStore ? "Registrando..." : "Confirmar Registro"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <Modal
-        open={deleteModalOpen}
-        title="ELIMINAR TIENDA"
+        open={applyOpen}
+        title="SOLICITAR REGISTRO DE TIENDA"
         onClose={() => {
-          setDeleteModalOpen(false);
-          setDeleteError(null);
+          if (submitting) return;
+          setApplyOpen(false);
+          setApplyError(null);
         }}
-        width={440}
+        width={540}
       >
-        <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
-          ¿Estás seguro que deseas eliminar tu tienda{" "}
-          <strong style={{ color: "var(--text)" }}>
-            {sellerProfile?.storeName}
-          </strong>
-          ? Esta acción cambiará tu rol a BUYER y no se puede deshacer.
-        </p>
-        {deleteError && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--err, #e05252)",
-              fontFamily: "var(--font-mono)",
-              marginBottom: 16,
-            }}
-          >
-            {deleteError}
-          </p>
-        )}
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button
-            className="btn btn-ghost"
-            style={{ padding: "10px 16px", fontSize: 12 }}
-            onClick={() => {
-              setDeleteModalOpen(false);
-              setDeleteError(null);
-            }}
-            disabled={deletingStore}
-          >
-            Cancelar
-          </button>
-          <button
-            className="btn"
-            style={{
-              padding: "10px 24px",
-              fontSize: 12,
-              background: "var(--err, #e05252)",
-              borderColor: "var(--err, #e05252)",
-            }}
-            onClick={handleDeleteStore}
-            disabled={deletingStore}
-          >
-            {deletingStore ? "Eliminando..." : "Confirmar eliminación"}
-          </button>
-        </div>
+        <form onSubmit={handleApply} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div>
+            <label className="mono mute" style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
+              NOMBRE DE LA TIENDA
+            </label>
+            <input
+              className="input"
+              type="text"
+              value={applyForm.storeName}
+              onChange={(e) => setApplyForm((f) => ({ ...f, storeName: e.target.value }))}
+              placeholder="Ej. Mr. K"
+              disabled={submitting}
+            />
+          </div>
+
+          <div>
+            <label className="mono mute" style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
+              RUBRO DE LA TIENDA
+            </label>
+            <Select
+              value={applyForm.storeCategory}
+              onChange={(v) => setApplyForm((f) => ({ ...f, storeCategory: v as StoreCategory }))}
+              width="100%"
+              ariaLabel="Rubro de la tienda"
+              placeholder="Selecciona un rubro"
+              options={categories.map((c) => ({ value: c, label: STORE_CATEGORY_LABELS[c] }))}
+            />
+          </div>
+
+          <div>
+            <label className="mono mute" style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
+              UBICACIÓN
+            </label>
+            <input
+              className="input"
+              type="text"
+              value={applyForm.location}
+              onChange={(e) => setApplyForm((f) => ({ ...f, location: e.target.value }))}
+              placeholder="Ej. San Salvador, El Salvador"
+              disabled={submitting}
+            />
+          </div>
+
+          <div>
+            <label className="mono mute" style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
+              VENTAS PROMEDIO MENSUALES
+            </label>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              value={applyForm.monthlySalesEstimate}
+              onChange={(e) => setApplyForm((f) => ({ ...f, monthlySalesEstimate: e.target.value }))}
+              placeholder="Cantidad estimada de ventas por mes"
+              disabled={submitting}
+            />
+          </div>
+
+          <div>
+            <label className="mono mute" style={{ fontSize: 11, display: "block", marginBottom: 6 }}>
+              DESCRIPCIÓN DE LA TIENDA
+            </label>
+            <textarea
+              value={applyForm.storeDescription}
+              onChange={(e) => setApplyForm((f) => ({ ...f, storeDescription: e.target.value }))}
+              placeholder="Cuéntanos a qué se dedica tu tienda..."
+              disabled={submitting}
+              style={{
+                width: "100%",
+                minHeight: 100,
+                resize: "vertical",
+                background: "transparent",
+                color: "var(--text)",
+                border: "1px solid var(--border)",
+                padding: 12,
+                fontFamily: "inherit",
+                fontSize: 14,
+              }}
+            />
+          </div>
+
+          {applyError && (
+            <p style={{ fontSize: 12, color: "var(--danger, #e05252)", fontFamily: "var(--font-mono)", margin: 0 }}>
+              {applyError}
+            </p>
+          )}
+
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 4 }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ padding: "10px 16px", fontSize: 12 }}
+              onClick={() => {
+                setApplyOpen(false);
+                setApplyError(null);
+              }}
+              disabled={submitting}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn" style={{ padding: "10px 24px", fontSize: 12 }} disabled={submitting}>
+              {submitting ? "Enviando..." : "Enviar solicitud"}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
