@@ -249,7 +249,7 @@ function mapProduct(
   )
 
   const hasLowStockVariant = variants.some(
-    (variant) => variant.stock > 0 && variant.stock <= 2
+    (variant) => variant.stock > 0 && variant.stock <= 3
   )
 
   return {
@@ -309,6 +309,40 @@ export async function getProducts(): Promise<Product[]> {
   )
 }
 
+export async function getRecommendedProducts(session?: Session | null, limit?: number): Promise<Product[]> {
+  if (USE_MOCK) {
+    const mockRecommended = PRODUCTS.filter((product) => product.auth === 'AUTHENTICATED')
+    return limit !== undefined && limit <= 0 ? mockRecommended : mockRecommended.slice(0, limit ?? 12)
+  }
+
+  const path = limit === undefined ? '/products/recommended' : `/products/recommended?limit=${limit}`
+
+  const recommendedPromise = session
+    ? authFetch(path, session).then((r) => r.json() as Promise<ApiResponse<BackendProduct[]>>)
+    : apiGet<ApiResponse<BackendProduct[]>>(path)
+
+  const [recommendedRes, variantsRes, imagesRes, productBadges] = await Promise.all([
+    recommendedPromise,
+    apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
+    apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
+    getProductBadgesOptional(),
+  ])
+
+  return recommendedRes.data.map((product) =>
+    mapProduct(product, variantsRes.data, imagesRes.data, productBadges)
+  )
+}
+
+export async function registerProductView(productId: string, session: Session): Promise<void> {
+  const res = await authFetch(`/products/${productId}/view`, session, {
+    method: 'POST',
+  })
+
+  if (!res.ok) {
+    throw new Error(`Error ${res.status} al registrar la vista`)
+  }
+}
+
 export async function getMyProducts(session: Session): Promise<Product[]> {
   const [mineRes, variantsRes, imagesRes, productBadges] = await Promise.all([
     authFetch('/products/my', session).then((r) => r.json() as Promise<ApiResponse<BackendProduct[]>>),
@@ -334,8 +368,18 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 
 export async function getPublicProducts(): Promise<Product[]> {
   try {
-    const products = await getProducts()
-    return products.filter((product) => product.auth === 'AUTHENTICATED')
+    if (USE_MOCK) return PRODUCTS.filter((product) => product.auth === 'AUTHENTICATED')
+
+    const [productsRes, variantsRes, imagesRes, productBadges] = await Promise.all([
+      apiGet<ApiResponse<BackendProduct[]>>('/products/public'),
+      apiGet<ApiResponse<BackendVariant[]>>('/product-variants/public'),
+      apiGet<ApiResponse<BackendImage[]>>('/product-images/public'),
+      getProductBadgesOptional(),
+    ])
+
+    return productsRes.data.map((product) =>
+      mapProduct(product, variantsRes.data, imagesRes.data, productBadges)
+    )
   } catch {
     return []
   }

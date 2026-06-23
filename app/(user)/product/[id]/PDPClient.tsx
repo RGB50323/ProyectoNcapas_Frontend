@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Product, Review } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import ProductCard from '@/components/ProductCard'
+import RecommendedProductsClient from '@/components/RecommendedProductsClient'
 import { useAuth } from '@/lib/auth'
 import { useCart } from '@/lib/cart'
 import { useWishlist } from '@/lib/wishlist'
 import { useToast } from '@/hooks/useToast'
-import { createStockAlert, getMyStockAlerts, deleteStockAlert } from '@/lib/api'
+import { createStockAlert, getMyStockAlerts, deleteStockAlert, registerProductView } from '@/lib/api'
 
 const REVIEW_PHOTO_PALETTE = ['#f4f1ea', '#efe9df', '#e8eaed']
 
@@ -76,7 +77,7 @@ function Variants({ product, size, setSize, color, setColor }: {
                     {sizes.map((s) => {
                         const st = stockFor(s)
                         const out = st === 0
-                        const low = st > 0 && st <= 5
+                        const low = st > 0 && st <= 3
                         return (
                             <button key={s} onClick={() => !out && setSize(s)} disabled={out} style={{
                                 position: 'relative', padding: '14px 0',
@@ -118,6 +119,16 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
     const { add } = useCart()
     const wishlist = useWishlist()
     const { show, ToastContainer } = useToast()
+
+    const trackedViewRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (!session || session.role !== 'BUYER') return
+        if (trackedViewRef.current === product.id) return
+
+        trackedViewRef.current = product.id
+        registerProductView(product.id, session).catch(() => {})
+    }, [session, product.id])
 
     const variantId = product.variants.find((v) => v.size === size && v.color === color)?.id
 
@@ -323,6 +334,13 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
                     ))}
                 </div>
             </div>
+
+            <RecommendedProductsClient
+                title="RECOMENDADO PARA TI"
+                eyebrow="◇ SEGUN TU HISTORIAL"
+                limit={4}
+                excludeIds={[product.id, ...similar.map((p) => p.id)]}
+            />
 
             <div className="section" style={{ paddingTop: 0 }}>
                 <div className="section-head">

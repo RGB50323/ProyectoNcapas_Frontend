@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icon'
 import ProductCard from '@/components/ProductCard'
 import TrustBanner from '@/components/TrustBanner'
 import HeroCarousel, { type HeroSlide } from '@/components/HeroCarousel'
+import RecommendedProductsClient from '@/components/RecommendedProductsClient'
 
 /* ─── Editorial split (2-up) ─── */
 function SplitPanel({ left, right }: {
@@ -219,6 +220,8 @@ export default async function HomePage() {
         products={newArrivals}
         href="/catalog"
       />
+
+      <RecommendedProductsClient href="/catalog?chip=RECOMENDADOS%20PARA%20TI" />
 
       <HomeSection
         eyebrow="◇ SELECCIÓN K"

@@ -204,6 +204,19 @@ export default function AdminEditProductClient({
       return
     }
 
+    const validVariants = variants.filter((variant) => variant.size.trim() && variant.color.trim())
+    const validImages = images.filter((image) => image.url.trim())
+
+    if (validVariants.length === 0) {
+      show('Agrega al menos una variante valida.', 'error')
+      return
+    }
+
+    if (validImages.length === 0) {
+      show('Agrega al menos una imagen valida.', 'error')
+      return
+    }
+
     setStatus('saving')
 
     try {
@@ -235,8 +248,7 @@ export default function AdminEditProductClient({
       )
 
       await Promise.all(
-        images
-          .filter((image) => image.url.trim().length > 0)
+        validImages
           .map((image, index) => {
             const body = {
               productId: product.id,
@@ -261,9 +273,7 @@ export default function AdminEditProductClient({
       )
 
       await Promise.all(
-        variants
-          .filter((variant) => variant.size.trim().length > 0)
-          .filter((variant) => variant.color.trim().length > 0)
+        validVariants
           .map((variant) => {
             const body = {
               productId: product.id,

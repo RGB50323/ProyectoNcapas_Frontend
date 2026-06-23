@@ -258,7 +258,40 @@ export const ORDERS: Order[] = [
 ]
 
 export const REVIEWS: Review[] = [
-  { name: 'MARCO V.', date: '14 may', rating: 5, text: 'La calidad de construcción es increíble. El par más limpio que he recibido en años. La etiqueta del laboratorio confirmó el serial.', photos: 2 },
-  { name: 'K.R.', date: '10 may', rating: 5, text: 'Valió la espera. La caja venía sellada, el papel intacto. Talla fiel a US 9. El laboratorio sabe.', photos: 3 },
-  { name: 'DANI L.', date: '28 abr', rating: 4, text: 'Gran par. El color salió un poco más oscuro de lo que esperaba en las fotos, pero me encantan.', photos: 1 },
+  {
+    id: 'review-1',
+    productId: 'mock-product-1',
+    productName: 'Producto verificado',
+    userId: 'mock-user-1',
+    userFirstName: 'MARCO',
+    userLastName: 'V.',
+    rating: 5,
+    body: 'La calidad de construcción es increíble. El par más limpio que he recibido en años. La etiqueta del laboratorio confirmó el serial.',
+    isVerifiedPurchase: true,
+    createdAt: '2026-05-14T12:00:00Z',
+  },
+  {
+    id: 'review-2',
+    productId: 'mock-product-1',
+    productName: 'Producto verificado',
+    userId: 'mock-user-2',
+    userFirstName: 'K.',
+    userLastName: 'R.',
+    rating: 5,
+    body: 'Valió la espera. La caja venía sellada, el papel intacto. Talla fiel a US 9. El laboratorio sabe.',
+    isVerifiedPurchase: true,
+    createdAt: '2026-05-10T12:00:00Z',
+  },
+  {
+    id: 'review-3',
+    productId: 'mock-product-1',
+    productName: 'Producto verificado',
+    userId: 'mock-user-3',
+    userFirstName: 'DANI',
+    userLastName: 'L.',
+    rating: 4,
+    body: 'Gran par. El color salió un poco más oscuro de lo que esperaba en las fotos, pero me encantan.',
+    isVerifiedPurchase: true,
+    createdAt: '2026-04-28T12:00:00Z',
+  },
 ]

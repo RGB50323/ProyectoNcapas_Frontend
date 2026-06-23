@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Product, Category } from '@/lib/types'
@@ -9,6 +9,8 @@ import { Select } from '@/components/Select'
 import ProductCard from '@/components/ProductCard'
 import Pagination from '@/components/Pagination'
 import { usePaged } from '@/hooks/usePaged'
+import { getRecommendedProducts } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 
 type Filters = {
   category: string[]
@@ -16,17 +18,16 @@ type Filters = {
   size: string[]
   color: string[]
   condition: string[]
-  auth: string[]
   stock: string[]
   drop: string[]
 }
 
-const EMPTY: Filters = { category: [], brand: [], size: [], color: [], condition: [], auth: [], stock: [], drop: [] }
+const EMPTY: Filters = { category: [], brand: [], size: [], color: [], condition: [], stock: [], drop: [] }
 
-const CHIPS = ['TODO', 'DROP LAB', 'K-SELECT', 'VERIFICADO', 'SEMINUEVO', 'ARCHIVO', 'DROP PRIVADO']
+const RECOMMENDED_CHIP = 'RECOMENDADOS PARA TI'
+const CHIPS = ['TODO', RECOMMENDED_CHIP, 'DROP LAB', 'K-SELECT', 'VERIFICADO', 'SEMINUEVO', 'ARCHIVO', 'DROP PRIVADO']
 
 const CONDITIONS: [string, string][] = [['NEW', 'Nuevo'], ['LIKE_NEW', 'Como nuevo'], ['USED', 'Usado'], ['REFURBISHED', 'Reacondicionado']]
-const AUTHS: [string, string][] = [['VERIFIED', '✓ Verificado'], ['PENDING', 'Pendiente'], ['NOT_REQUIRED', 'No requerida']]
 const STOCKS: [string, string][] = [['instock', 'En stock'], ['lowstock', 'Poco stock'], ['soldout', 'Agotado']]
 const DROPS: [string, string][] = [['limited', 'Limitado'], ['privateDrop', 'Drop privado']]
 
@@ -64,6 +65,31 @@ export default function CatalogClient({ products, categories, brands }: { produc
   const [filters, setFilters] = useState<Filters>(EMPTY)
   const [sort, setSort] = useState('limited')
   const [chip, setChip] = useState(CHIPS.includes(initialChip) ? initialChip : 'TODO')
+  const { session, loading } = useAuth()
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([])
+  const [recommendedReady, setRecommendedReady] = useState(false)
+
+  useEffect(() => {
+    if (loading) return
+
+    let cancelled = false
+    setRecommendedReady(false)
+
+    getRecommendedProducts(session, 0)
+      .then((items) => {
+        if (!cancelled) setRecommendedProducts(items)
+      })
+      .catch(() => {
+        if (!cancelled) setRecommendedProducts([])
+      })
+      .finally(() => {
+        if (!cancelled) setRecommendedReady(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loading, session])
 
   const availableSizes = useMemo(() => {
   return Array.from(
@@ -91,7 +117,7 @@ const availableColors = useMemo(() => {
   const q = (useSearchParams().get('q') ?? '').trim().toLowerCase()
 
   const items = useMemo(() => {
-    let arr = [...products]
+    let arr = [...(chip === RECOMMENDED_CHIP ? recommendedProducts : products)]
     if (q) arr = arr.filter((p) => `${p.name} ${p.brand} ${p.sku}`.toLowerCase().includes(q))
     if (chip === 'DROP LAB') arr = arr.filter((p) => p.privateDrop || p.limited)
     if (chip === 'VERIFICADO') arr = arr.filter((p) => p.auth === 'AUTHENTICATED')
@@ -101,7 +127,6 @@ const availableColors = useMemo(() => {
     if (filters.brand.length) arr = arr.filter((p) => filters.brand.includes(p.brand))
     if (filters.color.length) arr = arr.filter((p) => p.colors.some((c) => filters.color.includes(c.name)))
     if (filters.condition.length) arr = arr.filter((p) => filters.condition.includes(p.condition))
-    if (filters.auth.length) arr = arr.filter((p) => filters.auth.includes(p.auth))
     if (filters.drop.length) arr = arr.filter((p) => filters.drop.some((d) => (d === 'limited' && p.limited) || (d === 'privateDrop' && p.privateDrop)))
     if (filters.stock.length) arr = arr.filter((p) => filters.stock.some((s) => (s === 'soldout' && p.soldOut) || (s === 'lowstock' && !p.soldOut && p.lowStock > 0) || (s === 'instock' && !p.soldOut)))
     if (filters.size.length) {
@@ -109,6 +134,9 @@ const availableColors = useMemo(() => {
     p.variants.some((v) => filters.size.includes(v.size))
   )
 }
+    if (chip === RECOMMENDED_CHIP) {
+      return arr
+    }
     if (chip === 'K-SELECT') {
       arr.sort((a, b) => b.rating - a.rating || b.reviews - a.reviews)
     } else {
@@ -118,7 +146,7 @@ const availableColors = useMemo(() => {
       if (sort === 'limited') arr.sort((a, b) => (b.limited ? 1 : 0) - (a.limited ? 1 : 0))
     }
     return arr
-  }, [products, chip, sort, filters, q])
+  }, [products, recommendedProducts, chip, sort, filters, q])
 
   const { page, setPage, pageItems, pageCount } = usePaged(items, 12, `${chip}|${sort}|${q}|${JSON.stringify(filters)}`)
 
@@ -126,7 +154,6 @@ const availableColors = useMemo(() => {
   const pillLabel = (k: keyof Filters, v: string): string => {
     if (k === 'category') return categories.find((c) => c.id === v)?.name ?? v
     if (k === 'condition') return CONDITIONS.find((p) => p[0] === v)?.[1] ?? v
-    if (k === 'auth') return (AUTHS.find((p) => p[0] === v)?.[1] ?? v).replace('✓ ', '')
     if (k === 'stock') return STOCKS.find((p) => p[0] === v)?.[1] ?? v
     if (k === 'drop') return DROPS.find((p) => p[0] === v)?.[1] ?? v
     return v
@@ -227,19 +254,13 @@ const availableColors = useMemo(() => {
             ))}
           </FilterGroup>
 
-          <FilterGroup n={6} title="Autenticación" active={filters.auth.length}>
-            {AUTHS.map(([v, l]) => (
-              <FilterCheck key={v} label={l} checked={filters.auth.includes(v)} onClick={() => toggle('auth', v)} />
-            ))}
-          </FilterGroup>
-
-          <FilterGroup n={7} title="Disponibilidad" active={filters.stock.length}>
+          <FilterGroup n={6} title="Disponibilidad" active={filters.stock.length}>
             {STOCKS.map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.stock.includes(v)} onClick={() => toggle('stock', v)} />
             ))}
           </FilterGroup>
 
-          <FilterGroup n={8} title="Tipo de drop" active={filters.drop.length}>
+          <FilterGroup n={7} title="Tipo de drop" active={filters.drop.length}>
             {DROPS.map(([v, l]) => (
               <FilterCheck key={v} label={l} checked={filters.drop.includes(v)} onClick={() => toggle('drop', v)} />
             ))}
@@ -251,7 +272,13 @@ const availableColors = useMemo(() => {
             {pageItems.map((p) => <ProductCard key={p.id} p={p} />)}
           </div>
           <Pagination page={page} pageCount={pageCount} onPage={setPage} />
-          {items.length === 0 && (
+          {chip === RECOMMENDED_CHIP && !recommendedReady && (
+            <div style={{ padding: '64px 0', borderTop: '1px solid var(--border)' }}>
+              <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ CARGANDO</div>
+              <div className="display" style={{ fontSize: 36, marginTop: 12 }}>RECOMENDACIONES</div>
+            </div>
+          )}
+          {items.length === 0 && (chip !== RECOMMENDED_CHIP || recommendedReady) && (
             <div style={{ padding: '64px 0', borderTop: '1px solid var(--border)' }}>
               <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ SIN RESULTADOS</div>
               <div className="display" style={{ fontSize: 36, marginTop: 12 }}>NADA EN EL LAB.</div>

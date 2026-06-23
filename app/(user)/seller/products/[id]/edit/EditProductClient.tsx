@@ -205,6 +205,19 @@ async function handleSave() {
     return
   }
 
+  const validVariants = variants.filter((variant) => variant.size.trim() && variant.color.trim())
+  const validImages = images.filter((image) => image.url.trim())
+
+  if (validVariants.length === 0) {
+    show('Agrega al menos una variante válida.', 'error')
+    return
+  }
+
+  if (!isStockMode && validImages.length === 0) {
+    show('Agrega al menos una imagen válida.', 'error')
+    return
+  }
+
   setStatus('saving')
 
   try {
@@ -231,8 +244,7 @@ async function handleSave() {
       )
 
       await Promise.all(
-        images
-          .filter((image) => image.url.trim().length > 0)
+        validImages
           .map((image, index) => {
             const body = {
               productId: product.id,
@@ -258,9 +270,7 @@ await Promise.all(
 )
 
 await Promise.all(
-  variants
-    .filter((variant) => variant.size.trim().length > 0)
-    .filter((variant) => variant.color.trim().length > 0)
+  validVariants
     .map((variant) => {
       const body = {
         productId: product.id,

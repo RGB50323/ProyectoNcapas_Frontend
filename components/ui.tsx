@@ -22,6 +22,8 @@ export function Line({ label, value, accent }: { label: string; value: string; a
 }
 
 const STATUS_META: Record<OrderStatus, { label: string; cls: string }> = {
+  PENDING: { label: 'Pendiente', cls: 'yellow' },
+  CONFIRMED: { label: 'Confirmado', cls: 'blue' },
   NEW: { label: 'Nuevo', cls: 'blue' },
   PAID: { label: 'Pagado', cls: 'blue' },
   PREPARING: { label: 'Preparando', cls: 'yellow' },
