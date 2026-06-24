@@ -13,7 +13,9 @@ import type {
   AuthStatus,
   BrandOption,
   Verification,
-  StockAlert
+  StockAlert,
+  Invoice,
+  Shipment
 } from './types'
 
 import {
@@ -27,6 +29,8 @@ import {
   REVIEWS,
   stripeImg,
 } from './mock-data'
+
+import { formatDateSV } from './datetime'
 
 import { authFetch, getUserId, type Session } from './auth'
 
@@ -714,9 +718,7 @@ export async function getOrdersByCustomer(session: Session): Promise<Order[]> {
     return data.map((o: any) => ({
       id: o.id,
       status: o.status,
-      date: new Date(o.createdAt).toLocaleDateString('es-SV', {
-        day: 'numeric', month: 'short', year: 'numeric',
-      }),
+      date: formatDateSV(o.createdAt),
       total: o.total,
       items: 0,
       tracking: o.trackingNumber ?? '—',
@@ -813,4 +815,58 @@ export async function deleteStockAlert(
     session: Session
 ): Promise<void> {
   await authFetch(`/stock-alerts/${id}`, session, { method: 'DELETE' })
+}
+
+export async function getInvoiceByOrder(orderId: string, session: Session): Promise<Invoice> {
+  const res = await authFetch(`/invoices/order/${orderId}`, session)
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al cargar la factura`)
+  }
+  return json.data as Invoice
+}
+
+export async function resendInvoiceEmail(orderId: string, session: Session): Promise<Invoice> {
+  const res = await authFetch(`/invoices/order/${orderId}/email`, session, { method: 'POST' })
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al reenviar la factura`)
+  }
+  return json.data as Invoice
+}
+
+async function downloadFile(path: string, session: Session, fileName: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+    cache: 'no-store',
+  })
+  if (!res.ok) {
+    throw new Error(`Error ${res.status} al descargar ${fileName}`)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function downloadInvoicePdf(orderId: string, session: Session): Promise<void> {
+  await downloadFile(`/invoices/order/${orderId}/pdf`, session, `factura-${orderId}.pdf`)
+}
+
+export async function downloadInvoiceXml(orderId: string, session: Session): Promise<void> {
+  await downloadFile(`/invoices/order/${orderId}/xml`, session, `factura-${orderId}.xml`)
+}
+
+export async function getShipmentTracking(orderId: string, session: Session): Promise<Shipment> {
+  const res = await authFetch(`/shipments/order/${orderId}`, session)
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Error ${res.status} al cargar el envio`)
+  }
+  return json.data as Shipment
 }
