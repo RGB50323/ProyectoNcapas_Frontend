@@ -169,13 +169,10 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
         setError(null)
 
         try {
-            const userId = getUserId(session)
-
-            // 1. Crear la orden
+            // 1. Crear la orden — customerId NO se manda, el backend lo toma del token JWT
             const orderRes = await authFetch('/orders/create', session, {
                 method: 'POST',
                 body: JSON.stringify({
-                    customerId: userId,
                     shippingAddressId: selectedAddressId,
                     shippingMethodId: selectedShippingId,
                     couponId: preview?.couponId ?? null,
@@ -361,15 +358,9 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 <Section title="Método de pago" eyebrow="◇ PASO 04">
                                     <PaymentPicker
                                         selected={paymentMethod}
-                                        onChange={(id) => {
-                                            setPaymentMethod(id)
-                                            setError(null)
-                                        }}
+                                        onChange={setPaymentMethod}
                                         transactionId={transactionId}
-                                        onTransactionIdChange={(v) => {
-                                            setTransactionId(v)
-                                            if (v.trim()) setError(null)
-                                        }}
+                                        onTransactionIdChange={setTransactionId}
                                     />
                                 </Section>
                             )}
@@ -380,6 +371,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     <ReviewRow
                                         label="Contacto"
                                         value={session?.email ?? ''}
+                                        // Sin onEdit — los datos personales vienen de la sesión
                                     />
                                     <ReviewRow
                                         label="Enviar a"
@@ -434,17 +426,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     ← Atrás
                                 </button>
                                 {step < 5 && (
-                                    <button
-                                        className="btn"
-                                        onClick={() => {
-                                            if (step === 4 && paymentMethod === 'bank' && !transactionId.trim()) {
-                                                setError('Debes ingresar el ID de transacción para continuar')
-                                                return
-                                            }
-                                            setError(null)
-                                            setStep(step + 1)
-                                        }}
-                                    >
+                                    <button className="btn" onClick={() => setStep(step + 1)}>
                                         Continuar →
                                     </button>
                                 )}
