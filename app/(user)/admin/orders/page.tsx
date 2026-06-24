@@ -3,7 +3,9 @@ import React from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth'
 import { admin, type AdminOrder, type AdminOrderItem } from '@/lib/admin'
-import type { OrderStatus } from '@/lib/types'
+import type { OrderStatus, Shipment } from '@/lib/types'
+import { getShipmentTracking } from '@/lib/api'
+import { formatDateSV } from '@/lib/datetime'
 import { Icon } from '@/components/Icon'
 import { StatusPill } from '@/components/ui'
 
@@ -15,6 +17,38 @@ const ORDER_STATUSES = [
   'CANCELLED',
   'REFUNDED',
 ]
+
+function ShipmentControl({ orderId }: { orderId: string }) {
+  const { session } = useAuth()
+  const [shipment, setShipment] = useState<Shipment | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!session) return
+    getShipmentTracking(orderId, session)
+        .then(setShipment)
+        .catch((err) => setError(err instanceof Error ? err.message : 'No se pudo cargar el envio'))
+        .finally(() => setLoading(false))
+  }, [session, orderId])
+
+  return (
+      <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+        <div className="mono mute" style={{ fontSize: 11, marginBottom: 8 }}>ENVÍO</div>
+        {loading ? (
+            <div className="mono mute" style={{ fontSize: 12 }}>Cargando envío...</div>
+        ) : error ? (
+            <div className="mono" style={{ fontSize: 11, color: 'var(--accent-2, #c0392b)' }}>{error}</div>
+        ) : shipment ? (
+            <div className="mono mute" style={{ fontSize: 11, lineHeight: 1.7 }}>
+              GUÍA {shipment.trackingNumber} · {shipment.shippingMethod ?? '—'} · ENTREGA {shipment.estimatedDelivery ? formatDateSV(shipment.estimatedDelivery, true) : '—'}
+              <br />
+              El rastreo del cliente sigue el estado del pedido de arriba.
+            </div>
+        ) : null}
+      </div>
+  )
+}
 
 export default function AdminOrdersPage() {
   const { session } = useAuth()
@@ -120,9 +154,7 @@ export default function AdminOrdersPage() {
                     </td>
                     <td>{o.customerFullName}</td>
                     <td className="mono mute">
-                      {new Date(o.createdAt).toLocaleDateString('es-SV', {
-                        day: 'numeric', month: 'short', year: 'numeric',
-                      })}
+                      {formatDateSV(o.createdAt)}
                     </td>
 
                     {/* ← Dropdown de estado */}
@@ -233,6 +265,8 @@ export default function AdminOrdersPage() {
                                   </div>
                               )}
                             </div>
+
+                            <ShipmentControl orderId={o.id} />
                           </div>
                         </td>
                       </tr>

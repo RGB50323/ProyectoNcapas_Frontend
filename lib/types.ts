@@ -235,6 +235,28 @@ export interface BrandOption {
   logoUrl: string
 }
 
+export interface Invoice {
+  id: string
+  orderId: string
+  controlNumber: string
+  customerName: string
+  customerEmail: string
+  subtotal: number
+  shippingCost: number
+  discountAmount: number
+  total: number
+  status: string
+  issuedAt: string
+}
+
+export interface Shipment {
+  orderId: string
+  trackingNumber: string
+  shippingMethod: string | null
+  orderStatus: OrderStatus
+  estimatedDelivery: string | null
+}
+
 export interface Verification {
   id: string
   productId: string

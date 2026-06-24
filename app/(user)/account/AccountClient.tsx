@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, getUserId, authFetch } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
-import { getOrdersByCustomer, getReviewsByUser, getMyStockAlerts, deleteStockAlert } from "@/lib/api";
-import type { Order, Product, Review, StockAlert } from "@/lib/types";
+import { getOrdersByCustomer, getReviewsByUser, getMyStockAlerts, deleteStockAlert, getShipmentTracking } from "@/lib/api";
+import { formatDateSV } from "@/lib/datetime";
+import type { Order, Product, Review, StockAlert, Shipment } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 import { StatusPill } from "@/components/ui";
 import { PageLoader } from "@/components/PageLoader";
+import Modal from "@/components/Modal";
 import AddressPage from "./addresses/AddressPage";
 import ReviewsTab from "./reviews/ReviewsTab";
 
@@ -21,16 +23,89 @@ const TABS: [string, string, string | null][] = [
     ["alerts", "Alertas de stock", null],
 ];
 
+const SHIPPING_STEPS = [
+    { k: "PENDING", l: "Pedido realizado" },
+    { k: "CONFIRMED", l: "Pago verificado" },
+    { k: "PREPARING", l: "Inspeccionado por el Lab" },
+    { k: "SHIPPED", l: "Despachado" },
+    { k: "DELIVERED", l: "Entregado" },
+];
+
+function ShipmentSteps({ status }: { status: string }) {
+    if (status === "CANCELLED" || status === "REFUNDED") {
+        return (
+            <div className="mono" style={{ fontSize: 12, letterSpacing: "0.1em", color: "var(--accent-2)", padding: "8px 0" }}>
+                {status === "CANCELLED" ? "PEDIDO CANCELADO" : "PEDIDO REEMBOLSADO"}
+            </div>
+        );
+    }
+    const found = SHIPPING_STEPS.findIndex((s) => s.k === status);
+    const idx = found < 0 ? 0 : found;
+    const trackPct = idx === 0 ? 0 : (idx / (SHIPPING_STEPS.length - 1)) * 100;
+    return (
+        <div>
+            <div style={{ position: "relative", marginBottom: 16 }}>
+                <div style={{ position: "absolute", top: 13, left: 13, right: 13, height: 1, background: "var(--border)" }} />
+                <div style={{ position: "absolute", top: 13, left: 13, height: 1, width: `calc((100% - 26px) * ${trackPct} / 100)`, background: "var(--accent)", transition: "width 0.4s ease" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", position: "relative" }}>
+                    {SHIPPING_STEPS.map((s, i) => {
+                        const done = i < idx;
+                        const active = i === idx;
+                        return (
+                            <div key={s.k} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+                                <div style={{
+                                    width: 26, height: 26,
+                                    background: done ? "var(--accent)" : active ? "var(--bg-0)" : "var(--bg-1)",
+                                    border: `1px solid ${done || active ? "var(--accent)" : "var(--border)"}`,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em",
+                                    color: done ? "var(--bg-0)" : active ? "var(--accent)" : "var(--text-mute)",
+                                    position: "relative", zIndex: 1,
+                                }}>
+                                    {done ? "◆" : `0${i + 1}`}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${SHIPPING_STEPS.length}, 1fr)`, gap: 4 }}>
+                {SHIPPING_STEPS.map((s, i) => {
+                    const done = i <= idx;
+                    return (
+                        <div key={s.k}>
+                            <div style={{ fontFamily: "var(--font-display)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.3, color: done ? "var(--text)" : "var(--text-mute)" }}>
+                                {s.l}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function OrderDetail({ order }: { order: Order }) {
-    const steps = [
-        { k: "PENDING", l: "Pedido realizado", d: "—" },
-        { k: "CONFIRMED", l: "Pago verificado", d: "—" },
-        { k: "PREPARING", l: "Inspeccionado por el Lab", d: "—" },
-        { k: "SHIPPED", l: "Despachado · DHL", d: "—" },
-        { k: "DELIVERED", l: "Entregado", d: "—" },
-    ];
-    const currentIdx = steps.findIndex((s) => s.k === order.status);
-    const trackPct = currentIdx === 0 ? 0 : (currentIdx / (steps.length - 1)) * 100;
+    const { session } = useAuth();
+    const [trackOpen, setTrackOpen] = useState(false);
+    const [shipment, setShipment] = useState<Shipment | null>(null);
+    const [trackLoading, setTrackLoading] = useState(false);
+    const [trackError, setTrackError] = useState<string | null>(null);
+
+    async function openTracking() {
+        if (!session) return;
+        setTrackOpen(true);
+        setTrackLoading(true);
+        setTrackError(null);
+        try {
+            const data = await getShipmentTracking(order.id, session);
+            setShipment(data);
+        } catch (err) {
+            setTrackError(err instanceof Error ? err.message : "No se pudo cargar el envío.");
+        } finally {
+            setTrackLoading(false);
+        }
+    }
 
     return (
         <div style={{ padding: 24, background: "var(--bg-1)", borderTop: "1px solid var(--border)" }}>
@@ -38,43 +113,7 @@ function OrderDetail({ order }: { order: Order }) {
                 <div className="display" style={{ fontSize: 12, letterSpacing: "0.14em", color: "var(--text-mute)", marginBottom: 20 }}>
                     LÍNEA DE ENVÍO · {order.tracking}
                 </div>
-                <div style={{ position: "relative", marginBottom: 16 }}>
-                    <div style={{ position: "absolute", top: 13, left: 13, right: 13, height: 1, background: "var(--border)" }} />
-                    <div style={{ position: "absolute", top: 13, left: 13, height: 1, width: `calc((100% - 26px) * ${trackPct} / 100)`, background: "var(--accent)", transition: "width 0.4s ease" }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", position: "relative" }}>
-                        {steps.map((s, i) => {
-                            const done = i < currentIdx;
-                            const active = i === currentIdx;
-                            return (
-                                <div key={s.k} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
-                                    <div style={{
-                                        width: 26, height: 26,
-                                        background: done ? "var(--accent)" : active ? "var(--bg-0)" : "var(--bg-1)",
-                                        border: `1px solid ${done || active ? "var(--accent)" : "var(--border)"}`,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em",
-                                        color: done ? "var(--bg-0)" : active ? "var(--accent)" : "var(--text-mute)",
-                                        position: "relative", zIndex: 1,
-                                    }}>
-                                        {done ? "◆" : `0${i + 1}`}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(${steps.length}, 1fr)`, gap: 4 }}>
-                    {steps.map((s, i) => {
-                        const done = i <= currentIdx;
-                        return (
-                            <div key={s.k}>
-                                <div style={{ fontFamily: "var(--font-display)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", lineHeight: 1.3, color: done ? "var(--text)" : "var(--text-mute)" }}>
-                                    {s.l}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <ShipmentSteps status={order.status} />
             </div>
 
             {(order.subtotal !== undefined || order.shippingMethodName) && (
@@ -123,13 +162,37 @@ function OrderDetail({ order }: { order: Order }) {
             )}
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
-                <button className="btn btn-ghost" style={{ padding: "8px 14px" }}>Rastrear envío</button>
-                <button className="btn btn-ghost" style={{ padding: "8px 14px" }}>Factura XML</button>
-                <button className="btn btn-ghost" style={{ padding: "8px 14px" }}>Factura PDF</button>
+                <button className="btn btn-ghost" style={{ padding: "8px 14px" }} onClick={openTracking}>Rastrear envío</button>
                 {order.status === "DELIVERED" && (
                     <button className="btn btn-outline" style={{ padding: "8px 14px" }}>Solicitar devolución</button>
                 )}
             </div>
+
+            <Modal open={trackOpen} title="RASTREO DE ENVÍO" onClose={() => setTrackOpen(false)} width={560}>
+                {trackLoading ? (
+                    <div className="mono mute">Cargando envío…</div>
+                ) : trackError ? (
+                    <div className="mono" style={{ color: "var(--accent-2, #c0392b)" }}>{trackError}</div>
+                ) : shipment ? (
+                    <div>
+                        <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginBottom: 28 }}>
+                            <div>
+                                <div className="mono mute" style={{ fontSize: 11 }}>GUÍA</div>
+                                <div style={{ fontSize: 13, marginTop: 4 }}>{shipment.trackingNumber || "—"}</div>
+                            </div>
+                            <div>
+                                <div className="mono mute" style={{ fontSize: 11 }}>ENVÍO</div>
+                                <div style={{ fontSize: 13, marginTop: 4 }}>{shipment.shippingMethod || "—"}</div>
+                            </div>
+                            <div>
+                                <div className="mono mute" style={{ fontSize: 11 }}>ENTREGA ESTIMADA</div>
+                                <div style={{ fontSize: 13, marginTop: 4 }}>{formatDateSV(shipment.estimatedDelivery, true)}</div>
+                            </div>
+                        </div>
+                        <ShipmentSteps status={shipment.orderStatus} />
+                    </div>
+                ) : null}
+            </Modal>
         </div>
     );
 }
@@ -244,7 +307,7 @@ function AlertsTab() {
                             <div>
                                 <div style={{ fontFamily: "var(--font-display)", fontSize: 14 }}>{a.productName}</div>
                                 <div className="mono mute" style={{ marginTop: 4, fontSize: 11 }}>
-                                    Alerta creada · {new Date(a.notifiedAt).toLocaleDateString("es-SV", { day: "numeric", month: "short", year: "numeric" })}
+                                    Alerta creada · {formatDateSV(a.notifiedAt)}
                                 </div>
                             </div>
                             <button className="btn btn-ghost" style={{ padding: "8px 14px" }} onClick={() => handleDelete(a.id)}>
