@@ -15,7 +15,6 @@ const ORDER_STATUSES = [
   'SHIPPED',
   'DELIVERED',
   'CANCELLED',
-  'REFUNDED',
 ]
 
 function ShipmentControl({ orderId }: { orderId: string }) {
@@ -157,32 +156,32 @@ export default function AdminOrdersPage() {
                       {formatDateSV(o.createdAt)}
                     </td>
 
-                    {/* ← Dropdown de estado */}
-                    <td>
-                     <select
-                          value={o.status}
-                          disabled={updatingStatus === o.id}
-                          onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                          style={{
-                            background: 'var(--card)',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text)',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 11,
-                            letterSpacing: '0.1em',
-                            padding: '6px 10px',
-                            cursor: 'pointer',
-                            opacity: updatingStatus === o.id ? 0.5 : 1,
-                          }}
-                      >
-                        {(o.status === 'DELIVERED'
-                            ? ['DELIVERED', 'REFUNDED']
-                            : ORDER_STATUSES
-                        ).map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </td>
+                      <td>
+                        {(o.status === 'REFUNDED' || o.status === 'DELIVERED') ? (
+                            <StatusPill status={o.status} />
+                        ) : (
+                            <select
+                                value={o.status}
+                                disabled={updatingStatus === o.id}
+                                onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                                style={{
+                                  background: 'var(--card)',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text)',
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: 11,
+                                  letterSpacing: '0.1em',
+                                  padding: '6px 10px',
+                                  cursor: 'pointer',
+                                  opacity: updatingStatus === o.id ? 0.5 : 1,
+                                }}
+                            >
+                              {ORDER_STATUSES.map((s) => (
+                                  <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                        )}
+                      </td>
 
                     <td className="mono">${o.subtotal}</td>
                     <td className="mono">${o.shippingCost}</td>

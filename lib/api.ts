@@ -15,7 +15,8 @@ import type {
   Verification,
   StockAlert,
   Invoice,
-  Shipment
+  Shipment,
+  OrderItem
 } from './types'
 
 import {
@@ -745,6 +746,33 @@ export async function getOrders(): Promise<Order[]> {
   return ORDERS
 }
 
+export async function getOrderItems(orderId: string, session: Session): Promise<OrderItem[]> {
+  const res = await authFetch(`/order-items/order/${orderId}`, session)
+  const json = await res.json()
+  return json?.data ?? []
+}
+
+export async function patchOrder(
+  orderId: string,
+  body: Record<string, unknown>,
+  session: Session
+): Promise<Order> {
+  const res = await authFetch(`/orders/patch/${orderId}`, session, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json?.message || 'Error al actualizar el pedido')
+  return json?.data as Order
+}
+
+export async function requestRefund(orderId: string, session: Session): Promise<Order> {
+  const res = await authFetch(`/orders/${orderId}/refund`, session, { method: 'POST' })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json?.message || 'Error al procesar la devolución')
+  return json?.data as Order
+}
+
 export async function getVerifications(token: string): Promise<Verification[]> {
   const res = await fetch(`${API_BASE_URL}/verifications/`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -798,8 +826,8 @@ export async function getMyStockAlerts(session: Session): Promise<StockAlert[]> 
 }
 
 export async function createStockAlert(
-    productId: string,
-    session: Session
+  productId: string,
+  session: Session
 ): Promise<void> {
   await authFetch('/stock-alerts/create', session, {
     method: 'POST',
@@ -811,8 +839,8 @@ export async function createStockAlert(
 }
 
 export async function deleteStockAlert(
-    id: string,
-    session: Session
+  id: string,
+  session: Session
 ): Promise<void> {
   await authFetch(`/stock-alerts/${id}`, session, { method: 'DELETE' })
 }
