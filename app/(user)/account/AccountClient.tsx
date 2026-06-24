@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth, getUserId, authFetch } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
-import { getOrdersByCustomer, getReviewsByUser, getMyStockAlerts, deleteStockAlert, getShipmentTracking } from "@/lib/api";
+import { getOrdersByCustomer, getReviewsByUser, getMyStockAlerts, deleteStockAlert, getShipmentTracking, patchOrder, getOrderItems, requestRefund } from "@/lib/api";
 import { formatDateSV } from "@/lib/datetime";
-import type { Order, Product, Review, StockAlert, Shipment } from "@/lib/types";
+import type { Order, Product, StockAlert, Shipment, OrderItem } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 import { StatusPill } from "@/components/ui";
 import { PageLoader } from "@/components/PageLoader";
 import Modal from "@/components/Modal";
 import AddressPage from "./addresses/AddressPage";
 import ReviewsTab from "./reviews/ReviewsTab";
+import { useToast } from "@/hooks/useToast";
 
 const TABS: [string, string, string | null][] = [
     ["orders", "Mis pedidos", null],
@@ -85,25 +86,51 @@ function ShipmentSteps({ status }: { status: string }) {
     );
 }
 
-function OrderDetail({ order }: { order: Order }) {
-    const { session } = useAuth();
-    const [trackOpen, setTrackOpen] = useState(false);
-    const [shipment, setShipment] = useState<Shipment | null>(null);
-    const [trackLoading, setTrackLoading] = useState(false);
-    const [trackError, setTrackError] = useState<string | null>(null);
+function OrderDetail({ order, onRefunded }: { order: Order; onRefunded: (id: string) => void }) {
+    const { session } = useAuth()
+    const { show } = useToast()
+    const [trackOpen, setTrackOpen] = useState(false)
+    const [shipment, setShipment] = useState<Shipment | null>(null)
+    const [trackLoading, setTrackLoading] = useState(false)
+    const [trackError, setTrackError] = useState<string | null>(null)
+    const [confirmRefund, setConfirmRefund] = useState(false)
+    const [refunding, setRefunding] = useState(false)
+    const [items, setItems] = useState<OrderItem[]>([])
+    const [itemsLoading, setItemsLoading] = useState(true)
+
+    useEffect(() => {
+    if (!session) return
+    getOrderItems(order.id, session)
+        .then(setItems)
+        .catch(() => setItems([]))
+        .finally(() => setItemsLoading(false))
+    }, [order.id, session])
 
     async function openTracking() {
-        if (!session) return;
-        setTrackOpen(true);
-        setTrackLoading(true);
-        setTrackError(null);
+        if (!session) return
+        setTrackOpen(true); setTrackLoading(true); setTrackError(null)
         try {
-            const data = await getShipmentTracking(order.id, session);
-            setShipment(data);
+        const data = await getShipmentTracking(order.id, session)
+        setShipment(data)
         } catch (err) {
-            setTrackError(err instanceof Error ? err.message : "No se pudo cargar el envío.");
+        setTrackError(err instanceof Error ? err.message : 'No se pudo cargar el envío.')
         } finally {
-            setTrackLoading(false);
+        setTrackLoading(false)
+        }
+    }
+
+    async function handleRefund() {
+        if (!session) return
+        setRefunding(true)
+        try {
+        await requestRefund(order.id, session)
+        show('Devolución procesada. El reembolso se acreditará en 3-5 días hábiles.', 'success')
+        setConfirmRefund(false)
+        onRefunded(order.id)
+        } catch (e) {
+        show(e instanceof Error ? e.message : 'Error al procesar la devolución.', 'error')
+        } finally {
+        setRefunding(false)
         }
     }
 
@@ -161,12 +188,69 @@ function OrderDetail({ order }: { order: Order }) {
                 </div>
             )}
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
-                <button className="btn btn-ghost" style={{ padding: "8px 14px" }} onClick={openTracking}>Rastrear envío</button>
-                {order.status === "DELIVERED" && (
-                    <button className="btn btn-outline" style={{ padding: "8px 14px" }}>Solicitar devolución</button>
+            <div style={{ marginBottom: 24 }}>
+                <div className="mono mute" style={{ fontSize: 11, marginBottom: 12 }}>PRODUCTOS PEDIDOS</div>
+                {itemsLoading ? (
+                    <div className="mono mute" style={{ fontSize: 13 }}>Cargando...</div>
+                ) : items.length === 0 ? (
+                    <div className="mono mute" style={{ fontSize: 13 }}>Sin items.</div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {items.map((item) => (
+                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                        <div>
+                            <div style={{ fontSize: 13, fontFamily: 'var(--font-display)' }}>{item.productName}</div>
+                            {(item.variantSize || item.variantColorName) && (
+                            <div className="mono mute" style={{ fontSize: 11, marginTop: 3 }}>
+                                {[item.variantSize, item.variantColorName].filter(Boolean).join(' · ')}
+                            </div>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div className="mono mute" style={{ fontSize: 11 }}>x{item.quantity}</div>
+                            <div className="display" style={{ fontSize: 14 }}>${item.totalPrice}</div>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
                 )}
             </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+                <button className="btn btn-ghost" style={{ padding: '8px 14px' }} onClick={openTracking}>
+                Rastrear envío
+                </button>
+                {order.status === 'DELIVERED' && (
+                <button
+                    className="btn btn-outline"
+                    style={{ padding: '8px 14px' }}
+                    onClick={() => setConfirmRefund(true)}
+                >
+                    Solicitar devolución
+                </button>
+                )}
+            </div>
+
+            <Modal open={confirmRefund} title="SOLICITAR DEVOLUCIÓN" onClose={() => setConfirmRefund(false)} width={460}>
+                <p style={{ fontSize: 14, color: 'var(--text-dim)', marginBottom: 8 }}>
+                ¿Confirmás la devolución del pedido <strong>{order.id.slice(0, 8).toUpperCase()}</strong>?
+                </p>
+                <p style={{ fontSize: 13, color: 'var(--text-mute)', marginBottom: 24 }}>
+                El reembolso de <strong>${order.total}</strong> se acreditará en 3-5 días hábiles al método de pago original. El stock será restituido automáticamente.
+                </p>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => setConfirmRefund(false)}>Cancelar</button>
+                <button
+                    className="btn"
+                    style={{ background: 'var(--accent-2)', borderColor: 'var(--accent-2)' }}
+                    onClick={handleRefund}
+                    disabled={refunding}
+                >
+                    {refunding ? 'Procesando…' : 'Confirmar devolución'}
+                </button>
+                </div>
+            </Modal>
+
 
             <Modal open={trackOpen} title="RASTREO DE ENVÍO" onClose={() => setTrackOpen(false)} width={560}>
                 {trackLoading ? (
@@ -197,8 +281,13 @@ function OrderDetail({ order }: { order: Order }) {
     );
 }
 
-function OrdersTab({ orders }: { orders: Order[] }) {
-    const [open, setOpen] = useState<string | null>(null);
+function OrdersTab({ orders: initialOrders }: { orders: Order[] }) {
+    const [orders, setOrders] = useState(initialOrders)
+    const [open, setOpen] = useState<string | null>(null)
+
+    function handleRefunded(id: string) {
+        setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'REFUNDED' } : o))
+    }
     if (orders.length === 0) {
         return (
             <div>
@@ -236,7 +325,7 @@ function OrdersTab({ orders }: { orders: Order[] }) {
                             {open === o.id ? "Cerrar" : "Detalles"}
                         </button>
                     </div>
-                    {open === o.id && <OrderDetail order={o} />}
+                     {open === o.id && <OrderDetail order={o} onRefunded={handleRefunded} />}
                 </div>
             ))}
         </div>
@@ -330,6 +419,7 @@ export default function AccountClient() {
             ? requestedTab : "orders",
     );
     const [orders, setOrders] = useState<Order[]>([]);
+    const [ordersLoading, setOrdersLoading] = useState(true);
     const [products, setProducts] = useState<Product[]>([]);
     const [addresses, setAddresses] = useState<any[]>([]);
     const [addressCount, setAddressCount] = useState(0);
@@ -338,6 +428,7 @@ export default function AccountClient() {
     const { session, loading, logout } = useAuth();
     const { count: wishCount } = useWishlist();
     const [reviewCount, setReviewCount] = useState(0);
+    const { ToastContainer } = useToast()
 
     const tabsWithCounts = TABS.map(([k, label, count]) => {
         if (k === "addresses") return [k, label, String(addressCount)];
@@ -353,8 +444,12 @@ export default function AccountClient() {
     }, [loading, session, router]);
 
     useEffect(() => {
-        if (!session) return
-        getOrdersByCustomer(session).then(setOrders).catch(() => setOrders([]))
+    if (!session) return
+        setOrdersLoading(true)
+        getOrdersByCustomer(session)
+            .then(setOrders)
+            .catch(() => setOrders([]))
+            .finally(() => setOrdersLoading(false))
     }, [session])
 
     useEffect(() => {
@@ -441,13 +536,14 @@ export default function AccountClient() {
                 </nav>
 
                 <div>
-                    {tab === "orders" && <OrdersTab orders={orders} />}
+                    {tab === "orders" && (ordersLoading ? <div className="mono mute">Cargando pedidos...</div> : <OrdersTab orders={orders} />)}
                     {tab === "wishlist" && <WishlistTab products={products} />}
                     {tab === "addresses" && <AddressPage />}
                     {tab === "reviews" && <ReviewsTab onCountChange={setReviewCount} />}
                     {tab === "alerts" && <AlertsTab />}
                 </div>
             </div>
+            <ToastContainer />
         </div>
     );
 }
