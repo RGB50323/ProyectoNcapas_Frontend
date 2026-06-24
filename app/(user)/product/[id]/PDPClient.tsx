@@ -94,11 +94,6 @@ function Variants({ product, size, setSize, color, setColor }: {
                         )
                     })}
                 </div>
-                <div style={{ display: 'flex', gap: 12, marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                    <span style={{ color: 'var(--text-dim)' }}><Icon.Dot /> Disponible</span>
-                    <span style={{ color: 'var(--accent-2)' }}><Icon.Dot /> Poco stock</span>
-                    <span style={{ color: 'var(--text-mute)' }}><Icon.Dot /> Agotado</span>
-                </div>
             </div>
         </>
     )

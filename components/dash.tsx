@@ -101,6 +101,9 @@ export function AdminSidebar() {
       <Item href="/admin/shipping">Métodos de envío</Item>
       <Item href="/admin/coupons">Cupones</Item>
       <Item href="/admin/drops">Drops</Item>
+
+      <div className="group">Analytics</div>
+      <Item href="/admin/conversion">Conversión</Item>
     </aside>
   );
 }
