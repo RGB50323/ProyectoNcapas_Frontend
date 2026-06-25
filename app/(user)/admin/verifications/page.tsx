@@ -230,10 +230,6 @@ export default function AdminVerificationsPage() {
   }
 
   async function handleSubmit() {
-    console.log("--- INICIO SUBMIT ---");
-    console.log("verifyProduct:", verifyProduct);
-    console.log("editingVerification:", editingVerification);
-    console.log("form:", form);
 
     if (!session || !verifyProduct) {
       console.error("Fallo de validación inicial: Sin sesión o sin verifyProduct");
@@ -261,21 +257,16 @@ export default function AdminVerificationsPage() {
       };
 
       if (editingVerification) {
-        console.log("Acción: UPDATE", editingVerification.id);
         await updateVerification(editingVerification.id, payload, session.accessToken);
       } else {
-        console.log("Acción: CREATE (nuevo registro)");
         await createVerification(payload, session.accessToken);
       }
 
       const result = deriveResult(form);
-      console.log("Resultado calculado:", result);
 
       await patchProduct(verifyProduct.id, { authStatus: result }, session.accessToken);
-      console.log("Producto actualizado en back");
 
       await loadData();
-      console.log("Datos recargados");
 
       setVerifyProduct(null);
       setEditingVerification(null);
@@ -286,7 +277,6 @@ export default function AdminVerificationsPage() {
       console.error("ERROR en catch:", err);
       show("Error al guardar la verificación.", "error");
     } finally {
-      console.log("--- FIN SUBMIT (finally) ---");
       setSubmitting(false);
     }
   }

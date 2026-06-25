@@ -543,7 +543,6 @@ export async function getReviewsBySeller(sellerId: string, token: string): Promi
 
 export async function createReview(body: {
   productId: string
-  userId: string
   rating: number
   body: string
 }, token: string): Promise<Review> {

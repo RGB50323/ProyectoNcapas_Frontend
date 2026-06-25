@@ -113,7 +113,7 @@ function CreateReviewModal({
     setSaving(true);
     try {
       const review = await createReview(
-        { productId, userId, rating, body },
+        { productId, rating, body },
         token,
       );
       if (files.length > 0) {
