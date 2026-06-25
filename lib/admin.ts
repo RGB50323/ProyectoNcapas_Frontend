@@ -82,6 +82,57 @@ export interface AdminProductBadge {
   label: string
 }
 
+
+export type ErpExportStatus = 'PENDING_EXPORT' | 'EXPORTED' | 'REJECTED' | 'FAILED'
+
+export interface AdminErpOrderItem {
+  id: string
+  sourceOrderItemId: string
+  productId: string
+  sku: string
+  productName: string
+  variantId: string | null
+  variantDescription: string | null
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+export interface AdminErpOrder {
+  id: string
+  erpReference: string
+  sourceOrderId: string
+  customerId: string
+  customerName: string
+  customerEmail: string
+  shippingAddress: string
+  subtotal: number
+  shippingCost: number
+  discountAmount: number
+  total: number
+  orderDate: string
+  receivedAt: string
+  items: AdminErpOrderItem[]
+}
+
+export interface AdminErpExport {
+  orderId: string
+  erpExportStatus: ErpExportStatus
+  erpReference: string | null
+  erpExportedAt: string | null
+  erpErrorMessage: string | null
+  erpOrder: AdminErpOrder | null
+}
+
+export interface AdminErpBulkExport {
+  exportedCount: number
+  rejectedCount: number
+  failedCount: number
+  skippedCount: number
+  processedCount: number
+  results: AdminErpExport[]
+}
+
 export interface AdminOrder {
   id: string
   customerId: string
@@ -157,6 +208,11 @@ export const admin = {
   deleteUser: (s: Session, id: string) => del(s, `/users/${id}`),
 
   listOrders: (s: Session) => list<AdminOrder>(s, '/orders/'),
+  listErpExports: (s: Session) => list<AdminErpExport>(s, '/api/erp/exports'),
+  exportOrderToErp: (s: Session, id: string) => authFetch(`/api/orders/${id}/export-to-erp`, s, { method: 'POST' }).then((r) => unwrap<AdminErpExport>(r)),
+  exportPendingOrdersToErp: (s: Session) => authFetch('/api/orders/export-pending-to-erp', s, { method: 'POST' }).then((r) => unwrap<AdminErpBulkExport>(r)),
+  listErpOrders: (s: Session) => list<AdminErpOrder>(s, '/api/erp/orders'),
+  getErpOrder: (s: Session, erpReference: string) => authFetch(`/api/erp/orders/${erpReference}`, s).then((r) => unwrap<AdminErpOrder>(r)),
   ordersByCustomer: (s: Session, customerId: string) => list<AdminOrder>(s, `/orders/customer/${customerId}`),
   orderItems: (s: Session, orderId: string) => list<AdminOrderItem>(s, `/order-items/order/${orderId}`),
   patchOrder: (s: Session, id: string, status: string) => patch(s, `/orders/patch/${id}`, { status }), // ← nuevo

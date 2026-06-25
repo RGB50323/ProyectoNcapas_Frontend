@@ -89,6 +89,7 @@ export function AdminSidebar() {
 
       <div className="group">Operaciones</div>
       <Item href="/admin/orders">Pedidos</Item>
+      <Item href="/admin/erp">ERP</Item>
       <Item href="/admin/verifications">Verificaciones</Item>
 
       <div className="group">Catálogo</div>
