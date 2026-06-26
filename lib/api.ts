@@ -138,9 +138,20 @@ async function apiGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-async function getProductBadgesOptional(): Promise<BackendProductBadge[]> {
+async function authGet<T>(path: string, session: Session): Promise<T> {
+  const res = await authFetch(path, session)
+  const json = await res.json().catch(() => null)
+  if (!res.ok) {
+    const message = json?.message || json?.error || `Error ${res.status} al cargar ${path}`
+    throw new Error(typeof message === 'string' ? message : Object.values(message).join('. '))
+  }
+  return json?.data as T
+}
+
+async function getProductBadgesOptional(session?: Session): Promise<BackendProductBadge[]> {
   try {
-    const response = await apiGet<ApiResponse<BackendProductBadge[]>>('/product-badges/')
+    if (session) return authGet<BackendProductBadge[]>('/product-badges/', session)
+    const response = await apiGet<ApiResponse<BackendProductBadge[]>>('/product-badges/public')
     return response.data
   } catch {
     return []
@@ -299,18 +310,19 @@ function mapProduct(
   }
 }
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(session?: Session): Promise<Product[]> {
   if (USE_MOCK) return PRODUCTS
+  if (!session) return getPublicProducts()
 
-  const [productsRes, variantsRes, imagesRes, productBadges] = await Promise.all([
-    apiGet<ApiResponse<BackendProduct[]>>('/products/'),
-    apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
-    apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
-    getProductBadgesOptional(),
+  const [products, variants, images, productBadges] = await Promise.all([
+    authGet<BackendProduct[]>('/products/', session),
+    authGet<BackendVariant[]>('/product-variants/', session),
+    authGet<BackendImage[]>('/product-images/', session),
+    getProductBadgesOptional(session),
   ])
 
-  return productsRes.data.map((product) =>
-    mapProduct(product, variantsRes.data, imagesRes.data, productBadges)
+  return products.map((product) =>
+    mapProduct(product, variants, images, productBadges)
   )
 }
 
@@ -328,8 +340,8 @@ export async function getRecommendedProducts(session?: Session | null, limit?: n
 
   const [recommendedRes, variantsRes, imagesRes, productBadges] = await Promise.all([
     recommendedPromise,
-    apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
-    apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
+    apiGet<ApiResponse<BackendVariant[]>>('/product-variants/public'),
+    apiGet<ApiResponse<BackendImage[]>>('/product-images/public'),
     getProductBadgesOptional(),
   ])
 
@@ -349,22 +361,22 @@ export async function registerProductView(productId: string, session: Session): 
 }
 
 export async function getMyProducts(session: Session): Promise<Product[]> {
-  const [mineRes, variantsRes, imagesRes, productBadges] = await Promise.all([
-    authFetch('/products/my', session).then((r) => r.json() as Promise<ApiResponse<BackendProduct[]>>),
-    apiGet<ApiResponse<BackendVariant[]>>('/product-variants/'),
-    apiGet<ApiResponse<BackendImage[]>>('/product-images/'),
-    getProductBadgesOptional(),
+  const [mine, variants, images, productBadges] = await Promise.all([
+    authGet<BackendProduct[]>('/products/my', session),
+    authGet<BackendVariant[]>('/product-variants/', session),
+    authGet<BackendImage[]>('/product-images/', session),
+    getProductBadgesOptional(session),
   ])
 
-  return mineRes.data.map((product) =>
-    mapProduct(product, variantsRes.data, imagesRes.data, productBadges)
+  return mine.map((product) =>
+    mapProduct(product, variants, images, productBadges)
   )
 }
 
-export async function getProduct(id: string): Promise<Product | undefined> {
+export async function getProduct(id: string, session?: Session): Promise<Product | undefined> {
   if (USE_MOCK) return PRODUCTS.find((product) => product.id === id)
 
-  const products = await getProducts()
+  const products = session ? await getProducts(session) : await getPublicProducts()
 
   return products.find(
     (product) => product.id === id || product.sku === id

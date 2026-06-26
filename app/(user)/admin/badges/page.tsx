@@ -21,7 +21,7 @@ export default function AdminBadgesPage() {
 
   useEffect(() => {
     if (!session) return
-    getProducts().then(setProducts).catch(() => setProducts([]))
+    getProducts(session).then(setProducts).catch(() => setProducts([]))
     admin.listSellers(session).then(setSellers).catch(() => setSellers([]))
   }, [session])
 

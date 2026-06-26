@@ -12,7 +12,7 @@ type BrandWithProducts = AdminBrand & {
 async function loadBrandsWithProducts(session: Session): Promise<BrandWithProducts[]> {
   const [brands, products] = await Promise.all([
     admin.listBrands(session),
-    getProducts(),
+    getProducts(session),
   ])
 
   return brands.map((brand) => ({

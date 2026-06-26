@@ -29,7 +29,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!session) return
     Promise.allSettled([
-      admin.listOrders(session), admin.listSellers(session), getProducts(),
+      admin.listOrders(session), admin.listSellers(session), getProducts(session),
       admin.listCategories(session), admin.listCoupons(session), admin.listDrops(session), admin.listUsers(session),
     ]).then(([o, s, p, c, co, d, u]) => {
       if (o.status === 'fulfilled') setOrders(o.value)

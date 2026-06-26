@@ -191,7 +191,7 @@ export default function AdminVerificationsPage() {
     setLoading(true);
     try {
       const [prods, verifs] = await Promise.all([
-        getProducts(),
+        getProducts(session),
         getVerifications(session.accessToken),
       ]);
       setProducts(prods);
