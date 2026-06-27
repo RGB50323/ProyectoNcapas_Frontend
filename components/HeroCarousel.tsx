@@ -74,7 +74,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
 
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(to top, oklch(0.118 0.012 62 / 0.96) 0%, oklch(0.118 0.012 62 / 0.45) 42%, oklch(0.118 0.012 62 / 0.1) 70%, transparent 100%)',
+            background: 'linear-gradient(to top, oklch(0.118 0.012 62 / 0.97) 0%, oklch(0.118 0.012 62 / 0.72) 38%, oklch(0.118 0.012 62 / 0.42) 62%, oklch(0.118 0.012 62 / 0.18) 82%, oklch(0.118 0.012 62 / 0.05) 100%)',
           }} />
 
           {/* Slide text — centered */}
@@ -83,7 +83,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             padding: '0 40px 108px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
           }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 20 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 20, textShadow: '0 1px 12px oklch(0.118 0.012 62 / 0.85)' }}>
               {s.eyebrow}
             </div>
             <h2 style={{
@@ -93,10 +93,11 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
               textTransform: 'uppercase', color: 'var(--text)',
               margin: 0, letterSpacing: '0.01em',
               whiteSpace: 'pre-line',
+              textShadow: '0 2px 28px oklch(0.118 0.012 62 / 0.7), 0 1px 4px oklch(0.118 0.012 62 / 0.6)',
             }}>
               {s.headline}
             </h2>
-            <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.65, margin: '20px 0 32px', maxWidth: 480 }}>
+            <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.65, margin: '20px 0 32px', maxWidth: 480, textShadow: '0 1px 10px oklch(0.118 0.012 62 / 0.8)' }}>
               {s.sub}
             </p>
             <Link href={s.href} className="btn btn-lg">{s.cta} →</Link>

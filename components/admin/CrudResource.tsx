@@ -6,11 +6,13 @@ import { useAuth, type Session } from '@/lib/auth'
 import Modal from '@/components/Modal'
 import { Select } from '@/components/Select'
 import DateTimePicker from '@/components/DateTimePicker'
+import ImageDropzone from '@/components/ImageDropzone'
+import { uploadProductImage } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 import { usePaged } from '@/hooks/usePaged'
 import Pagination from '@/components/Pagination'
 
-export type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'datetime' | 'select'
+export type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'datetime' | 'select' | 'image'
 
 export interface Field {
   name: string
@@ -101,6 +103,25 @@ export default function CrudResource<T>({
   const [saving, setSaving] = useState(false)
   const [toDelete, setToDelete] = useState<T | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [uploadingField, setUploadingField] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState('')
+
+  async function handleUpload(name: string, file: File | undefined) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setUploadError('Solo se permiten imágenes.'); return }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('La imagen supera 5 MB.'); return }
+    if (!session?.accessToken) { setUploadError('Inicia sesión para subir imágenes.'); return }
+    setUploadError('')
+    setUploadingField(name)
+    try {
+      const url = await uploadProductImage(file, session.accessToken)
+      setForm((f) => ({ ...f, [name]: url }))
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : 'No se pudo subir la imagen.')
+    } finally {
+      setUploadingField(null)
+    }
+  }
 
   const refresh = useMemo(() => async () => {
     if (!session) return
@@ -267,6 +288,11 @@ export default function CrudResource<T>({
                 </label>
               ) : fl.type === 'datetime' ? (
                 <DateTimePicker value={form[fl.name] ?? ''} onChange={(v) => setForm((f) => ({ ...f, [fl.name]: v }))} ariaLabel={fl.label} />
+              ) : fl.type === 'image' ? (
+                <div style={{ maxWidth: 220, margin: '0 auto' }}>
+                  <ImageDropzone value={form[fl.name] ?? ''} uploading={uploadingField === fl.name} alt={fl.label} maxMb={5} onFile={(file) => handleUpload(fl.name, file)} />
+                  {uploadError && <div className="mono" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>{uploadError}</div>}
+                </div>
               ) : (
                 <input className="input" type={fl.type === 'number' ? 'number' : 'text'} step={fl.step} value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: fl.type === 'number' ? e.target.value.replace(/^0+(?=\d)/, '') : e.target.value }))} />
               )}

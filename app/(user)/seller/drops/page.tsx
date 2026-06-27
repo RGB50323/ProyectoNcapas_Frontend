@@ -5,7 +5,7 @@ import CrudResource from '@/components/admin/CrudResource'
 import { admin, type AdminDrop } from '@/lib/admin'
 import { formatNaiveMono } from '@/lib/datetime'
 
-export default function AdminDropsPage() {
+export default function SellerDropsPage() {
   return (
     <CrudResource<AdminDrop>
       eyebrow="◆ VENTAS"
@@ -13,7 +13,7 @@ export default function AdminDropsPage() {
       noun="drop"
       getId={(d) => d.id}
       rowLabel={(d) => d.title}
-      load={admin.listDrops}
+      load={admin.listMyDrops}
       create={admin.createDrop}
       update={admin.updateDrop}
       remove={admin.deleteDrop}
@@ -23,7 +23,7 @@ export default function AdminDropsPage() {
         { header: 'Unidades', cell: (d) => <span className="mono">{d.units}</span> },
         { header: 'Tipo', cell: (d) => <span className="mono">{d.type === 'PRIVATE' ? 'PRIVADO' : 'PÚBLICO'}</span> },
         { header: 'Activo', cell: (d) => (d.active ? <span className="pill green">SÍ</span> : <span className="pill gray">NO</span>) },
-        { header: 'Productos', cell: (d) => <Link className="mono accent" style={{ fontSize: 11 }} href={`/admin/drops/${d.id}/products`}>GESTIONAR →</Link> },
+        { header: 'Productos', cell: (d) => <Link className="mono accent" style={{ fontSize: 11 }} href={`/seller/drops/${d.id}/products`}>GESTIONAR →</Link> },
       ]}
       fields={[
         { name: 'title', label: 'Título', required: true },

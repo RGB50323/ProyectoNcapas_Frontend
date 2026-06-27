@@ -8,6 +8,7 @@ import TrustBanner from '@/components/TrustBanner'
 import HeroCarousel, { type HeroSlide } from '@/components/HeroCarousel'
 import RecommendedProductsClient from '@/components/RecommendedProductsClient'
 import Carousel from '@/components/Carousel'
+import ConsoleHomeRedirect from '@/components/ConsoleHomeRedirect'
 
 /* ─── Editorial split (2-up) ─── */
 function SplitPanel({ left, right }: {
@@ -183,6 +184,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <ConsoleHomeRedirect />
       <HeroCarousel slides={slides} />
 
       <SplitPanel

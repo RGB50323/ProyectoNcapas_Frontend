@@ -75,6 +75,15 @@ export interface AdminDrop {
   active: boolean
 }
 
+export interface AdminDropProduct {
+  id: string
+  dropId: string
+  dropTitle: string
+  productId: string
+  productName: string
+  productSku: string
+}
+
 export interface AdminProductBadge {
   id: string
   productId: string
@@ -246,9 +255,14 @@ export const admin = {
   deleteCoupon: (s: Session, id: string) => del(s, `/coupons/${id}`),
 
   listDrops: (s: Session) => list<AdminDrop>(s, '/drops/'),
+  listMyDrops: (s: Session) => list<AdminDrop>(s, '/drops/my'),
   createDrop: (s: Session, b: unknown) => create(s, '/drops/create', b),
   updateDrop: (s: Session, id: string, b: unknown) => put(s, `/drops/update/${id}`, b),
   deleteDrop: (s: Session, id: string) => del(s, `/drops/${id}`),
+
+  dropProducts: (s: Session, dropId: string) => list<AdminDropProduct>(s, `/drop-products/drop/${dropId}`),
+  addDropProduct: (s: Session, b: { dropId: string; productId: string }) => create(s, '/drop-products/create', b),
+  removeDropProduct: (s: Session, id: string) => del(s, `/drop-products/${id}`),
 
   createProduct: (s: Session, b: unknown) => create(s, '/products/create', b),
   updateProduct: (s: Session, id: string, b: unknown) => put(s, `/products/update/${id}`, b),
