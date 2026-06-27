@@ -104,16 +104,19 @@ export default function AdminOrdersPage() {
   }, [session])
 
   const erpCounts = useMemo(() => {
-    const exported = orders.filter((order) => erpExports[order.id]?.erpExportStatus === 'EXPORTED').length
-    const rejected = orders.filter((order) => erpExports[order.id]?.erpExportStatus === 'REJECTED').length
-    const failed = orders.filter((order) => erpExports[order.id]?.erpExportStatus === 'FAILED').length
-    return {
-      exported,
-      rejected,
-      failed,
-      pending: orders.length - exported,
-    }
-  }, [orders, erpExports])
+      const exported = orders.filter((order) => erpExports[order.id]?.erpExportStatus === 'EXPORTED').length
+      const rejected = orders.filter((order) => erpExports[order.id]?.erpExportStatus === 'REJECTED').length
+      const failed = orders.filter((order) => erpExports[order.id]?.erpExportStatus === 'FAILED').length
+      const pending = orders.filter(
+        (order) => order.status === 'DELIVERED' && erpExports[order.id]?.erpExportStatus !== 'EXPORTED'
+      ).length
+      return {
+        exported,
+        rejected,
+        failed,
+        pending,
+      }
+    }, [orders, erpExports])
 
   async function toggleOrder(orderId: string) {
     if (openId === orderId) {
@@ -266,20 +269,29 @@ export default function AdminOrdersPage() {
 
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <ErpStatusPill status={erpStatus} />
                           {erpExport?.erpExportStatus === 'EXPORTED' && erpExport.erpReference ? (
-                              <Link className="mono accent" style={{ fontSize: 11 }} href={`/admin/erp?ref=${erpExport.erpReference}`}>
-                                VER EN ERP
-                              </Link>
+                              <>
+                                <ErpStatusPill status={erpStatus} />
+                                <Link className="mono accent" style={{ fontSize: 11 }} href={`/admin/erp?ref=${erpExport.erpReference}`}>
+                                  VER EN ERP
+                                </Link>
+                              </>
+                          ) : o.status === 'REFUNDED' ? (
+                              <span className="mono mute" style={{ fontSize: 11 }} title="No se puede exportar un pedido reembolsado">
+                                NO EXPORTABLE
+                              </span>
                           ) : (
-                              <button
-                                  className="mono accent"
-                                  disabled={exportingId === o.id}
-                                  onClick={() => setConfirmExportOrder(o)}
-                                  style={{ background: 'none', border: 'none', cursor: exportingId === o.id ? 'default' : 'pointer', opacity: exportingId === o.id ? 0.5 : 1, fontSize: 11 }}
-                              >
-                                {exportingId === o.id ? 'EXPORTANDO...' : 'EXPORTAR ERP'}
-                              </button>
+                              <>
+                                <ErpStatusPill status={erpStatus} />
+                                <button
+                                    className="mono accent"
+                                    disabled={exportingId === o.id}
+                                    onClick={() => setConfirmExportOrder(o)}
+                                    style={{ background: 'none', border: 'none', cursor: exportingId === o.id ? 'default' : 'pointer', opacity: exportingId === o.id ? 0.5 : 1, fontSize: 11 }}
+                                >
+                                  {exportingId === o.id ? 'EXPORTANDO...' : 'EXPORTAR ERP'}
+                                </button>
+                              </>
                           )}
                         </div>
                       </td>
