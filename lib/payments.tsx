@@ -30,8 +30,28 @@ function CardForm({ cardData, onCardChange }: {
     onCardChange?: (d: CardData) => void
 }) {
     const data = cardData ?? { number: '', expiry: '', cvc: '', name: '' }
-    const update = (field: keyof CardData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        onCardChange?.({ ...data, [field]: e.target.value })
+
+    // Solo números, máx 16 dígitos
+    const handleNumber = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 16)
+        const formatted = digits.replace(/(.{4})/g, '$1 ').trim()
+        onCardChange?.({ ...data, number: formatted })
+    }
+
+    // Solo números, formato automático MM / AA
+    const handleExpiry = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 4)
+        let formatted = digits
+        if (digits.length >= 3) {
+            formatted = digits.slice(0, 2) + ' / ' + digits.slice(2)
+        }
+        onCardChange?.({ ...data, expiry: formatted })
+    }
+
+    // Solo números, máx 4 dígitos
+    const handleCvc = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 4)
+        onCardChange?.({ ...data, cvc: digits })
     }
 
     return (
@@ -41,7 +61,8 @@ function CardForm({ cardData, onCardChange }: {
                     className="input"
                     placeholder="1234 5678 9012 3456"
                     value={data.number}
-                    onChange={update('number')}
+                    onChange={handleNumber}
+                    inputMode="numeric"
                     maxLength={19}
                 />
             </Field>
@@ -51,7 +72,8 @@ function CardForm({ cardData, onCardChange }: {
                         className="input"
                         placeholder="MM / AA"
                         value={data.expiry}
-                        onChange={update('expiry')}
+                        onChange={handleExpiry}
+                        inputMode="numeric"
                         maxLength={7}
                     />
                 </Field>
@@ -60,7 +82,8 @@ function CardForm({ cardData, onCardChange }: {
                         className="input"
                         placeholder="•••"
                         value={data.cvc}
-                        onChange={update('cvc')}
+                        onChange={handleCvc}
+                        inputMode="numeric"
                         maxLength={4}
                     />
                 </Field>
@@ -70,7 +93,7 @@ function CardForm({ cardData, onCardChange }: {
                     className="input"
                     placeholder="Como aparece en la tarjeta"
                     value={data.name}
-                    onChange={update('name')}
+                    onChange={(e) => onCardChange?.({ ...data, name: e.target.value })}
                 />
             </Field>
         </div>
