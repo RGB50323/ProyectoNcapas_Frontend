@@ -84,6 +84,7 @@ export default function AdminOrdersPage() {
   const [bulkExportOpen, setBulkExportOpen] = useState(false)
   const [bulkExporting, setBulkExporting] = useState(false)
   const [bulkResult, setBulkResult] = useState<AdminErpBulkExport | null>(null)
+  const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null)
 
   useEffect(() => {
     if (!session) return
@@ -141,8 +142,11 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
           prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o)
       )
-    } catch {
-      alert('Error al actualizar el estado')
+    } catch (err) {
+      setErrorModal({
+        title: 'Error al actualizar estado',
+        message: err instanceof Error ? err.message : 'No se pudo actualizar el estado del pedido.',
+      })
     } finally {
       setUpdatingStatus(null)
     }
@@ -156,7 +160,11 @@ export default function AdminOrdersPage() {
       setErpExports((prev) => ({ ...prev, [orderId]: result }))
       setConfirmExportOrder(null)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al exportar a ERP')
+      setConfirmExportOrder(null)
+      setErrorModal({
+        title: 'Error al exportar a ERP',
+        message: err instanceof Error ? err.message : 'No se pudo exportar el pedido al ERP.',
+      })
     } finally {
       setExportingId(null)
     }
@@ -171,7 +179,11 @@ export default function AdminOrdersPage() {
       setBulkResult(result)
       setErpExports((prev) => ({ ...prev, ...indexExports(result.results) }))
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al exportar pendientes a ERP')
+      setBulkExportOpen(false)
+      setErrorModal({
+        title: 'Error al exportar pendientes',
+        message: err instanceof Error ? err.message : 'No se pudo exportar los pedidos pendientes al ERP.',
+      })
     } finally {
       setBulkExporting(false)
     }
@@ -224,17 +236,17 @@ export default function AdminOrdersPage() {
               const erpExport = erpExports[o.id]
               const erpStatus = erpExport?.erpExportStatus ?? 'NOT_EXPORTED'
               return (
-                <React.Fragment key={o.id}>
-                  <tr>
-                    <td>
+                  <React.Fragment key={o.id}>
+                    <tr>
+                      <td>
                     <span className="display" style={{ fontSize: 13 }}>
                       {o.id.slice(0, 8).toUpperCase()}
                     </span>
-                    </td>
-                    <td>{o.customerFullName}</td>
-                    <td className="mono mute">
-                      {formatDateSV(o.createdAt)}
-                    </td>
+                      </td>
+                      <td>{o.customerFullName}</td>
+                      <td className="mono mute">
+                        {formatDateSV(o.createdAt)}
+                      </td>
 
                       <td>
                         {(o.status === 'REFUNDED' || o.status === 'DELIVERED') ? (
@@ -252,118 +264,118 @@ export default function AdminOrdersPage() {
                         )}
                       </td>
 
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <ErpStatusPill status={erpStatus} />
-                        {erpExport?.erpExportStatus === 'EXPORTED' && erpExport.erpReference ? (
-                          <Link className="mono accent" style={{ fontSize: 11 }} href={`/admin/erp?ref=${erpExport.erpReference}`}>
-                            VER EN ERP
-                          </Link>
-                        ) : (
-                          <button
-                              className="mono accent"
-                              disabled={exportingId === o.id}
-                              onClick={() => setConfirmExportOrder(o)}
-                              style={{ background: 'none', border: 'none', cursor: exportingId === o.id ? 'default' : 'pointer', opacity: exportingId === o.id ? 0.5 : 1, fontSize: 11 }}
-                          >
-                            {exportingId === o.id ? 'EXPORTANDO...' : 'EXPORTAR ERP'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="mono">${o.subtotal}</td>
-                    <td className="mono">${o.shippingCost}</td>
-                    <td><span className="display" style={{ fontSize: 14 }}>${o.total}</span></td>
-                    <td className="mono mute">{o.trackingNumber ?? '—'}</td>
-                    <td>
-                      <button
-                          className="mono accent"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                          onClick={() => toggleOrder(o.id)}
-                      >
-                        {openId === o.id ? 'CERRAR' : 'ABRIR →'}
-                      </button>
-                    </td>
-                  </tr>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <ErpStatusPill status={erpStatus} />
+                          {erpExport?.erpExportStatus === 'EXPORTED' && erpExport.erpReference ? (
+                              <Link className="mono accent" style={{ fontSize: 11 }} href={`/admin/erp?ref=${erpExport.erpReference}`}>
+                                VER EN ERP
+                              </Link>
+                          ) : (
+                              <button
+                                  className="mono accent"
+                                  disabled={exportingId === o.id}
+                                  onClick={() => setConfirmExportOrder(o)}
+                                  style={{ background: 'none', border: 'none', cursor: exportingId === o.id ? 'default' : 'pointer', opacity: exportingId === o.id ? 0.5 : 1, fontSize: 11 }}
+                              >
+                                {exportingId === o.id ? 'EXPORTANDO...' : 'EXPORTAR ERP'}
+                              </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="mono">${o.subtotal}</td>
+                      <td className="mono">${o.shippingCost}</td>
+                      <td><span className="display" style={{ fontSize: 14 }}>${o.total}</span></td>
+                      <td className="mono mute">{o.trackingNumber ?? '—'}</td>
+                      <td>
+                        <button
+                            className="mono accent"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                            onClick={() => toggleOrder(o.id)}
+                        >
+                          {openId === o.id ? 'CERRAR' : 'ABRIR →'}
+                        </button>
+                      </td>
+                    </tr>
 
-                  {openId === o.id && (
-                      <tr>
-                        <td colSpan={10} style={{ padding: 0 }}>
-                          <div style={{ padding: 20, background: 'var(--bg-1)', borderTop: '1px solid var(--border)' }}>
-                            {erpExport?.erpErrorMessage && (
-                                <div className="mono" style={{ fontSize: 11, color: 'var(--accent-2)', marginBottom: 16 }}>
-                                  ERP · {erpExport.erpErrorMessage}
-                                </div>
-                            )}
+                    {openId === o.id && (
+                        <tr>
+                          <td colSpan={10} style={{ padding: 0 }}>
+                            <div style={{ padding: 20, background: 'var(--bg-1)', borderTop: '1px solid var(--border)' }}>
+                              {erpExport?.erpErrorMessage && (
+                                  <div className="mono" style={{ fontSize: 11, color: 'var(--accent-2)', marginBottom: 16 }}>
+                                    ERP · {erpExport.erpErrorMessage}
+                                  </div>
+                              )}
 
-                            {loadingItems === o.id ? (
-                                <div className="mono mute">Cargando items...</div>
-                            ) : (items[o.id] ?? []).length === 0 ? (
-                                <div className="mono mute">Sin items registrados.</div>
-                            ) : (
-                                <table className="table" style={{ margin: 0 }}>
-                                  <thead>
-                                  <tr>
-                                    <th>Producto</th>
-                                    <th>Variante</th>
-                                    <th>Vendedor</th>
-                                    <th>Cant.</th>
-                                    <th>Precio unit.</th>
-                                    <th>Total</th>
-                                  </tr>
-                                  </thead>
-                                  <tbody>
-                                  {(items[o.id] ?? []).map((item) => (
-                                      <tr key={item.id}>
-                                        <td>{item.productName}</td>
-                                        <td className="mono mute">
-                                          {item.variantSize ?? '—'} · {item.variantColorName ?? '—'}
-                                        </td>
-                                        <td>{item.sellerStoreName ?? '—'}</td>
-                                        <td>{item.quantity}</td>
-                                        <td className="mono">${item.unitPrice}</td>
-                                        <td className="mono">${item.totalPrice}</td>
-                                      </tr>
-                                  ))}
-                                  </tbody>
-                                </table>
-                            )}
+                              {loadingItems === o.id ? (
+                                  <div className="mono mute">Cargando items...</div>
+                              ) : (items[o.id] ?? []).length === 0 ? (
+                                  <div className="mono mute">Sin items registrados.</div>
+                              ) : (
+                                  <table className="table" style={{ margin: 0 }}>
+                                    <thead>
+                                    <tr>
+                                      <th>Producto</th>
+                                      <th>Variante</th>
+                                      <th>Vendedor</th>
+                                      <th>Cant.</th>
+                                      <th>Precio unit.</th>
+                                      <th>Total</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {(items[o.id] ?? []).map((item) => (
+                                        <tr key={item.id}>
+                                          <td>{item.productName}</td>
+                                          <td className="mono mute">
+                                            {item.variantSize ?? '—'} · {item.variantColorName ?? '—'}
+                                          </td>
+                                          <td>{item.sellerStoreName ?? '—'}</td>
+                                          <td>{item.quantity}</td>
+                                          <td className="mono">${item.unitPrice}</td>
+                                          <td className="mono">${item.totalPrice}</td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                  </table>
+                              )}
 
-                            <div style={{ marginTop: 16, display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-                              {o.shippingAddressStreet && (
-                                  <div>
-                                    <div className="mono mute" style={{ fontSize: 11 }}>DIRECCIÓN</div>
-                                    <div style={{ fontSize: 13 }}>
-                                      {o.shippingAddressStreet}, {o.shippingAddressCity}, {o.shippingAddressCountry}
+                              <div style={{ marginTop: 16, display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+                                {o.shippingAddressStreet && (
+                                    <div>
+                                      <div className="mono mute" style={{ fontSize: 11 }}>DIRECCIÓN</div>
+                                      <div style={{ fontSize: 13 }}>
+                                        {o.shippingAddressStreet}, {o.shippingAddressCity}, {o.shippingAddressCountry}
+                                      </div>
                                     </div>
-                                  </div>
-                              )}
-                              {o.shippingMethodName && (
-                                  <div>
-                                    <div className="mono mute" style={{ fontSize: 11 }}>MÉTODO DE ENVÍO</div>
-                                    <div style={{ fontSize: 13 }}>{o.shippingMethodName}</div>
-                                  </div>
-                              )}
-                              {o.couponCode && (
-                                  <div>
-                                    <div className="mono mute" style={{ fontSize: 11 }}>CUPÓN</div>
-                                    <div style={{ fontSize: 13 }}>{o.couponCode}</div>
-                                  </div>
-                              )}
-                              {o.notes && (
-                                  <div>
-                                    <div className="mono mute" style={{ fontSize: 11 }}>NOTAS</div>
-                                    <div style={{ fontSize: 13 }}>{o.notes}</div>
-                                  </div>
-                              )}
-                            </div>
+                                )}
+                                {o.shippingMethodName && (
+                                    <div>
+                                      <div className="mono mute" style={{ fontSize: 11 }}>MÉTODO DE ENVÍO</div>
+                                      <div style={{ fontSize: 13 }}>{o.shippingMethodName}</div>
+                                    </div>
+                                )}
+                                {o.couponCode && (
+                                    <div>
+                                      <div className="mono mute" style={{ fontSize: 11 }}>CUPÓN</div>
+                                      <div style={{ fontSize: 13 }}>{o.couponCode}</div>
+                                    </div>
+                                )}
+                                {o.notes && (
+                                    <div>
+                                      <div className="mono mute" style={{ fontSize: 11 }}>NOTAS</div>
+                                      <div style={{ fontSize: 13 }}>{o.notes}</div>
+                                    </div>
+                                )}
+                              </div>
 
-                            <ShipmentControl orderId={o.id} />
-                          </div>
-                        </td>
-                      </tr>
-                  )}
-                </React.Fragment>
+                              <ShipmentControl orderId={o.id} />
+                            </div>
+                          </td>
+                        </tr>
+                    )}
+                  </React.Fragment>
               )
             })}
             </tbody>
@@ -376,6 +388,24 @@ export default function AdminOrdersPage() {
           )}
         </div>
 
+        {/* ─── Modal de error ─── */}
+        <Modal
+            open={errorModal !== null}
+            title={errorModal?.title ?? 'Error'}
+            onClose={() => setErrorModal(null)}
+            width={480}
+        >
+          <div>
+            <p style={{ marginTop: 0, lineHeight: 1.6, color: 'var(--text-dim)' }}>
+              {errorModal?.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+              <button className="btn" onClick={() => setErrorModal(null)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </Modal>
         <Modal
             open={bulkExportOpen}
             title="Exportar pendientes ERP"
