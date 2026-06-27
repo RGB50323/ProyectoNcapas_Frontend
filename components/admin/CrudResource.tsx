@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuth, type Session } from '@/lib/auth'
 import Modal from '@/components/Modal'
 import { Select } from '@/components/Select'
+import DateTimePicker from '@/components/DateTimePicker'
 import { useToast } from '@/hooks/useToast'
 import { usePaged } from '@/hooks/usePaged'
 import Pagination from '@/components/Pagination'
@@ -264,8 +265,10 @@ export default function CrudResource<T>({
                   <input type="checkbox" checked={!!form[fl.name]} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: e.target.checked }))} />
                   {fl.label}
                 </label>
+              ) : fl.type === 'datetime' ? (
+                <DateTimePicker value={form[fl.name] ?? ''} onChange={(v) => setForm((f) => ({ ...f, [fl.name]: v }))} ariaLabel={fl.label} />
               ) : (
-                <input className="input" type={fl.type === 'number' ? 'number' : fl.type === 'datetime' ? 'datetime-local' : 'text'} step={fl.step} value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: fl.type === 'number' ? e.target.value.replace(/^0+(?=\d)/, '') : e.target.value }))} />
+                <input className="input" type={fl.type === 'number' ? 'number' : 'text'} step={fl.step} value={form[fl.name] ?? ''} placeholder={fl.placeholder} onChange={(e) => setForm((f) => ({ ...f, [fl.name]: fl.type === 'number' ? e.target.value.replace(/^0+(?=\d)/, '') : e.target.value }))} />
               )}
             </div>
           ))}
