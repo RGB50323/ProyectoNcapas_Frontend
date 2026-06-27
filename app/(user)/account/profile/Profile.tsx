@@ -35,7 +35,6 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString("es-SV", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// traduce errores comunes del backend a mensajes claros para el toast
 function friendlyError(status: number, msg: string | null): string {
   if (status === 401) return "Tu sesión expiró. Vuelve a iniciar sesión.";
   if (!msg) return `Error ${status}`;
@@ -55,7 +54,7 @@ function StatusBadge({ status }: { status: StoreRequestStatus }) {
     <span
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: 10,
+        fontSize: 13,
         letterSpacing: "0.12em",
         color,
         border: `1px solid ${color}`,
@@ -104,7 +103,6 @@ export default function Profile() {
     phone: (session as any)?.phone ?? "",
   }));
 
-  // estado de la solicitud de tienda, solo para BUYER
   const [storeReq, setStoreReq] = useState<StoreRequest | null>(null);
   const [reqLoading, setReqLoading] = useState(true);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
@@ -229,9 +227,8 @@ export default function Profile() {
         localStorage.setItem("klab_session", JSON.stringify(newSession));
       }
 
-      setEditing(false);
       show("Información actualizada", "success");
-      setTimeout(() => window.location.reload(), 900);
+      window.location.reload();
     } catch {
       show("No se pudo conectar con el servidor.", "error");
     } finally {
@@ -368,7 +365,7 @@ export default function Profile() {
           display: "grid",
           gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)",
           gap: 16,
-          alignItems: "start",
+          alignItems: "stretch",
         }}
       >
         <div className="card" style={{ padding: 28 }}>
@@ -474,7 +471,7 @@ export default function Profile() {
                   <div className="mono mute" style={{ fontSize: 11, letterSpacing: "0.12em" }}>
                     {f.label}
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--text)", textAlign: "right" }}>{f.value}</div>
+                  <div style={{ fontSize: 16, color: "var(--text)", textAlign: "right" }}>{f.value}</div>
                 </div>
               ))}
             </div>
@@ -482,6 +479,7 @@ export default function Profile() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          
           {isBuyer && (
             <div className="card" style={{ padding: 28 }}>
               <div
@@ -576,6 +574,47 @@ export default function Profile() {
             </div>
           )}
 
+          {isSeller && (
+            <div className="card" style={{ padding: 28 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                  paddingBottom: 16,
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <h2 className="display" style={{ fontSize: 18 }}>
+                  PERFIL DE LA TIENDA
+                </h2>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    letterSpacing: "0.12em",
+                    color: "var(--ok)",
+                    border: "1px solid var(--ok)",
+                    padding: "2px 8px",
+                  }}
+                >
+                  ● ACTIVA
+                </span>
+              </div>
+              <p className="mute" style={{ fontSize: 13, marginBottom: 20 }}>
+                Gestiona la información de tu tienda, catálogo de productos y visualiza tu rendimiento desde el panel de administración.
+              </p>
+              <button 
+                className="btn" 
+                style={{ width: "100%" }} 
+                onClick={() => router.push("/seller/dashboard")}
+              >
+                Ir a la consola de tienda
+              </button>
+            </div>
+          )}
+
           <div className="card" style={{ padding: 28 }}>
             <div
               style={{
@@ -593,7 +632,7 @@ export default function Profile() {
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 10,
+                  fontSize: 12,
                   letterSpacing: "0.12em",
                   color: "var(--ok)",
                   border: "1px solid var(--ok)",
@@ -720,6 +759,7 @@ export default function Profile() {
               className="btn btn-ghost"
               style={{ padding: "10px 16px", fontSize: 12 }}
               onClick={() => {
+                if (submitting) return;
                 setApplyOpen(false);
                 setApplyError(null);
               }}

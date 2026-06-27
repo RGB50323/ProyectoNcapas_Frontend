@@ -141,11 +141,11 @@ export default function AdminUserDetailPage() {
               >
                 <div>
                   <div className="mono mute" style={{ fontSize: 11 }}>PEDIDO</div>
-                  <div className="display" style={{ fontSize: 13, marginTop: 2 }}>{o.id.slice(0, 8).toUpperCase()}</div>
+                  <div className="display" style={{ fontSize: 13, marginTop: 2, color:'white' }}>{o.id.slice(0, 8).toUpperCase()}</div>
                 </div>
                 <div className="mono mute" style={{ fontSize: 12 }}>{String(o.createdAt).replace('T', ' ').slice(0, 16)}</div>
                 <span className={`pill ${STATUS_COLOR[o.status] ?? 'gray'}`}>{o.status}</span>
-                <div className="display" style={{ fontSize: 16 }}>${o.total}</div>
+                <div className="display" style={{ fontSize: 16, color:'white' }}>${o.total}</div>
                 <span className="fgroup-toggle" style={{ color: 'var(--text-mute)' }}>{openOrder === o.id ? <Icon.Minus /> : <Icon.Plus />}</span>
               </button>
 
@@ -174,7 +174,6 @@ export default function AdminUserDetailPage() {
                     <Field label="ENVÍO" value={o.shippingMethodName || '—'} />
                     <Field label="DIRECCIÓN" value={[o.shippingAddressStreet, o.shippingAddressCity, o.shippingAddressCountry].filter(Boolean).join(', ') || '—'} />
                     <Field label="CUPÓN" value={o.couponCode || '—'} />
-                    <Field label="GUÍA" value={o.trackingNumber || '—'} />
                     <Field label="SUBTOTAL" value={`$${o.subtotal}`} />
                     <Field label="ENVÍO" value={`$${o.shippingCost}`} />
                     <Field label="DESCUENTO" value={`-$${o.discountAmount}`} />

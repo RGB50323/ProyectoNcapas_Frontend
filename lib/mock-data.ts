@@ -244,12 +244,6 @@ export const SHIPPING: ShippingMethod[] = [
   { id: 'pickup', name: 'Recoger en tienda', fee: 0, eta: 'Mismo día' },
 ]
 
-export const DROPS: Drop[] = [
-  { id: 'd1', title: 'Bóveda Alta — Fase II', date: '02 JUN · 18:00 GMT', units: 80, type: 'DROP PRIVADO', img: stripeImg('DROP_VLT02.tif', '#f4f1ea', '#e8e3d6') },
-  { id: 'd2', title: 'Reedición Archivo / Court Crema', date: '09 JUN · 12:00 GMT', units: 240, type: 'PÚBLICO', img: stripeImg('DROP_ARCH09.tif', '#efe9df', '#dfd6c5') },
-  { id: 'd3', title: 'Lab Runner — Edición Volt', date: '16 JUN · 09:00 GMT', units: 150, type: 'PÚBLICO', img: stripeImg('DROP_LAB16.tif', '#ecece8', '#dcd9d2') },
-  { id: 'd4', title: 'Cápsula Shadow Co.', date: '24 JUN · 20:00 GMT', units: 60, type: 'DROP PRIVADO', img: stripeImg('DROP_SHD24.tif', '#e8eaed', '#d5d8dc') },
-]
 
 export const ORDERS: Order[] = [
   { id: 'KL-24102', status: 'DELIVERED', date: '14 may 2026', total: 412, items: 2, tracking: 'DHL-882-114-002' },

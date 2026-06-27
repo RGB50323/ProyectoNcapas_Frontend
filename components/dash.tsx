@@ -119,9 +119,11 @@ export function SellerSidebar() {
       <Item href="/seller/products">Mis productos</Item>
       <Item href="/seller/reviews">Reseñas</Item>
 
+      <div className="group">Ventas</div>
+      <Item href="/seller/drops">Drops</Item>
+
       <div className="group">Cuenta</div>
       <Item href="/seller/profile">Perfil de tienda</Item>
-      <Item href="/account/profile">Mi cuenta</Item>
     </aside>
   );
 }

@@ -75,6 +75,15 @@ export interface AdminDrop {
   active: boolean
 }
 
+export interface AdminDropProduct {
+  id: string
+  dropId: string
+  dropTitle: string
+  productId: string
+  productName: string
+  productSku: string
+}
+
 export interface AdminProductBadge {
   id: string
   productId: string
@@ -209,13 +218,13 @@ export const admin = {
 
   listOrders: (s: Session) => list<AdminOrder>(s, '/orders/'),
   listErpExports: (s: Session) => list<AdminErpExport>(s, '/api/erp/exports'),
-  exportOrderToErp: (s: Session, id: string) => authFetch(`/api/orders/${id}/export-to-erp`, s, { method: 'POST' }).then((r) => unwrap<AdminErpExport>(r)),
-  exportPendingOrdersToErp: (s: Session) => authFetch('/api/orders/export-pending-to-erp', s, { method: 'POST' }).then((r) => unwrap<AdminErpBulkExport>(r)),
+  exportOrderToErp: (s: Session, id: string) => authFetch(`/api/erp/orders/${id}/export`, s, { method: 'POST' }).then((r) => unwrap<AdminErpExport>(r)),
+  exportPendingOrdersToErp: (s: Session) => authFetch('/api/erp/orders/export-pending', s, { method: 'POST' }).then((r) => unwrap<AdminErpBulkExport>(r)),
   listErpOrders: (s: Session) => list<AdminErpOrder>(s, '/api/erp/orders'),
   getErpOrder: (s: Session, erpReference: string) => authFetch(`/api/erp/orders/${erpReference}`, s).then((r) => unwrap<AdminErpOrder>(r)),
   ordersByCustomer: (s: Session, customerId: string) => list<AdminOrder>(s, `/orders/customer/${customerId}`),
   orderItems: (s: Session, orderId: string) => list<AdminOrderItem>(s, `/order-items/order/${orderId}`),
-  patchOrder: (s: Session, id: string, status: string) => patch(s, `/orders/patch/${id}`, { status }), // ← nuevo
+  patchOrder: (s: Session, id: string, status: string) => patch(s, `/orders/patch/${id}`, { status }),
   addressesByUser: (s: Session, userId: string) => list<AdminAddress>(s, `/addresses/user/${userId}`),
 
   listSellers: (s: Session) => list<AdminSeller>(s, '/seller_profiles/'),
@@ -246,9 +255,14 @@ export const admin = {
   deleteCoupon: (s: Session, id: string) => del(s, `/coupons/${id}`),
 
   listDrops: (s: Session) => list<AdminDrop>(s, '/drops/'),
+  listMyDrops: (s: Session) => list<AdminDrop>(s, '/drops/my'),
   createDrop: (s: Session, b: unknown) => create(s, '/drops/create', b),
   updateDrop: (s: Session, id: string, b: unknown) => put(s, `/drops/update/${id}`, b),
   deleteDrop: (s: Session, id: string) => del(s, `/drops/${id}`),
+
+  dropProducts: (s: Session, dropId: string) => list<AdminDropProduct>(s, `/drop-products/drop/${dropId}`),
+  addDropProduct: (s: Session, b: { dropId: string; productId: string }) => create(s, '/drop-products/create', b),
+  removeDropProduct: (s: Session, id: string) => del(s, `/drop-products/${id}`),
 
   createProduct: (s: Session, b: unknown) => create(s, '/products/create', b),
   updateProduct: (s: Session, id: string, b: unknown) => put(s, `/products/update/${id}`, b),

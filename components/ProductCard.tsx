@@ -6,15 +6,18 @@ import type { Product } from '@/lib/types'
 import { Icon } from './Icon'
 import Badges from './Badges'
 import { useWishlist } from '@/lib/wishlist'
+import { useAuth } from '@/lib/auth'
 
 export default function ProductCard({ p }: { p: Product }) {
   const router = useRouter()
+  const { session } = useAuth()
   const { has, toggle } = useWishlist()
   const [hov, setHov] = useState(false)
   const img = hov && p.images[1] ? p.images[1] : p.images[0]
   const open = () => router.push(`/product/${p.id}`)
   const onWish = (e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!session) { router.push('/login'); return }
     toggle(p.id).catch(() => {})
   }
 

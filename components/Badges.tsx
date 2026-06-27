@@ -7,6 +7,7 @@ const BADGE_STYLE: Record<string, { cls: string; text?: string }> = {
   SEMINUEVO: { cls: 'preowned' },
   'POCO STOCK': { cls: 'lowstock' },
   NUEVO: { cls: 'new' },
+  DESTACADO: { cls: 'limited' },
 }
 
 export default function Badges({ product }: { product: Product }) {
@@ -14,8 +15,9 @@ export default function Badges({ product }: { product: Product }) {
   return (
     <div className="prod-badges">
       {product.badges.map((b) => {
-        const style = BADGE_STYLE[b] ?? { cls: '' }
-        return <span key={b} className={`badge ${style.cls}`}>{style.text ?? b}</span>
+        const key = b.toUpperCase()
+        const style = BADGE_STYLE[key] ?? { cls: 'fallback' }
+        return <span key={b} className={`badge ${style.cls}`}>{style.text ?? key}</span>
       })}
     </div>
   )

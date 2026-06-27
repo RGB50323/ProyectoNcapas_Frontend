@@ -7,6 +7,8 @@ import ProductCard from '@/components/ProductCard'
 import TrustBanner from '@/components/TrustBanner'
 import HeroCarousel, { type HeroSlide } from '@/components/HeroCarousel'
 import RecommendedProductsClient from '@/components/RecommendedProductsClient'
+import Carousel from '@/components/Carousel'
+import ConsoleHomeRedirect from '@/components/ConsoleHomeRedirect'
 
 /* ─── Editorial split (2-up) ─── */
 function SplitPanel({ left, right }: {
@@ -97,7 +99,7 @@ function HomeSection({ title, eyebrow, meta, products, href }: {
 }
 
 /* ─── Editorial block ─── */
-function EditorialBlock() {
+function EditorialBlock({ verifiedProducts }: { verifiedProducts: Product[] }) {
   return (
     <section style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-1)' }}>
       <div className="container" style={{ paddingTop: 80, paddingBottom: 80 }}>
@@ -117,16 +119,9 @@ function EditorialBlock() {
                 </div>
               ))}
             </div>
-            <Link href="/catalog" className="btn btn-ghost" style={{ marginTop: 32 }}>Ver catálogo verificado <Icon.ArrowR /></Link>
+            <Link href="/catalog" className="btn btn-ghost" style={{ marginTop: 32 }}>Ver catálogo <Icon.ArrowR /></Link>
           </div>
-          <div style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden', border: '1px solid var(--border)' }}>
-            <img src={stripeImg('LAB_PROCESS', '#2a2420', '#1e1a16')} alt="Proceso del laboratorio" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24, padding: 20, background: 'var(--bg-0)', border: '1px solid var(--border)' }}>
-              <div className="mono mute">PIEZA VERIFICADA / MUESTRA</div>
-              <div className="display" style={{ fontSize: 18, marginTop: 6 }}>CERTIFICADO DE AUTENTICIDAD</div>
-              <div className="mono mute" style={{ marginTop: 8 }}>SERIAL: KL-AUTH-2026-04812</div>
-            </div>
-          </div>
+          <Carousel products={verifiedProducts} />
         </div>
       </div>
     </section>
@@ -155,7 +150,7 @@ export default async function HomePage() {
       eyebrow: '◇ TENIS · MAISON MIHARA YASUHIRO',
       headline: 'SKELETON\nLOW.',
       sub: 'Dos colorways del Blakey OG Low: azul denim y negro total. Construcción artesanal, autenticidad certificada.',
-      cta: 'Ver tenis',
+      cta: 'Ver colección',
       href: '/catalog',
     },
     {
@@ -166,11 +161,11 @@ export default async function HomePage() {
       headline: 'AJ1 LOW\nOLIVE.',
       sub: 'Air Jordan 1 Low OG Travis Scott en colorway Olive/Sail. Certificado K LAB. Stock limitado.',
       cta: 'Ver drop',
-      href: '/catalog',
+      href: '/drops',
     },
     {
       id: 's4',
-      image: '/hero/barca-cactus.png',
+      image: '/hero/image.png',
       objectPosition: 'center 25%',
       eyebrow: '◇ K·SELECT · ACCESO EXCLUSIVO',
       headline: 'CACTUS\nJACK ×\nBARÇA.',
@@ -185,9 +180,11 @@ export default async function HomePage() {
   const newArrivals = take(products.filter((p) => p.isNew || p.limited || p.privateDrop))
   const select = [...products].sort(byPopularity).slice(0, 4)
   const archive = take(products.filter((p) => p.condition !== 'NEW'))
+  const verifiedRecent = products.filter((p) => p.auth === 'AUTHENTICATED').slice(0, 5)
 
   return (
     <>
+      <ConsoleHomeRedirect />
       <HeroCarousel slides={slides} />
 
       <SplitPanel
@@ -231,7 +228,7 @@ export default async function HomePage() {
         href="/catalog?chip=K-SELECT"
       />
 
-      <EditorialBlock />
+      <EditorialBlock verifiedProducts={verifiedRecent} />
 
       <HomeSection
         eyebrow="◆ PIEZAS SEMINUEVAS · CONDICIÓN CALIFICADA"
