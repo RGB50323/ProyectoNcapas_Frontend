@@ -9,6 +9,7 @@ import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
 import NumberField from '@/components/NumberField'
 import { useToast } from '@/hooks/useToast'
+import { PageLoader } from '@/components/PageLoader'
 
 const MAX_IMAGE_MB = 5
 
@@ -96,7 +97,7 @@ export default function NewProductClient({
   brandOptions: BrandOption[]
 }) {
   const router = useRouter()
-  const { session } = useAuth()
+  const { session, loading } = useAuth()
 
   const { show, ToastContainer } = useToast()
 
@@ -134,6 +135,8 @@ export default function NewProductClient({
       sortOrder: 1,
     },
   ])
+
+  if (loading) return <PageLoader />
 
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
