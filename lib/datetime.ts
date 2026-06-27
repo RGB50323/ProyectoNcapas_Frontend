@@ -36,3 +36,11 @@ export function formatDateSV(value: string | null | undefined, long = false): st
     year: 'numeric',
   })
 }
+
+const MONTHS_MONO = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
+
+export function formatNaiveMono(value: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(value ?? ''))
+  if (!m) return '—'
+  return `${m[3]} ${MONTHS_MONO[Number(m[2]) - 1]} ${m[1]} · ${m[4]}:${m[5]}`
+}

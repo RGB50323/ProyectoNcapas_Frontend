@@ -2,6 +2,7 @@
 
 import CrudResource from '@/components/admin/CrudResource'
 import { admin, type AdminDrop } from '@/lib/admin'
+import { formatNaiveMono } from '@/lib/datetime'
 
 export default function AdminDropsPage() {
   return (
@@ -17,7 +18,7 @@ export default function AdminDropsPage() {
       remove={admin.deleteDrop}
       columns={[
         { header: 'Título', cell: (d) => d.title },
-        { header: 'Fecha', cell: (d) => <span className="mono mute">{String(d.dropDate).replace('T', ' ').slice(0, 16)}</span> },
+        { header: 'Fecha', cell: (d) => <span className="mono mute">{formatNaiveMono(d.dropDate)}</span> },
         { header: 'Unidades', cell: (d) => <span className="mono">{d.units}</span> },
         { header: 'Tipo', cell: (d) => <span className="mono">{d.type === 'PRIVATE' ? 'PRIVADO' : 'PÚBLICO'}</span> },
         { header: 'Activo', cell: (d) => (d.active ? <span className="pill green">SÍ</span> : <span className="pill gray">NO</span>) },
