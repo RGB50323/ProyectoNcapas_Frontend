@@ -10,6 +10,7 @@ import { useCart } from '@/lib/cart'
 import { clearCart, previewCoupon } from '@/lib/shop'
 import { Icon } from '@/components/Icon'
 import { Section, Field, Grid2, ReviewRow, Line } from '@/components/ui'
+import { PageLoader } from '@/components/PageLoader'
 
 const STEPS = ['Datos', 'Dirección', 'Envío', 'Pago', 'Revisión', 'Listo']
 
@@ -86,7 +87,7 @@ function CheckoutDone({ orderId }: { orderId: string }) {
 
 export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[] }) {
     const router = useRouter()
-    const { session } = useAuth()
+    const { session, loading } = useAuth()
     const { items, refresh: refreshCart, coupon, setCoupon } = useCart()
 
     const [step, setStep] = useState(1)
@@ -145,6 +146,10 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
             .then(setPreview)
             .catch(() => setPreview(null))
     }, [session, coupon, selectedShippingId])
+
+    useEffect(() => {
+    if (!loading && !session) router.replace('/login')
+    }, [loading, session, router])
 
     // Calcular totales
     const selectedShipping = shipping.find((s) => s.id === selectedShippingId) ?? shipping[0]
@@ -239,6 +244,8 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
             setBusy(false)
         }
     }
+
+    if (loading || !session) return <PageLoader />
 
     return (
         <div className="container page">

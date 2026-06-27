@@ -12,8 +12,8 @@ import { useCart } from '@/lib/cart'
 import { useWishlist } from '@/lib/wishlist'
 import { useToast } from '@/hooks/useToast'
 import { createStockAlert, getMyStockAlerts, deleteStockAlert, registerProductView } from '@/lib/api'
-
-const REVIEW_PHOTO_PALETTE = ['#f4f1ea', '#efe9df', '#e8eaed']
+import Modal from '@/components/Modal'
+import { useCompare } from '@/lib/compare'
 
 function Gallery({ images, name, badges }: { images: string[]; name: string; badges: string[] }) {
     const [active, setActive] = useState(0)
@@ -52,12 +52,18 @@ function Variants({ product, size, setSize, color, setColor }: {
 }) {
     const sizes = [...new Set(product.variants.map((v) => v.size))]
     const stockFor = (s: string) => product.variants.find((v) => v.size === s && v.color === color)?.stock ?? 0
+    const [sizeGuide, setSizeGuide] = useState(false)
     return (
         <>
             <div style={{ marginTop: 28 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div className="label">Color · {color}</div>
-                    <div className="mono mute">GUÍA DE TALLAS →</div>
+                    <button
+                        onClick={() => setSizeGuide(true)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.12em', color: 'var(--text-dim)' }}
+                        >
+                        GUÍA DE TALLAS →
+                    </button>
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                     {product.colors.map((c) => (
@@ -95,6 +101,43 @@ function Variants({ product, size, setSize, color, setColor }: {
                     })}
                 </div>
             </div>
+            <Modal open={sizeGuide} title="GUÍA DE TALLAS" onClose={() => setSizeGuide(false)} width={560}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+                    <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        {['US', 'EU', 'UK', 'CM'].map(h => (
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', color: 'var(--text-mute)', fontWeight: 400, letterSpacing: '0.1em' }}>{h}</th>
+                        ))}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {[
+                        ['6', '38', '5.5', '24.0'],
+                        ['6.5', '38.5', '6', '24.5'],
+                        ['7', '39', '6.5', '25.0'],
+                        ['7.5', '40', '7', '25.5'],
+                        ['8', '40.5', '7.5', '26.0'],
+                        ['8.5', '41', '8', '26.5'],
+                        ['9', '42', '8.5', '27.0'],
+                        ['9.5', '42.5', '9', '27.5'],
+                        ['10', '43', '9.5', '28.0'],
+                        ['10.5', '44', '10', '28.5'],
+                        ['11', '44.5', '10.5', '29.0'],
+                        ['12', '45', '11', '29.5'],
+                    ].map(([us, eu, uk, cm]) => (
+                        <tr key={us} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 16px' }}>{us}</td>
+                        <td style={{ padding: '10px 16px' }}>{eu}</td>
+                        <td style={{ padding: '10px 16px' }}>{uk}</td>
+                        <td style={{ padding: '10px 16px' }}>{cm}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+                <p style={{ fontSize: 12, color: 'var(--text-mute)', marginTop: 16 }}>
+                    Las medidas son aproximadas. Si estás entre dos tallas, te recomendamos elegir la talla mayor.
+                </p>
+            </Modal>
         </>
     )
 }
@@ -113,6 +156,7 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
     const { session } = useAuth()
     const { add } = useCart()
     const wishlist = useWishlist()
+    const compare = useCompare()
     const { show, ToastContainer } = useToast()
 
     const trackedViewRef = useRef<string | null>(null)
@@ -190,9 +234,7 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
 
     const details: [string, string][] = [
         ['DESCRIPCIÓN', product.desc],
-        ['MATERIALES', 'Upper: malla ingenieril + refuerzos de gamuza. Entresuela: phylon. Suela: compuesto de caucho. Plantilla: OrthoFoam.'],
         ['AUTENTICACIÓN', `Inspeccionado por el equipo de autenticación de K LAB. Serial #KL-AUTH-2026-04812. Coincidencia de material, código de fábrica y construcción verificados.`],
-        ['ENVÍOS Y DEVOLUCIONES', 'Envío gratis en pedidos superiores a $250. Rastreado y asegurado. Devoluciones de 30 días en piezas sin uso.'],
     ]
 
     return (
@@ -259,17 +301,11 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
                         <button className="btn btn-ghost btn-lg" title="Favorito" aria-label="Favorito" style={{ padding: '16px' }} onClick={toggleWish}>
                             <Icon.Heart filled={wishlist.has(product.id)} />
                         </button>
-                        <Link href="/compare" className="btn btn-ghost btn-lg" title="Comparar" aria-label="Comparar" style={{ padding: '16px' }}>
+                        <button className="btn btn-ghost btn-lg" title="Comparar" aria-label="Comparar" style={{ padding: '16px' }} onClick={() => { compare.add(product.id); router.push('/compare') }}>
                             <Icon.Compare />
-                        </Link>
+                        </button>
                     </div>
 
-                    {/* Si no está agotado, también mostrar botón de reserva */}
-                    {!product.soldOut && (
-                        <button className="btn btn-outline btn-lg" style={{ width: '100%', marginTop: 10 }}>
-                            Reservar este par · 24H
-                        </button>
-                    )}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, marginTop: 32, border: '1px solid var(--border)' }}>
                         {[

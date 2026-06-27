@@ -3,6 +3,7 @@ import { Anton, Inter, JetBrains_Mono } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth'
 import { CartProvider } from '@/lib/cart'
 import { WishlistProvider } from '@/lib/wishlist'
+import { CompareProvider } from '@/lib/compare'
 import './globals.css'
 
 const anton = Anton({
@@ -39,7 +40,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>
+              <CompareProvider>
               {children}
+              </CompareProvider>
             </WishlistProvider>
           </CartProvider>
         </AuthProvider>
