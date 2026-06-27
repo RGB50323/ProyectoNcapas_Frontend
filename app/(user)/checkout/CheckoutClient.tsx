@@ -18,15 +18,11 @@ const STEPS = ['Datos', 'Dirección', 'Envío', 'Pago', 'Revisión', 'Listo']
 function PaymentPicker({
                            selected,
                            onChange,
-                           transactionId,
-                           onTransactionIdChange,
                            cardData,
                            onCardChange,
                        }: {
     selected: string
     onChange: (id: string) => void
-    transactionId: string
-    onTransactionIdChange: (v: string) => void
     cardData: CardData
     onCardChange: (d: CardData) => void
 }) {
@@ -48,17 +44,6 @@ function PaymentPicker({
                 ))}
             </div>
             <Form cardData={cardData} onCardChange={onCardChange} />
-            {selected === 'bank' && (
-                <div style={{ marginTop: 16 }}>
-                    <div className="label">ID de transacción</div>
-                    <input
-                        className="input"
-                        placeholder="TXN-123456"
-                        value={transactionId}
-                        onChange={(e) => onTransactionIdChange(e.target.value)}
-                    />
-                </div>
-            )}
         </>
     )
 }
@@ -104,7 +89,6 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
 
     // Pago
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].id)
-    const [transactionId, setTransactionId] = useState('')
     const [cardData, setCardData] = useState<CardData>({ number: '', expiry: '', cvc: '', name: '' })
 
     // Aceptación de términos en el paso de revisión
@@ -163,7 +147,6 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
     // Mapear método de pago frontend → backend
     const paymentMethodMap: Record<string, string> = {
         card: 'CREDIT_CARD',
-        bank: 'BANK_TRANSFER',
         cod: 'CASH_ON_DELIVERY',
     }
 
@@ -219,7 +202,6 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                 body: JSON.stringify({
                     orderId: newOrderId,
                     method: paymentMethodMap[paymentMethod] ?? 'CREDIT_CARD',
-                    transactionId: paymentMethod === 'bank' ? transactionId : null,
                 }),
             })
             if (!payRes.ok) {
@@ -370,8 +352,6 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     <PaymentPicker
                                         selected={paymentMethod}
                                         onChange={setPaymentMethod}
-                                        transactionId={transactionId}
-                                        onTransactionIdChange={setTransactionId}
                                         cardData={cardData}
                                         onCardChange={setCardData}
                                     />
@@ -442,10 +422,6 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     <button
                                         className="btn"
                                         onClick={() => {
-                                            if (step === 4 && paymentMethod === 'bank' && !transactionId.trim()) {
-                                                setError('Debes ingresar el ID de transacción para continuar')
-                                                return
-                                            }
                                             if (step === 4 && paymentMethod === 'card') {
                                                 if (!cardData.number.trim() || cardData.number.replace(/\s/g, '').length < 16) {
                                                     setError('Ingresa un número de tarjeta válido (16 dígitos)')

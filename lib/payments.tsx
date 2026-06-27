@@ -100,20 +100,6 @@ function CardForm({ cardData, onCardChange }: {
     )
 }
 
-function BankForm() {
-    return (
-        <div className="card" style={{ padding: 20, background: 'var(--bg-0)' }}>
-            <div className="mono mute" style={{ marginBottom: 12 }}>TRANSFERIR A</div>
-            <div style={{ fontFamily: 'var(--font-mono)', lineHeight: 2 }}>
-                <div>BENEFICIARIO: K LAB COMERCIO S.A.</div>
-                <div>CUENTA: HN44 BAC 0001 4429 0011</div>
-                <div>SWIFT: BAMCHNTGXXX</div>
-                <div>REFERENCIA: KL-48217</div>
-            </div>
-        </div>
-    )
-}
-
 function CodForm() {
     return (
         <div className="card" style={{ padding: 20, background: 'var(--bg-0)' }}>
@@ -128,6 +114,5 @@ function CodForm() {
 
 export const PAYMENT_METHODS: PaymentMethod[] = [
     { id: 'card', label: 'Tarjeta', desc: 'Visa, Mastercard, Amex', Form: CardForm },
-    { id: 'bank', label: 'Transferencia', desc: 'SWIFT · 1 día hábil', Form: BankForm },
     { id: 'cod', label: 'Contra entrega', desc: 'Solo El Salvador · +$4', Form: CodForm, extraFee: () => 4 },
 ]

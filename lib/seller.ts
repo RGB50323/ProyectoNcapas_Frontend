@@ -1,5 +1,5 @@
 import { authFetch, getUserId, type Session } from './auth'
-import type { AdminSeller, AdminOrder, AdminOrderItem } from './admin'
+import type { AdminSeller, AdminOrder, AdminOrderItem, AdminCoupon } from './admin'
 
 async function unwrap<T>(res: Response): Promise<T> {
   const json = await res.json().catch(() => null)
@@ -24,4 +24,8 @@ export async function orderItemsBySeller(session: Session, sellerId: string): Pr
 
 export async function getOrder(session: Session, orderId: string): Promise<AdminOrder> {
   return unwrap<AdminOrder>(await authFetch(`/orders/${orderId}`, session))
+}
+
+export async function getGlobalCoupons(session: Session): Promise<AdminCoupon[]> {
+  return unwrap<AdminCoupon[]>(await authFetch('/coupons/global', session))
 }
