@@ -25,7 +25,6 @@ import {
   BRANDS,
   COUPONS,
   SHIPPING,
-  DROPS,
   ORDERS,
   REVIEWS,
   stripeImg,
@@ -702,7 +701,6 @@ export async function getShippingMethods(): Promise<ShippingMethod[]> {
 }
 
 export async function getDrops(): Promise<Drop[]> {
-  if (USE_MOCK) return DROPS
 
   const response = await apiGet<ApiResponse<BackendDrop[]>>('/drops/')
 
@@ -712,6 +710,7 @@ export async function getDrops(): Promise<Drop[]> {
       id: d.id,
       title: d.title,
       date: formatDropDate(d.dropDate),
+      rawDate: d.dropDate,
       units: d.units ?? 0,
       type: d.type === 'PRIVATE' ? 'DROP PRIVADO' : 'PÚBLICO',
       img: d.coverImageUrl || stripeImg(d.title, '#1b1b1b', '#111111', '#e8e3d6'),

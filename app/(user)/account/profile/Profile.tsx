@@ -55,7 +55,7 @@ function StatusBadge({ status }: { status: StoreRequestStatus }) {
     <span
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: 10,
+        fontSize: 13,
         letterSpacing: "0.12em",
         color,
         border: `1px solid ${color}`,
@@ -229,9 +229,8 @@ export default function Profile() {
         localStorage.setItem("klab_session", JSON.stringify(newSession));
       }
 
-      setEditing(false);
       show("Información actualizada", "success");
-      setTimeout(() => window.location.reload(), 900);
+      window.location.reload();
     } catch {
       show("No se pudo conectar con el servidor.", "error");
     } finally {
@@ -368,7 +367,7 @@ export default function Profile() {
           display: "grid",
           gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)",
           gap: 16,
-          alignItems: "start",
+          alignItems: "stretch",
         }}
       >
         <div className="card" style={{ padding: 28 }}>
@@ -474,7 +473,7 @@ export default function Profile() {
                   <div className="mono mute" style={{ fontSize: 11, letterSpacing: "0.12em" }}>
                     {f.label}
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--text)", textAlign: "right" }}>{f.value}</div>
+                  <div style={{ fontSize: 16, color: "var(--text)", textAlign: "right" }}>{f.value}</div>
                 </div>
               ))}
             </div>
@@ -593,7 +592,7 @@ export default function Profile() {
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 10,
+                  fontSize: 12,
                   letterSpacing: "0.12em",
                   color: "var(--ok)",
                   border: "1px solid var(--ok)",

@@ -164,7 +164,7 @@ export default async function HomePage() {
     },
     {
       id: 's4',
-      image: '/hero/barca-cactus.png',
+      image: '/hero/image.png',
       objectPosition: 'center 25%',
       eyebrow: '◇ K·SELECT · ACCESO EXCLUSIVO',
       headline: 'CACTUS\nJACK ×\nBARÇA.',

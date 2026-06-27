@@ -25,7 +25,7 @@ type Filters = {
 const EMPTY: Filters = { category: [], brand: [], size: [], color: [], condition: [], stock: [], drop: [] }
 
 const RECOMMENDED_CHIP = 'RECOMENDADOS PARA TI'
-const CHIPS = ['TODO', RECOMMENDED_CHIP, 'DROP LAB', 'K-SELECT', 'VERIFICADO', 'SEMINUEVO', 'ARCHIVO', 'DROP PRIVADO']
+const CHIPS = ['TODO', RECOMMENDED_CHIP, 'DROP LAB', 'K-SELECT', 'VERIFICADO', 'SEMINUEVO']
 
 const CONDITIONS: [string, string][] = [['NEW', 'Nuevo'], ['LIKE_NEW', 'Como nuevo'], ['USED', 'Usado'], ['REFURBISHED', 'Reacondicionado']]
 const STOCKS: [string, string][] = [['instock', 'En stock'], ['lowstock', 'Poco stock'], ['soldout', 'Agotado']]

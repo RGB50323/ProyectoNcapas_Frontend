@@ -102,11 +102,11 @@ export interface Drop {
   id: string
   title: string
   date: string
+  rawDate: string
   units: number
   type: string
   img: string
 }
-
 export interface Order {
   id: string
   status: OrderStatus

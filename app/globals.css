@@ -415,16 +415,16 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); font-weight: 700; 
 
 /* ====== Search drawer (anchored under the header) ====== */
 .search-overlay {
-  position: fixed; inset: 0; z-index: 49;
+  position: fixed; top: 100%; left: 0; right: 0; bottom: 0; z-index: 49;
   background: oklch(0.118 0.012 62 / 0.55);
   backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
   animation: fadeIn 160ms ease-out;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .search-panel {
-  position: absolute; top: 67px; left: 0; right: 0;
+  position: absolute; top: 0; left: 0; right: 0;
   background: var(--bg-1); border-bottom: 1px solid var(--border-bright);
-  max-height: calc(100dvh - 67px); display: flex; flex-direction: column;
+  max-height: calc(100dvh - 100%); display: flex; flex-direction: column;
   box-shadow: 0 24px 50px -20px oklch(0 0 0 / 0.65);
   transform-origin: top;
   animation: searchDrop 200ms cubic-bezier(0.22, 1, 0.36, 1);

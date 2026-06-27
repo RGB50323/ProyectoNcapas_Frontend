@@ -7,7 +7,6 @@ import { useAuth } from '@/lib/auth'
 import { createProduct, createProductImage, createProductVariant, uploadProductImage } from '@/lib/api'
 import { Select } from '@/components/Select'
 import ImageDropzone from '@/components/ImageDropzone'
-import ColorPicker from '@/components/ColorPicker'
 import NumberField from '@/components/NumberField'
 import { useToast } from '@/hooks/useToast'
 
@@ -435,14 +434,6 @@ export default function NewProductClient({
                   <label>
                     <div className="label">Color</div>
                     <input className="input" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} />
-                  </label>
-
-                  <label>
-                    <div className="label">HEX</div>
-                    <div className="hexfield">
-                      <ColorPicker value={variant.colorHex} onChange={(hex) => updateVariant(index, 'colorHex', hex)} />
-                      <input className="input" value={variant.colorHex} onChange={(e) => updateVariant(index, 'colorHex', e.target.value)} />
-                    </div>
                   </label>
 
                   <label>
