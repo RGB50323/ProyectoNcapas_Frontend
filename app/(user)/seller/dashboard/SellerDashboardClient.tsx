@@ -9,8 +9,8 @@ import {
 } from 'recharts'
 import { deleteProduct, getMyProducts } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import { admin, type AdminSeller, type AdminOrder, type AdminOrderItem, type AdminCoupon } from '@/lib/admin'
-import { getMySellerProfile, orderItemsBySeller, getOrder } from '@/lib/seller'
+import type { AdminSeller, AdminOrder, AdminOrderItem, AdminCoupon } from '@/lib/admin'
+import { getMySellerProfile, orderItemsBySeller, getOrder, getGlobalCoupons } from '@/lib/seller'
 import { Stat, ChartCard, Legend, tooltipProps, axisTick, money, MONTHS, STATUS_ORDER, STATUS_FILL, STATUS_PILL } from '@/components/charts'
 import type { Product } from '@/lib/types'
 
@@ -44,7 +44,7 @@ export default function SellerDashboardClient() {
         setProducts(mine)
         const [its, cps] = await Promise.all([
           prof ? orderItemsBySeller(session, prof.id).catch(() => []) : Promise.resolve([]),
-          admin.listCoupons(session).catch(() => []),
+          getGlobalCoupons(session).catch(() => []),
         ])
         if (cancelled) return
         setItems(its)
@@ -312,7 +312,7 @@ export default function SellerDashboardClient() {
 
         <div className="card" style={{ padding: 24 }}>
           <div className="eyebrow accent">◇ PROMOCIONES</div>
-          <div className="display" style={{ fontSize: 18, marginTop: 6, marginBottom: 16 }}>CUPONES ACTIVOS</div>
+          <div className="display" style={{ fontSize: 18, marginTop: 6, marginBottom: 16 }}>CUPONES GLOBALES</div>
           {activeCoupons.length === 0 ? (
             <div className="mono mute" style={{ fontSize: 13 }}>No hay cupones activos.</div>
           ) : (
