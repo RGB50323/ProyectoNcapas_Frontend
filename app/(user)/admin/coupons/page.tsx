@@ -39,10 +39,10 @@ export default function AdminCouponsPage() {
         { name: 'code', label: 'Código', required: true, placeholder: 'KLAB10' },
         { name: 'label', label: 'Etiqueta', required: true },
         { name: 'type', label: 'Tipo de descuento', type: 'select', required: true, options: types.map((t) => ({ value: t.value, label: t.label })) },
+         { name: 'expiresAt', label: 'Expira (opcional)', type: 'datetime' },
         { name: 'value', label: 'Valor', type: 'number', step: '0.01', required: true, hidden: (f) => !usesValue(f.type) },
         { name: 'minOrderAmount', label: 'Monto mínimo (opcional)', type: 'number', step: '0.01' },
         { name: 'maxUses', label: 'Usos máximos (opcional)', type: 'number', step: '1' },
-        { name: 'expiresAt', label: 'Expira (opcional)', type: 'datetime' },
         { name: 'active', label: 'Activo', type: 'checkbox' },
       ]}
     />

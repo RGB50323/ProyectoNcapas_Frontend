@@ -190,6 +190,7 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); font-weight: 700; 
 .badge.lowstock { background: transparent; color: var(--accent-2); border-color: var(--accent-2); }
 .badge.soldout { background: transparent; color: var(--text-mute); border-color: var(--border); }
 .badge.new { background: transparent; color: var(--text); border-color: var(--border-bright); }
+.badge.fallback { background: var(--elev); color: var(--text); border-color: var(--border-bright); }
 
 /* ====== Cards / Product card ====== */
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); }
