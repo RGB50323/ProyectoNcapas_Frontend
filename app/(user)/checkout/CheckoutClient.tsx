@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ShippingMethod, CartItem, CouponPreview } from '@/lib/types'
-import { PAYMENT_METHODS } from '@/lib/payments'
+import { PAYMENT_METHODS, type CardData } from '@/lib/payments'
 import { useAuth, getUserId, authFetch } from '@/lib/auth'
 import { useCart } from '@/lib/cart'
 import { clearCart, previewCoupon } from '@/lib/shop'
@@ -19,11 +19,15 @@ function PaymentPicker({
                            onChange,
                            transactionId,
                            onTransactionIdChange,
+                           cardData,
+                           onCardChange,
                        }: {
     selected: string
     onChange: (id: string) => void
     transactionId: string
     onTransactionIdChange: (v: string) => void
+    cardData: CardData
+    onCardChange: (d: CardData) => void
 }) {
     const method = PAYMENT_METHODS.find((x) => x.id === selected) ?? PAYMENT_METHODS[0]
     const Form = method.Form
@@ -42,7 +46,7 @@ function PaymentPicker({
                     </button>
                 ))}
             </div>
-            <Form />
+            <Form cardData={cardData} onCardChange={onCardChange} />
             {selected === 'bank' && (
                 <div style={{ marginTop: 16 }}>
                     <div className="label">ID de transacción</div>
@@ -80,7 +84,6 @@ function CheckoutDone({ orderId }: { orderId: string }) {
     )
 }
 
-// ─── Main Component ───────────────────────────────────────────
 export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[] }) {
     const router = useRouter()
     const { session } = useAuth()
@@ -101,6 +104,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
     // Pago
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].id)
     const [transactionId, setTransactionId] = useState('')
+    const [cardData, setCardData] = useState<CardData>({ number: '', expiry: '', cvc: '', name: '' })
 
     // Aceptación de términos en el paso de revisión
     const [accepted, setAccepted] = useState(false)
@@ -169,7 +173,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
         setError(null)
 
         try {
-            // 1. Crear la orden — customerId NO se manda, el backend lo toma del token JWT
+            // 1. Crear la orden
             const orderRes = await authFetch('/orders/create', session, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -361,6 +365,8 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                         onChange={setPaymentMethod}
                                         transactionId={transactionId}
                                         onTransactionIdChange={setTransactionId}
+                                        cardData={cardData}
+                                        onCardChange={setCardData}
                                     />
                                 </Section>
                             )}
@@ -426,7 +432,35 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                     ← Atrás
                                 </button>
                                 {step < 5 && (
-                                    <button className="btn" onClick={() => setStep(step + 1)}>
+                                    <button
+                                        className="btn"
+                                        onClick={() => {
+                                            if (step === 4 && paymentMethod === 'bank' && !transactionId.trim()) {
+                                                setError('Debes ingresar el ID de transacción para continuar')
+                                                return
+                                            }
+                                            if (step === 4 && paymentMethod === 'card') {
+                                                if (!cardData.number.trim() || cardData.number.replace(/\s/g, '').length < 16) {
+                                                    setError('Ingresa un número de tarjeta válido (16 dígitos)')
+                                                    return
+                                                }
+                                                if (!cardData.expiry.trim() || !/^\d{2}\s*\/\s*\d{2}$/.test(cardData.expiry)) {
+                                                    setError('Ingresa una fecha de vencimiento válida (MM / AA)')
+                                                    return
+                                                }
+                                                if (!cardData.cvc.trim() || cardData.cvc.length < 3) {
+                                                    setError('Ingresa un CVC válido (3 o 4 dígitos)')
+                                                    return
+                                                }
+                                                if (!cardData.name.trim()) {
+                                                    setError('Ingresa el nombre del titular')
+                                                    return
+                                                }
+                                            }
+                                            setError(null)
+                                            setStep(step + 1)
+                                        }}
+                                    >
                                         Continuar →
                                     </button>
                                 )}
