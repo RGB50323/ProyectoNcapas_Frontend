@@ -218,13 +218,13 @@ export const admin = {
 
   listOrders: (s: Session) => list<AdminOrder>(s, '/orders/'),
   listErpExports: (s: Session) => list<AdminErpExport>(s, '/api/erp/exports'),
-  exportOrderToErp: (s: Session, id: string) => authFetch(`/api/orders/${id}/export-to-erp`, s, { method: 'POST' }).then((r) => unwrap<AdminErpExport>(r)),
-  exportPendingOrdersToErp: (s: Session) => authFetch('/api/orders/export-pending-to-erp', s, { method: 'POST' }).then((r) => unwrap<AdminErpBulkExport>(r)),
+  exportOrderToErp: (s: Session, id: string) => authFetch(`/api/erp/orders/${id}/export`, s, { method: 'POST' }).then((r) => unwrap<AdminErpExport>(r)),
+  exportPendingOrdersToErp: (s: Session) => authFetch('/api/erp/orders/export-pending', s, { method: 'POST' }).then((r) => unwrap<AdminErpBulkExport>(r)),
   listErpOrders: (s: Session) => list<AdminErpOrder>(s, '/api/erp/orders'),
   getErpOrder: (s: Session, erpReference: string) => authFetch(`/api/erp/orders/${erpReference}`, s).then((r) => unwrap<AdminErpOrder>(r)),
   ordersByCustomer: (s: Session, customerId: string) => list<AdminOrder>(s, `/orders/customer/${customerId}`),
   orderItems: (s: Session, orderId: string) => list<AdminOrderItem>(s, `/order-items/order/${orderId}`),
-  patchOrder: (s: Session, id: string, status: string) => patch(s, `/orders/patch/${id}`, { status }), // ← nuevo
+  patchOrder: (s: Session, id: string, status: string) => patch(s, `/orders/patch/${id}`, { status }),
   addressesByUser: (s: Session, userId: string) => list<AdminAddress>(s, `/addresses/user/${userId}`),
 
   listSellers: (s: Session) => list<AdminSeller>(s, '/seller_profiles/'),
