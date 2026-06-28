@@ -1,0 +1,30 @@
+'use client'
+
+import CrudResource from '@/components/admin/CrudResource'
+import { admin, type AdminCategory } from '@/lib/admin'
+
+export default function AdminCategoriesPage() {
+  return (
+    <CrudResource<AdminCategory>
+      eyebrow="◆ CATÁLOGO"
+      title="CATEGORÍAS"
+      noun="categoría"
+      getId={(c) => c.id}
+      rowLabel={(c) => c.name}
+      load={admin.listCategories}
+      create={admin.createCategory}
+      update={admin.updateCategory}
+      remove={admin.deleteCategory}
+      removeDisabledReason={(c) =>
+        c.units > 0 ? `No se puede eliminar esta categoría porque tiene ${c.units} producto${c.units === 1 ? '' : 's'} asociado${c.units === 1 ? '' : 's'}.` : null
+      }
+      columns={[
+        { header: 'Nombre', cell: (c) => c.name },
+        { header: 'Productos', cell: (c) => <span className="mono">{c.units}</span> },
+      ]}
+      fields={[
+        { name: 'name', label: 'Nombre', required: true },
+      ]}
+    />
+  )
+}
