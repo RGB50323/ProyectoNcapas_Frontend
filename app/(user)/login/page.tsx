@@ -233,7 +233,7 @@ export default function LoginPage() {
         <div className="eyebrow" style={{ marginBottom: 12 }}>
           ◆ ACCESO AL LAB
         </div>
-        <h1 className="display" style={{ fontSize: 48, marginBottom: 32 }}>
+        <h1 className="display" style={{ fontSize: "clamp(30px, 9vw, 48px)", marginBottom: 32 }}>
           {mode === "login" ? "INICIAR SESIÓN." : "CREAR CUENTA."}
         </h1>
 

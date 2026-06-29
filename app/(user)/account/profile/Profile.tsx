@@ -315,7 +315,7 @@ export default function Profile() {
             gap: 32,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
             <div
               style={{
                 width: 80,
@@ -336,7 +336,7 @@ export default function Profile() {
               {initials}
             </div>
             <div>
-              <h1 className="display" style={{ fontSize: 48, lineHeight: 0.92, marginBottom: 12 }}>
+              <h1 className="display" style={{ fontSize: "clamp(28px, 8vw, 48px)", lineHeight: 0.92, marginBottom: 12 }}>
                 {displayName}
               </h1>
               <p className="mono mute" style={{ fontSize: 12 }}>

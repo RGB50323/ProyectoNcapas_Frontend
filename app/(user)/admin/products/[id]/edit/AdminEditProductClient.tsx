@@ -310,7 +310,7 @@ export default function AdminEditProductClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div className="eyebrow accent">◆ ADMIN PRODUCTOS</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{product.name}</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>{product.name}</h1>
           <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>SKU {product.sku}</div>
         </div>
 

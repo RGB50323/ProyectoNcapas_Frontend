@@ -202,10 +202,10 @@ export default function AdminOrdersPage() {
 
   return (
       <>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24, gap: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', marginBottom: 24, gap: 24 }}>
           <div>
             <div className="eyebrow accent">◇ PEDIDOS · TODOS LOS CANALES</div>
-            <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>PEDIDOS</h1>
+            <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>PEDIDOS</h1>
             <div className="mute" style={{ fontSize: 13, marginTop: 4 }}>
               {orders.length} totales · {erpCounts.pending} pendientes ERP · {erpCounts.exported} exportados
             </div>
@@ -218,7 +218,7 @@ export default function AdminOrdersPage() {
           </div>
         </div>
 
-        <div className="card" style={{ padding: 0 }}>
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <table className="table">
             <thead>
             <tr>
@@ -325,6 +325,7 @@ export default function AdminOrdersPage() {
                               ) : (items[o.id] ?? []).length === 0 ? (
                                   <div className="mono mute">Sin items registrados.</div>
                               ) : (
+                                  <div style={{ overflowX: 'auto' }}>
                                   <table className="table" style={{ margin: 0 }}>
                                     <thead>
                                     <tr>
@@ -351,6 +352,7 @@ export default function AdminOrdersPage() {
                                     ))}
                                     </tbody>
                                   </table>
+                                  </div>
                               )}
 
                               <div style={{ marginTop: 16, display: 'flex', gap: 32, flexWrap: 'wrap' }}>

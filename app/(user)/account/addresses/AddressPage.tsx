@@ -209,6 +209,8 @@ export default function AddressPage() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
             borderBottom: "1px solid var(--border)",
             paddingBottom: 16,
             marginBottom: 16,
@@ -427,7 +429,7 @@ export default function AddressPage() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: 520,
+              width: "min(520px, 92vw)",
               background: "var(--bg-1)",
               border: "1px solid var(--border)",
               padding: 24,
@@ -553,7 +555,7 @@ export default function AddressPage() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: 520,
+              width: "min(520px, 92vw)",
               background: "var(--bg-1)",
               border: "1px solid var(--border)",
               padding: 24,
@@ -747,7 +749,7 @@ export default function AddressPage() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: 400,
+              width: "min(400px, 92vw)",
               background: "var(--bg-1)",
               border: "1px solid var(--border)",
               padding: 24,

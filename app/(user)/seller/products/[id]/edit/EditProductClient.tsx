@@ -310,7 +310,7 @@ return (
         <div className="eyebrow accent">
           ◇ {isStockMode ? 'REPONER STOCK' : 'EDITAR PIEZA'}
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           {product.name}
         </h1>
       </div>

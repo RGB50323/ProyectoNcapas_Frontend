@@ -9,6 +9,7 @@ import Modal from "@/components/Modal";
 import { useToast } from "@/hooks/useToast";
 import { usePaged } from "@/hooks/usePaged";
 import Pagination from "@/components/Pagination";
+import { EditAction, DeleteAction } from "@/components/admin/RowActions";
 
 type SellerProfile = {
   id: string;
@@ -144,7 +145,7 @@ export default function AdminSellersPage() {
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE PERSONAS
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           TIENDAS
         </h1>
       </div>
@@ -160,6 +161,7 @@ export default function AdminSellersPage() {
             {sellers.length} PERFILES
           </div>
         </div>
+        <div style={{ overflowX: "auto" }}>
         <table className="table">
           <thead>
             <tr>
@@ -214,34 +216,27 @@ export default function AdminSellersPage() {
                   <Link className="mono mute" style={{ fontSize: 11, marginLeft: 16 }} href={`/admin/products?seller=${s.id}`}>
                     PRODUCTOS
                   </Link>
-                  <button
-                    className="mono accent"
-                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, marginLeft: 16 }}
+                  <EditAction
                     onClick={() => {
                       setSelected(s);
                       setEditForm({ storeName: s.storeName, storeDescription: s.storeDescription });
                       setActionError(null);
                       setEditModal(true);
                     }}
-                  >
-                    EDITAR
-                  </button>
-                  <button
-                    className="mono"
-                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--danger)", marginLeft: 16 }}
+                  />
+                  <DeleteAction
                     onClick={() => {
                       setSelected(s);
                       setActionError(null);
                       setDeleteModal(true);
                     }}
-                  >
-                    ELIMINAR
-                  </button>
+                  />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
 

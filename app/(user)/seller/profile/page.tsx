@@ -176,7 +176,7 @@ export default function SellerProfilePage() {
 
       <div style={{ marginBottom: 28 }}>
         <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ CUENTA</div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>PERFIL DE TIENDA</h1>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>PERFIL DE TIENDA</h1>
       </div>
 
       <div className="card" style={{ padding: 0, marginBottom: 16, overflow: 'hidden' }}>
@@ -186,7 +186,7 @@ export default function SellerProfilePage() {
             {initials}
           </div>
           <div>
-            <h2 className="display" style={{ fontSize: 36, lineHeight: 0.95, marginBottom: 10 }}>
+            <h2 className="display" style={{ fontSize: 'clamp(26px, 6.5vw, 36px)', lineHeight: 0.95, marginBottom: 10 }}>
               {`${session.firstName.toUpperCase()} ${session.lastName?.toUpperCase() ?? ''}`}
             </h2>
             <p className="mono mute" style={{ fontSize: 12 }}>

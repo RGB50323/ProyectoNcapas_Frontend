@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth'
 import { usePaged } from '@/hooks/usePaged'
 import Pagination from '@/components/Pagination'
 import { PageLoader } from '@/components/PageLoader'
+import { EditAction, DeleteAction } from '@/components/admin/RowActions'
 import type { Product } from '@/lib/types'
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL
@@ -109,7 +110,7 @@ export default function SellerProductsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ INVENTARIO</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>MIS PRODUCTOS</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>MIS PRODUCTOS</h1>
           <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>{products.length} PIEZA{products.length === 1 ? '' : 'S'}</div>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -120,8 +121,10 @@ export default function SellerProductsPage() {
             onChange={(e) => setQuery(e.target.value)}
             style={{ width: 260 }}
           />
-          <button className="btn btn-ghost" onClick={() => { setSelectedAuthIds([]); setAuthError(''); setAuthModalOpen(true) }}>Enviar a autenticación</button>
-          <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
+          <div className="seller-toolbar-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button className="btn btn-ghost" onClick={() => { setSelectedAuthIds([]); setAuthError(''); setAuthModalOpen(true) }}>Enviar a autenticación</button>
+            <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
+          </div>
         </div>
       </div>
 
@@ -132,6 +135,7 @@ export default function SellerProductsPage() {
           </div>
         ) : (
           <>
+            <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead><tr><th>Pieza</th><th>SKU</th><th>Precio</th><th>Stock</th><th>Estado</th><th style={{ textAlign: 'right' }}>Acciones</th></tr></thead>
               <tbody>
@@ -161,13 +165,14 @@ export default function SellerProductsPage() {
                       <span className={`pill ${AUTH_META[p.auth].cls}`}>{AUTH_META[p.auth].label}</span>
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <Link href={`/seller/products/${p.id}/edit`} className="mono accent" style={{ fontSize: 11 }}>EDITAR</Link>
-                      <button type="button" className="mono" onClick={() => { setProductToDelete(p); setDeleteError('') }} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 16, fontSize: 11 }}>ELIMINAR</button>
+                      <EditAction href={`/seller/products/${p.id}/edit`} />
+                      <DeleteAction onClick={() => { setProductToDelete(p); setDeleteError('') }} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
             <Pagination page={page} pageCount={pageCount} onPage={setPage} />
           </>
         )}

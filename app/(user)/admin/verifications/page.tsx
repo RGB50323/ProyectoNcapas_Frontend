@@ -299,7 +299,7 @@ export default function AdminVerificationsPage() {
           <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
             ◆ OPERACIONES
           </div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
             VERIFICACIONES
           </h1>
           <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>

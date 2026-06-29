@@ -98,7 +98,7 @@ export default function SellerDropProductsPage() {
 
       <div style={{ marginBottom: 28 }}>
         <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ VENTAS · DROP</div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{drop?.title ?? 'DROP'}</h1>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>{drop?.title ?? 'DROP'}</h1>
         {drop && (
           <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>
             {formatNaiveMono(drop.dropDate)} · {drop.type === 'PRIVATE' ? 'PRIVADO' : 'PÚBLICO'} · {drop.active ? 'ACTIVO' : 'INACTIVO'}
@@ -114,7 +114,7 @@ export default function SellerDropProductsPage() {
         ].map((s) => (
           <div key={s.label} className="card" style={{ padding: 20 }}>
             <div className="mono mute" style={{ fontSize: 11, marginBottom: 8 }}>{s.label}</div>
-            <div className="display" style={{ fontSize: 32 }}>{s.value}</div>
+            <div className="display" style={{ fontSize: 'clamp(24px, 6vw, 32px)' }}>{s.value}</div>
           </div>
         ))}
       </div>

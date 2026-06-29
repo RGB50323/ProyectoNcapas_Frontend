@@ -101,15 +101,15 @@ export default function DropsClient({ drops }: { drops: Drop[] }) {
   const { page, setPage, pageItems, pageCount } = usePaged(filtered, PAGE_SIZE, tab)
 
   return (
-    <div className="container page">
-      <div className="crumbs"><Link href="/">Inicio</Link><span className="sep">/</span><em>Drops</em></div>
+    <div className="container page drops-page">
+      <div className="crumbs drops-crumbs"><Link href="/">Inicio</Link><span className="sep">/</span><em>Drops</em></div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 48, paddingBottom: 24, borderBottom: '1px solid var(--border)' }}>
-        <div>
+      <div className="drops-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: 16, marginBottom: 48, paddingBottom: 24, borderBottom: '1px solid var(--border)' }}>
+        <div className="drops-heading">
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ CALENDARIO DEL LAB · EN VIVO</div>
-          <h1 className="display" style={{ fontSize: 80, marginTop: 12, lineHeight: 0.9 }}>CALENDARIO<br />DE DROPS</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(40px, 11vw, 80px)', marginTop: 12, lineHeight: 0.9 }}>CALENDARIO<br />DE DROPS</h1>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="drops-tabs" style={{ display: 'flex', gap: 8 }}>
           {(['PRÓXIMOS', 'PASADOS', 'SOLO PRIVADOS'] as const).map((t) => (
             <button key={t} className={'tag' + (tab === t ? ' active' : '')} onClick={() => setTab(t)}>{t}</button>
           ))}
@@ -117,16 +117,16 @@ export default function DropsClient({ drops }: { drops: Drop[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ padding: '14px 0' }}>
+        <div className="drops-empty" style={{ padding: '14px 0' }}>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ SIN DROPS</div>
-          <div className="display" style={{ fontSize: 36, marginTop: 12 }}>NADA EN ESTA VISTA TODAVÍA.</div>
+          <div className="display" style={{ fontSize: 'clamp(26px, 8vw, 36px)', marginTop: 12 }}>NADA EN ESTA VISTA TODAVÍA.</div>
           <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12 }}>
             {tab === 'PRÓXIMOS' ? 'No hay lanzamientos programados por ahora.' : tab === 'PASADOS' ? 'Aún no hay historial de drops.' : 'No hay drops privados activos.'}
           </p>
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border)' }}>
+          <div className="drops-list" style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--border)' }}>
             {pageItems.map((d, i) => {
               const [day, time] = d.date.split('·')
               const isPrivate = d.type === 'DROP PRIVADO'
@@ -134,28 +134,28 @@ export default function DropsClient({ drops }: { drops: Drop[] }) {
               const timeLabel = (time ?? '').trim()
               const isAlerted = alerts.includes(d.id)
               return (
-                <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '200px 280px 1fr auto', gap: 32, padding: 32, borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
-                  <div>
+                <div className="drops-row" key={d.id} style={{ display: 'grid', gridTemplateColumns: '200px 280px 1fr auto', gap: 32, padding: 32, borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
+                  <div className="drops-date">
                     <div className="mono accent" style={{ letterSpacing: '0.14em' }}>{dayLabel}</div>
                     <div className="display" style={{ fontSize: 32, marginTop: 4, color: 'var(--accent-2)' }}>{timeLabel}</div>
                     <div className="mono mute" style={{ marginTop: 4 }}>GMT</div>
                   </div>
-                  <div style={{ aspectRatio: '4/3', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div className="drops-art" style={{ aspectRatio: '4/3', border: '1px solid var(--border)', overflow: 'hidden' }}>
                     <img src={d.img} alt={d.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
-                  <div>
+                  <div className="drops-info">
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                       <span className={'badge ' + (isPrivate ? 'private' : '')}>{d.type}</span>
                       <span className="badge">{d.units} UNIDADES</span>
                     </div>
-                    <h3 className="display" style={{ fontSize: 36, lineHeight: 1 }}>{d.title}</h3>
+                    <h3 className="display" style={{ fontSize: 'clamp(26px, 7vw, 36px)', lineHeight: 1 }}>{d.title}</h3>
                     <p className="mute" style={{ marginTop: 12, fontSize: 14, maxWidth: 440, lineHeight: 1.6 }}>
                       {isPrivate
                         ? 'Lanzamiento miembros primero. Requiere nivel K-Select. Actívate para entrar en la fila.'
                         : 'Lanzamiento público. Primero en llegar, primero en asegurar. Pon un recordatorio para entrar al laboratorio a tiempo.'}
                     </p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200 }}>
+                  <div className="drops-actions" style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200 }}>
                     <button
                       className="btn"
                       style={isAlerted ? { background: 'var(--card)', color: 'var(--accent-2)', border: '1px solid var(--accent-2)' } : undefined}
@@ -177,7 +177,7 @@ export default function DropsClient({ drops }: { drops: Drop[] }) {
             })}
           </div>
 
-          <div style={{ marginTop: 32 }}>
+          <div className="drops-pagination" style={{ marginTop: 32 }}>
             <Pagination page={page} pageCount={pageCount} onPage={setPage} />
           </div>
         </>

@@ -500,9 +500,9 @@ export default function AccountClient() {
                 <span className="sep">/</span>
                 <em>Cuenta</em>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 48, paddingBottom: 24, borderBottom: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", flexWrap: "wrap", gap: 16, marginBottom: 48, paddingBottom: 24, borderBottom: "1px solid var(--border)" }}>
                 <div>
-                    <h1 className="display" style={{ fontSize: 56, marginTop: 12 }}>
+                    <h1 className="display" style={{ fontSize: "clamp(30px, 9vw, 56px)", marginTop: 12 }}>
                         HOLA, {session.firstName.toUpperCase()}.
                     </h1>
                     <p className="mute" style={{ marginTop: 8, fontSize: 14 }}>{session.email}</p>

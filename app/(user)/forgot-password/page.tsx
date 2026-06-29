@@ -179,7 +179,7 @@ export default function ForgotPasswordPage() {
 
         {step === "email" ? (
           <>
-            <h1 className="display" style={{ fontSize: 48, marginBottom: 40 }}>
+            <h1 className="display" style={{ fontSize: "clamp(26px, 8vw, 48px)", marginBottom: 40 }}>
               OLVIDÉ MI CONTRASEÑA.
             </h1>
             <form
@@ -237,7 +237,7 @@ export default function ForgotPasswordPage() {
           </>
         ) : (
           <>
-            <h1 className="display" style={{ fontSize: 48, marginBottom: 12 }}>
+            <h1 className="display" style={{ fontSize: "clamp(30px, 9vw, 48px)", marginBottom: 12 }}>
               NUEVA CONTRASEÑA.
             </h1>
             <p

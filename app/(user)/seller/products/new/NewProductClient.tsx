@@ -349,7 +349,7 @@ export default function NewProductClient({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 24 }}>
         <div>
           <div className="eyebrow accent">◇ NUEVA PIEZA</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
             Crear producto
           </h1>
         </div>

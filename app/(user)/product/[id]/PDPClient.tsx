@@ -18,7 +18,7 @@ import { useCompare } from '@/lib/compare'
 function Gallery({ images, name, badges }: { images: string[]; name: string; badges: string[] }) {
     const [active, setActive] = useState(0)
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16 }}>
+        <div className="keep-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {images.map((src, i) => (
                     <button key={i} onClick={() => setActive(i)} style={{
@@ -79,7 +79,7 @@ function Variants({ product, size, setSize, color, setColor }: {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                     <div className="label">Talla · {size || 'Selecciona'}</div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                <div className="keep-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                     {sizes.map((s) => {
                         const st = stockFor(s)
                         const out = st === 0
@@ -238,19 +238,19 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
     ]
 
     return (
-        <div className="container page">
+        <div className="container page pdp-page">
             <div className="crumbs">
                 <Link href="/">Inicio</Link><span className="sep">/</span>
                 <Link href="/catalog">Catálogo</Link><span className="sep">/</span>
                 <em>{product.name}</em>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 64, alignItems: 'start' }}>
+            <div className="pdp-layout" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 64, alignItems: 'start' }}>
                 <Gallery images={product.images} name={product.name} badges={product.badges} />
 
-                <div style={{ position: 'sticky', top: 120 }}>
+                <div className="pdp-summary" style={{ position: 'sticky', top: 120 }}>
                     <div className="mono" style={{ color: 'var(--text-mute)', letterSpacing: '0.14em' }}>{product.brand} · SKU {product.sku}</div>
-                    <h1 className="display" style={{ fontSize: 44, marginTop: 8, lineHeight: 0.95 }}>{product.name}</h1>
+                    <h1 className="display" style={{ fontSize: 'clamp(32px, 8vw, 44px)', marginTop: 8, lineHeight: 0.95 }}>{product.name}</h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, color: 'var(--text-dim)' }}>
             <span style={{ display: 'flex', gap: 2, color: 'var(--accent-2)' }}>
               {[1, 2, 3, 4, 5].map((i) => <Icon.Star key={i} filled={i <= Math.round(product.rating)} />)}
@@ -258,8 +258,8 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
                         <span className="mono" style={{ fontSize: 12 }}>{product.rating} · {product.reviews} RESEÑAS VERIFICADAS</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-                        <div className="display" style={{ fontSize: 44 }}>${product.price}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 16, marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+                        <div className="display" style={{ fontSize: 'clamp(32px, 8vw, 44px)' }}>${product.price}</div>
                         <div className="mono mute">USD · IMP. INCL.</div>
                         <div style={{ marginLeft: 'auto', color: product.soldOut ? 'var(--danger)' : 'var(--ok)', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.12em' }}>
                             <Icon.Dot /> {product.soldOut ? 'AGOTADO' : 'EN STOCK'}
@@ -337,11 +337,11 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
                 </div>
             </div>
 
-            <div className="section" style={{ padding: '80px 0' }}>
+            <div className="section pdp-reviews" style={{ padding: '80px 0' }}>
                 <div className="section-head">
                     <div>
                         <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ RESEÑAS DE COMPRADORES VERIFICADOS</div>
-                        <div className="display" style={{ fontSize: 32, marginTop: 8 }}>DESDE LA ROTACIÓN</div>
+                        <div className="display" style={{ fontSize: 'clamp(24px, 7vw, 32px)', marginTop: 8 }}>DESDE LA ROTACIÓN</div>
                     </div>
                     <div className="meta">{product.reviews} RESEÑAS · {product.rating}/5.0 PROM.</div>
                 </div>
@@ -371,14 +371,15 @@ export default function PDPClient({ product, reviews, similar }: { product: Prod
                 eyebrow="◇ SEGUN TU HISTORIAL"
                 limit={4}
                 excludeIds={[product.id, ...similar.map((p) => p.id)]}
+                contained={false}
             />
 
-            <div className="section" style={{ paddingTop: 0 }}>
+            <div className="section pdp-similar" style={{ paddingTop: 0 }}>
                 <div className="section-head">
-                    <div className="display" style={{ fontSize: 32 }}>PIEZAS SIMILARES</div>
+                    <div className="display" style={{ fontSize: 'clamp(24px, 7vw, 32px)' }}>PIEZAS SIMILARES</div>
                     <div className="meta">{similar.length} RECOMENDADAS</div>
                 </div>
-                <div className="grid-products">
+                <div className="grid-products pdp-similar-grid">
                     {similar.map((p) => <ProductCard key={p.id} p={p} />)}
                 </div>
             </div>

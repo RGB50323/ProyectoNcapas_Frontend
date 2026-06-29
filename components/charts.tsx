@@ -27,7 +27,7 @@ export function Stat({ label, value, sub, href }: { label: string; value: string
   return (
     <Link href={href} className="card" style={{ padding: 24, textDecoration: 'none', display: 'block' }}>
       <div className="label" style={{ marginBottom: 12 }}>{label}</div>
-      <div className="display" style={{ fontSize: 34, lineHeight: 1 }}>{value}</div>
+      <div className="display" style={{ fontSize: 'clamp(24px, 6vw, 34px)', lineHeight: 1 }}>{value}</div>
       {sub && <div className="mono" style={{ marginTop: 10, fontSize: 11, color: 'var(--accent-2)' }}>{sub}</div>}
     </Link>
   )
@@ -35,12 +35,12 @@ export function Stat({ label, value, sub, href }: { label: string; value: string
 
 export function ChartCard({ title, action, empty, children }: { title: string; action?: ReactNode; empty?: boolean; children: ReactNode }) {
   return (
-    <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div className="display" style={{ fontSize: 15 }}>{title}</div>
         {action}
       </div>
-      <div style={{ padding: 16, flex: 1, minHeight: 260 }}>
+      <div style={{ padding: 16, flex: 1, minHeight: 260, width: '100%', minWidth: 0 }}>
         {empty ? <div className="mono mute" style={{ padding: '70px 0', textAlign: 'center', fontSize: 13 }}>Sin datos aún.</div> : children}
       </div>
     </div>
