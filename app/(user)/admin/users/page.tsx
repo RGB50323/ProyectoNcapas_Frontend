@@ -10,6 +10,7 @@ import { Select } from "@/components/Select";
 import { useToast } from "@/hooks/useToast";
 import { usePaged } from "@/hooks/usePaged";
 import Pagination from "@/components/Pagination";
+import { DeleteAction } from "@/components/admin/RowActions";
 
 type User = {
   uuid: string;
@@ -118,7 +119,7 @@ export default function AdminUsersPage() {
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE PERSONAS
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           USUARIOS
         </h1>
       </div>
@@ -173,6 +174,7 @@ export default function AdminUsersPage() {
             />
           </div>
         </div>
+        <div style={{ overflowX: "auto" }}>
         <table className="table">
           <thead>
             <tr>
@@ -212,22 +214,19 @@ export default function AdminUsersPage() {
                   >
                     <Icon.Eye />
                   </button>
-                  <button
-                    className="mono"
-                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--danger)", marginLeft: 16, verticalAlign: "middle" }}
+                  <DeleteAction
                     onClick={() => {
                       setSelectedUser(u);
                       setActionError(null);
                       setDeleteModal(true);
                     }}
-                  >
-                    ELIMINAR
-                  </button>
+                  />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
 

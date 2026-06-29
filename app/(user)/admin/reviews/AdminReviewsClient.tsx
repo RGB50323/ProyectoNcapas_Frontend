@@ -205,7 +205,7 @@ export default function AdminReviewsClient() {
         >
           ◆ OPERACIONES
         </div>
-        <h1 className="display" style={{ fontSize: 40 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)' }}>
           REVIEWS
         </h1>
       </div>

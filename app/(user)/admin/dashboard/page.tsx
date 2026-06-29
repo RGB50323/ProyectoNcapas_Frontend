@@ -107,7 +107,7 @@ export default function AdminDashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
         <div>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ RESUMEN ADMIN</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{selectedStore ? selectedStore.storeName.toUpperCase() : 'RESUMEN GENERAL'}</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>{selectedStore ? selectedStore.storeName.toUpperCase() : 'RESUMEN GENERAL'}</h1>
         </div>
         <div>
           <div className="label" style={{ marginBottom: 6 }}>Tienda</div>
@@ -199,6 +199,7 @@ export default function AdminDashboardPage() {
           {recentOrders.length === 0 ? (
             <div className="mono mute" style={{ padding: 28, fontSize: 13 }}>Aún no hay pedidos.</div>
           ) : (
+            <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead><tr><th>Cliente</th><th>Fecha</th><th>Estado</th><th style={{ textAlign: 'right' }}>Total</th></tr></thead>
               <tbody>
@@ -212,6 +213,7 @@ export default function AdminDashboardPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

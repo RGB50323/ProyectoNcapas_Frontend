@@ -54,6 +54,9 @@ export default function Modal({
         style={{
           width,
           maxWidth: "100%",
+          maxHeight: "90dvh",
+          display: "flex",
+          flexDirection: "column",
           background: "var(--bg-1)",
           border: "1px solid var(--border)",
           borderRadius: 6,
@@ -68,6 +71,7 @@ export default function Modal({
               alignItems: "center",
               padding: "18px 24px",
               borderBottom: "1px solid var(--border)",
+              flexShrink: 0,
             }}
           >
             <div className="display" style={{ fontSize: 18 }}>
@@ -84,7 +88,7 @@ export default function Modal({
           </div>
         )}
 
-        <div style={{ padding: 24 }}>{children}</div>
+        <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>{children}</div>
       </div>
     </div>
   );

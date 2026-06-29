@@ -8,6 +8,7 @@ import Modal from "@/components/Modal";
 import { useToast } from "@/hooks/useToast";
 import { usePaged } from "@/hooks/usePaged";
 import Pagination from "@/components/Pagination";
+import { DeleteAction } from "@/components/admin/RowActions";
 
 type Address = {
   id: string;
@@ -135,7 +136,7 @@ export default function AdminAddressesPage() {
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE DATOS
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           DIRECCIONES
         </h1>
       </div>
@@ -153,6 +154,8 @@ export default function AdminAddressesPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 10,
               background: "var(--elev)",
             }}
           >
@@ -183,6 +186,7 @@ export default function AdminAddressesPage() {
               ELIMINAR TODAS
             </button>
           </div>
+          <div style={{ overflowX: "auto" }}>
           <table className="table">
             <thead>
               <tr>
@@ -203,28 +207,19 @@ export default function AdminAddressesPage() {
                     {a.country} {a.zipCode}
                   </td>
                   <td>
-                    <button
-                      className="mono"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 11,
-                        color: "var(--err, #e05252)",
-                      }}
+                    <DeleteAction
                       onClick={() => {
                         setSelected(a);
                         setActionError(null);
                         setDeleteModal(true);
                       }}
-                    >
-                      ELIMINAR
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ))}
 

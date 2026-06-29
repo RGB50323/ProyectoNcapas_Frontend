@@ -136,6 +136,8 @@ export default function SellerReviewsClient() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: 16,
           marginBottom: 32,
           paddingBottom: 24,
           borderBottom: "1px solid var(--border)",
@@ -148,7 +150,7 @@ export default function SellerReviewsClient() {
           >
             ◇ PANEL DE TIENDA
           </div>
-          <h1 className="display" style={{ fontSize: 40 }}>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)' }}>
             RESEÑAS DE MIS PRODUCTOS
           </h1>
         </div>

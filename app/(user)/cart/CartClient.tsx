@@ -61,28 +61,28 @@ export default function CartClient({ products }: { products: Product[] }) {
   }
 
   return (
-    <div className="container page">
+    <div className="container page cart-page">
       <div className="crumbs"><Link href="/">Inicio</Link><span className="sep">/</span><em>Bolsa</em></div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 32 }}>
+      <div className="cart-page__heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: 16, marginBottom: 32 }}>
         <div>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ TU BOLSA DEL LAB</div>
-          <h1 className="display" style={{ fontSize: 56, marginTop: 12 }}>BOLSA <span style={{ color: 'var(--text-mute)' }}>/ {items.length} PIEZAS</span></h1>
+          <h1 className="display" style={{ fontSize: 'clamp(32px, 9vw, 56px)', marginTop: 12 }}>BOLSA <span style={{ color: 'var(--text-mute)' }}>/ {items.length} PIEZAS</span></h1>
         </div>
         {items.length > 0 && (
           <button className="mono" style={{ background: 'none', border: 'none', color: 'var(--text-mute)', textTransform: 'uppercase', letterSpacing: '0.12em', cursor: 'pointer' }} onClick={emptyBag}>VACIAR BOLSA</button>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 48 }}>
-        <div>
+      <div className="cart-page__layout" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 48 }}>
+        <div className="cart-page__items">
           {items.map((it) => {
             const product = productById.get(it.productId)
             return (
-              <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '140px 1fr auto', gap: 20, padding: '24px 0', borderTop: '1px solid var(--border)' }}>
-                <div style={{ aspectRatio: '4/5', border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--card)' }}>
+              <div className="cart-line" key={it.id} style={{ display: 'grid', gridTemplateColumns: '140px 1fr auto', gap: 20, padding: '24px 0', borderTop: '1px solid var(--border)' }}>
+                <div className="cart-line__media" style={{ aspectRatio: '4/5', border: '1px solid var(--border)', overflow: 'hidden', background: 'var(--card)' }}>
                   {product && <img src={product.images[0]} alt={it.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                 </div>
-                <div>
+                <div className="cart-line__details">
                   <div className="mono mute" style={{ letterSpacing: '0.14em' }}>SKU {it.productSku}</div>
                   <div className="display" style={{ fontSize: 20, marginTop: 4 }}>{it.productName}</div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -93,7 +93,7 @@ export default function CartClient({ products }: { products: Product[] }) {
                     <button className="mono" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--danger)' }} onClick={() => remove(it.id)}>Quitar</button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                <div className="cart-line__purchase" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                   <div className="display" style={{ fontSize: 22 }}>${it.lineTotal}</div>
                   <Qty value={it.quantity} onChange={(q) => update(it.id, q)} />
                 </div>
@@ -109,8 +109,8 @@ export default function CartClient({ products }: { products: Product[] }) {
           )}
         </div>
 
-        <div>
-          <div className="card" style={{ padding: 24, position: 'sticky', top: 120 }}>
+        <div className="cart-page__summary-wrap">
+          <div className="card cart-page__summary" style={{ padding: 24, position: 'sticky', top: 120 }}>
             <div className="display" style={{ fontSize: 20, marginBottom: 24 }}>RESUMEN DEL PEDIDO</div>
 
             <div className="label">Código de cupón</div>

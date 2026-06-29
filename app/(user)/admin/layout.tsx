@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (loading || !session || session.role !== 'ADMIN') return <PageLoader />
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="dash-layout" style={{ display: 'flex', minHeight: '100vh' }}>
       <AdminSidebar />
       <div className="dash-main" style={{ flex: 1 }}>{children}</div>
     </div>

@@ -195,7 +195,7 @@ export default function SecurityPage() {
         <div className="eyebrow" style={{ marginBottom: 12 }}>
           ◆ SEGURIDAD
         </div>
-        <h1 className="display" style={{ fontSize: 48, marginBottom: 40 }}>
+        <h1 className="display" style={{ fontSize: "clamp(28px, 8vw, 48px)", marginBottom: 40 }}>
           CAMBIAR CONTRASEÑA.
         </h1>
 

@@ -48,6 +48,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   return (
     <section
       aria-label="Hero"
+      className="hero-carousel"
       style={{ position: 'relative', width: '100%', minHeight: 'min(calc(100dvh - 68px), 100vw * 9 / 16)', maxHeight: 'calc(100dvh - 68px)', aspectRatio: '16/9', overflow: 'hidden', background: 'var(--bg-0)' }}
     >
       {slides.map((s, i) => (
@@ -66,6 +67,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             src={s.image}
             alt=""
             role="presentation"
+            className="hero-image"
             style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
               objectPosition: s.objectPosition ?? 'center center',
@@ -78,7 +80,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           }} />
 
           {/* Slide text — centered */}
-          <div style={{
+          <div className="hero-text" style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '0 40px 108px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
@@ -88,7 +90,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             </div>
             <h2 style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(52px, 8vw, 116px)',
+              fontSize: 'clamp(38px, 8vw, 116px)',
               lineHeight: 0.88, fontWeight: 700,
               textTransform: 'uppercase', color: 'var(--text)',
               margin: 0, letterSpacing: '0.01em',
@@ -106,7 +108,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
       ))}
 
       {/* Slide counter — top right */}
-      <div style={{
+      <div className="hero-counter" style={{
         position: 'absolute', top: 28, right: 40,
         fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-mute)',
         letterSpacing: '0.12em', textTransform: 'uppercase', zIndex: 10,
@@ -115,20 +117,21 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
       </div>
 
       {/* Bottom control bar */}
-      <div style={{
+      <div className="hero-controls" style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         padding: '0 40px 32px',
         display: 'flex', alignItems: 'center',
         zIndex: 10,
       }}>
         {/* Left spacer */}
-        <div style={{ flex: 1 }} />
+        <div className="hero-control-spacer" style={{ flex: 1 }} />
 
         {/* Progress bars — center */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+        <div className="hero-progress" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
           {slides.map((_, i) => (
             <button
               key={i}
+              className={`hero-progress-step${i === active ? ' is-active' : ''}`}
               onClick={() => handleNav(() => goTo(i))}
               aria-label={`Ir al slide ${i + 1}`}
               style={{
@@ -156,7 +159,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
         </div>
 
         {/* Controls — right */}
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
+        <div className="hero-actions" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => { setPaused((p) => !p); resetTimer() }}
             aria-label={paused ? 'Reanudar' : 'Pausar'}

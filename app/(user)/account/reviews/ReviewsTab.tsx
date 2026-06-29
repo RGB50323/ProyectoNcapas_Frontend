@@ -228,6 +228,7 @@ function CreateReviewModal({
 
           {files.length > 0 && (
             <div
+              className="keep-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(5, 1fr)",
@@ -519,6 +520,7 @@ function PhotosModal({
           </div>
         ) : (
           <div
+            className="keep-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
@@ -616,6 +618,7 @@ function PhotosModal({
 
           {files.length > 0 && (
             <div
+              className="keep-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(5, 1fr)",
@@ -774,6 +777,8 @@ export default function ReviewsTab({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: 12,
           marginBottom: 24,
         }}
       >

@@ -92,7 +92,7 @@ export default function ConversionPage() {
     <div>
       <div style={{ marginBottom: 32 }}>
         <div className="eyebrow accent">◇ ANALYTICS · CONVERSIÓN</div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           CONVERSIÓN Y ABANDONO
         </h1>
         <div className="mute" style={{ fontSize: 13, marginTop: 4 }}>
@@ -148,7 +148,7 @@ export default function ConversionPage() {
           <div className="mono mute" style={{ fontSize: 11, marginBottom: 8 }}>
             SESIONES TOTALES
           </div>
-          <div className="display" style={{ fontSize: 32 }}>
+          <div className="display" style={{ fontSize: 'clamp(24px, 6vw, 32px)' }}>
             {report.totalSessions}
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function ConversionPage() {
           </div>
           <div
             className="display"
-            style={{ fontSize: 32, color: "var(--accent)" }}
+            style={{ fontSize: 'clamp(24px, 6vw, 32px)', color: "var(--accent)" }}
           >
             {report.activeSessions}
           </div>
@@ -167,7 +167,7 @@ export default function ConversionPage() {
           <div className="mono mute" style={{ fontSize: 11, marginBottom: 8 }}>
             SESIONES CONVERTIDAS
           </div>
-          <div className="display" style={{ fontSize: 32, color: "var(--ok)" }}>
+          <div className="display" style={{ fontSize: 'clamp(24px, 6vw, 32px)', color: "var(--ok)" }}>
             {report.convertedSessions}
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function ConversionPage() {
             >
               <div
                 className="display"
-                style={{ fontSize: 48, color: "var(--text-mute)" }}
+                style={{ fontSize: 'clamp(30px, 8vw, 48px)', color: "var(--text-mute)" }}
               >
                 —
               </div>
@@ -265,6 +265,7 @@ export default function ConversionPage() {
               DETALLE POR ESTADO
             </div>
           </div>
+          <div style={{ overflowX: 'auto' }}>
           <table className="table">
             <thead>
               <tr>
@@ -307,6 +308,7 @@ export default function ConversionPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

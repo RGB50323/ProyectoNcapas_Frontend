@@ -97,7 +97,7 @@ export default function AdminStoreRequestsPage() {
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE PERSONAS
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           SOLICITUDES DE TIENDA
         </h1>
       </div>
@@ -108,6 +108,7 @@ export default function AdminStoreRequestsPage() {
             {requests.length} SOLICITUDES · {pending} PENDIENTES
           </div>
         </div>
+        <div style={{ overflowX: "auto" }}>
         <table className="table">
           <thead>
             <tr>
@@ -156,6 +157,7 @@ export default function AdminStoreRequestsPage() {
             ))}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
 

@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth'
 import type { AdminSeller, AdminOrder, AdminOrderItem, AdminCoupon } from '@/lib/admin'
 import { getMySellerProfile, orderItemsBySeller, getOrder, getGlobalCoupons } from '@/lib/seller'
 import { Stat, ChartCard, Legend, tooltipProps, axisTick, money, MONTHS, STATUS_ORDER, STATUS_FILL, STATUS_PILL } from '@/components/charts'
+import { EditAction, DeleteAction } from '@/components/admin/RowActions'
 import type { Product } from '@/lib/types'
 
 export default function SellerDashboardClient() {
@@ -147,7 +148,7 @@ export default function SellerDashboardClient() {
             ◇ PANEL DE TIENDA
             <span className={`pill ${profile.verified ? 'green' : 'gray'}`}>{profile.verified ? 'VERIFICADA' : 'SIN VERIFICAR'}</span>
           </div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{profile.storeName.toUpperCase()}</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>{profile.storeName.toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
@@ -230,6 +231,7 @@ export default function SellerDashboardClient() {
           {myPieces.length === 0 ? (
             <div className="mono mute" style={{ padding: 28, fontSize: 13 }}>Aún no tenés productos. Creá tu primera pieza.</div>
           ) : (
+            <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead><tr><th>Pieza</th><th>SKU</th><th>Precio</th><th>Stock</th><th style={{ textAlign: 'right' }}>Acciones</th></tr></thead>
               <tbody>
@@ -256,13 +258,14 @@ export default function SellerDashboardClient() {
                           : <span className="pill green">{p.totalStock}</span>}
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <Link href={`/seller/products/${p.id}/edit`} className="mono accent" style={{ fontSize: 11 }}>EDITAR</Link>
-                      <button type="button" className="mono" onClick={() => setProductToDelete(p)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 16, fontSize: 11 }}>ELIMINAR</button>
+                      <EditAction href={`/seller/products/${p.id}/edit`} />
+                      <DeleteAction onClick={() => setProductToDelete(p)} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
