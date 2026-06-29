@@ -30,6 +30,8 @@ export default function Header() {
   const isAdmin = session?.role === 'ADMIN'
   const isSeller = session?.role === 'SELLER'
   const isConsole = isAdmin || isSeller
+  const onConsolePage = pathname.startsWith('/admin') || pathname.startsWith('/seller')
+  const useConsoleNav = isConsole && onConsolePage
   const homeHref = isAdmin ? '/admin/dashboard' : isSeller ? '/seller/dashboard' : '/'
 
   const closeMenu = () => setMenuOpen(false)
@@ -50,14 +52,17 @@ export default function Header() {
     <div className="header">
       <div className="header-inner">
         <div className="header-left">
-          {!isConsole && (
-            <button className="nav-toggle" aria-label="Menú" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="8" x2="14" y2="8" /><line x1="2" y1="12" x2="14" y2="12" />
-              </svg>
-            </button>
-          )}
-          <Link href={homeHref} className={`header-logo-left${isConsole ? '' : ' hide-mobile'}`} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <button
+            className="nav-toggle"
+            aria-label="Menú"
+            aria-expanded={useConsoleNav ? undefined : menuOpen}
+            onClick={() => useConsoleNav ? window.dispatchEvent(new CustomEvent('console-nav:open')) : setMenuOpen(true)}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <line x1="2" y1="4" x2="14" y2="4" /><line x1="2" y1="8" x2="14" y2="8" /><line x1="2" y1="12" x2="14" y2="12" />
+            </svg>
+          </button>
+          <Link href={homeHref} className="header-logo-left hide-mobile" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <img src="/logo.png" alt="Mister K" style={logoStyle} />
           </Link>
         </div>
@@ -74,11 +79,9 @@ export default function Header() {
               ))
             )}
           </nav>
-          {!isConsole && (
-            <Link href={homeHref} className="header-logo-center" style={{ alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
-              <img src="/logo.png" alt="Mister K" style={logoStyle} />
-            </Link>
-          )}
+          <Link href={homeHref} className="header-logo-center" style={{ alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <img src="/logo.png" alt="Mister K" style={logoStyle} />
+          </Link>
         </div>
 
         <div className="header-right">
@@ -128,7 +131,7 @@ export default function Header() {
         </div>
       </div>
 
-      {!isConsole && menuOpen && (
+      {menuOpen && (
         <>
           <button className="mobile-overlay-backdrop" aria-label="Cerrar menú" onClick={closeMenu} />
           <div className="mobile-overlay" role="dialog" aria-modal="true" aria-label="Menú principal">
@@ -144,7 +147,13 @@ export default function Header() {
               ))}
             </nav>
 
-            {!loading && session ? (
+            {isConsole && session ? (
+              <div className="mobile-overlay-account">
+                <div className="mobile-overlay-group">Cuenta</div>
+                <Link href={homeHref} onClick={closeMenu}>{isAdmin ? 'Consola admin' : 'Consola vendedor'}</Link>
+                <button onClick={async () => { closeMenu(); await logout(); router.replace('/login') }}>Cerrar sesión</button>
+              </div>
+            ) : !loading && session ? (
               <div className="mobile-overlay-account">
                 <div className="mobile-overlay-group">Cuenta</div>
                 <Link href="/account?tab=wishlist" onClick={closeMenu}>Favoritos</Link>

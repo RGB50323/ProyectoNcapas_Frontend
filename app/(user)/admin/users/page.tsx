@@ -10,6 +10,7 @@ import { Select } from "@/components/Select";
 import { useToast } from "@/hooks/useToast";
 import { usePaged } from "@/hooks/usePaged";
 import Pagination from "@/components/Pagination";
+import { DeleteAction } from "@/components/admin/RowActions";
 
 type User = {
   uuid: string;
@@ -213,17 +214,13 @@ export default function AdminUsersPage() {
                   >
                     <Icon.Eye />
                   </button>
-                  <button
-                    className="mono"
-                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--danger)", marginLeft: 16, verticalAlign: "middle" }}
+                  <DeleteAction
                     onClick={() => {
                       setSelectedUser(u);
                       setActionError(null);
                       setDeleteModal(true);
                     }}
-                  >
-                    ELIMINAR
-                  </button>
+                  />
                 </td>
               </tr>
             ))}

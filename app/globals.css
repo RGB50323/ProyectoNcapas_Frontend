@@ -147,7 +147,8 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); font-weight: 700; 
   animation: overlayFade 160ms ease;
 }
 .mobile-overlay {
-  position: fixed; top: 60px; bottom: 0; left: 0; z-index: 200;
+  position: fixed; top: 60px; left: 0; z-index: 200;
+  height: calc(100dvh - 60px);
   width: min(88vw, 340px); max-width: 100%;
   background: var(--bg-1); border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
@@ -886,6 +887,17 @@ img, svg, video, canvas { max-width: 100%; }
 .filters-toggle { display: none; }
 .compare-mobile { display: none; }
 
+/* row actions: text on desktop, icon on phone */
+.act-btn {
+  display: inline-flex; align-items: center; vertical-align: middle;
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 11px;
+}
+.act-btn + .act-btn { margin-left: 16px; }
+.act-danger { color: var(--danger); }
+.act-btn[data-disabled="true"] { color: var(--text-mute); cursor: not-allowed; opacity: 0.65; }
+.act-ico { display: none; }
+
 @media (max-width: 1024px) {
   .container, .container-wide { padding: 0 24px; }
   .search-inner { padding: 0 24px; }
@@ -916,6 +928,13 @@ img, svg, video, canvas { max-width: 100%; }
   .header-right .icon-btn { width: 34px; height: 34px; }
   .header-login { display: none; }
 
+  .act-txt { display: none; }
+  .act-ico { display: inline-flex; align-items: center; justify-content: center; }
+  .act-btn { width: 38px; height: 38px; justify-content: center; }
+  .act-btn + .act-btn { margin-left: 2px; }
+
+  .seller-toolbar-actions { width: 100%; justify-content: space-between; }
+
   /* admin/seller mobile navigation drawer */
   .dash-shell { grid-template-columns: 1fr; min-height: 0; }
   .dash-layout {
@@ -923,17 +942,6 @@ img, svg, video, canvas { max-width: 100%; }
     min-height: 0 !important;
     width: 100%;
   }
-  .side-mobile-toggle {
-    display: flex; align-items: center; gap: 10px;
-    width: 100%; padding: 12px 16px;
-    position: sticky; top: 60px; z-index: 32;
-    background: var(--bg-1); color: var(--text);
-    border: none; border-bottom: 1px solid var(--border);
-    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    cursor: pointer;
-  }
-  .side-mobile-toggle:hover { background: var(--elev); }
   .side-backdrop {
     display: block;
     position: fixed; inset: 60px 0 0; z-index: 39;

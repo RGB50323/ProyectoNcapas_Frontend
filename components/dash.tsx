@@ -91,6 +91,13 @@ function ConsoleSidebar({
 
   useEffect(() => setOpen(false), [pathname]);
 
+  // header hamburger opens this drawer on mobile
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("console-nav:open", onOpen);
+    return () => window.removeEventListener("console-nav:open", onOpen);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
@@ -110,21 +117,6 @@ function ConsoleSidebar({
 
   return (
     <>
-      <button
-        type="button"
-        className="side-mobile-toggle"
-        aria-controls={id}
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-          <line x1="2" y1="4" x2="14" y2="4" />
-          <line x1="2" y1="8" x2="14" y2="8" />
-          <line x1="2" y1="12" x2="14" y2="12" />
-        </svg>
-        <span>{label}</span>
-      </button>
-
       {open && (
         <button
           type="button"

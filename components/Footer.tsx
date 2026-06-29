@@ -45,10 +45,6 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <div>© 2026 K LAB BY MISTER K. TODOS LOS DERECHOS RESERVADOS.</div>
-          <div style={{ display: 'flex', gap: 24 }}>
-            <Link href="/privacy">Privacidad</Link>
-            <Link href="/terms">Términos</Link>
-          </div>
         </div>
       </div>
     </div>

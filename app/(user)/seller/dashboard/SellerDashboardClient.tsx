@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth'
 import type { AdminSeller, AdminOrder, AdminOrderItem, AdminCoupon } from '@/lib/admin'
 import { getMySellerProfile, orderItemsBySeller, getOrder, getGlobalCoupons } from '@/lib/seller'
 import { Stat, ChartCard, Legend, tooltipProps, axisTick, money, MONTHS, STATUS_ORDER, STATUS_FILL, STATUS_PILL } from '@/components/charts'
+import { EditAction, DeleteAction } from '@/components/admin/RowActions'
 import type { Product } from '@/lib/types'
 
 export default function SellerDashboardClient() {
@@ -257,8 +258,8 @@ export default function SellerDashboardClient() {
                           : <span className="pill green">{p.totalStock}</span>}
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <Link href={`/seller/products/${p.id}/edit`} className="mono accent" style={{ fontSize: 11 }}>EDITAR</Link>
-                      <button type="button" className="mono" onClick={() => setProductToDelete(p)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 16, fontSize: 11 }}>ELIMINAR</button>
+                      <EditAction href={`/seller/products/${p.id}/edit`} />
+                      <DeleteAction onClick={() => setProductToDelete(p)} />
                     </td>
                   </tr>
                 ))}

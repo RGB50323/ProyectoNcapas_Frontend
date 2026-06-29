@@ -11,6 +11,7 @@ import { uploadProductImage } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 import { usePaged } from '@/hooks/usePaged'
 import Pagination from '@/components/Pagination'
+import { EditAction, DeleteAction } from '@/components/admin/RowActions'
 
 export type FieldType = 'text' | 'number' | 'textarea' | 'checkbox' | 'datetime' | 'select' | 'image'
 
@@ -220,34 +221,19 @@ export default function CrudResource<T>({
                 {(update || remove) && (
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {update && (
-                      editHref ? (
-                        <Link className="mono accent" style={{ fontSize: 11 }} href={editHref(item)}>EDITAR</Link>
-                      ) : (
-                        <button className="mono accent" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => openEdit(item)}>EDITAR</button>
-                      )
+                      editHref ? <EditAction href={editHref(item)} /> : <EditAction onClick={() => openEdit(item)} />
                     )}
                     {remove && (() => {
                       const blocked = removeDisabledReason?.(item)
-
                       return (
-                        <button
-                          className="mono"
+                        <DeleteAction
+                          disabled={!!blocked}
                           title={blocked ?? undefined}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: blocked ? 'not-allowed' : 'pointer',
-                            color: blocked ? 'var(--text-mute)' : 'var(--danger)',
-                            marginLeft: 16,
-                            opacity: blocked ? 0.65 : 1,
-                          }}
                           onClick={() => {
                             if (blocked) { show(blocked, 'error'); return }
                             setToDelete(item)
                           }}
-                        >
-                          ELIMINAR
-                        </button>
+                        />
                       )
                     })()}
                   </td>

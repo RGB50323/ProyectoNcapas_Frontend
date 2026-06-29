@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth'
 import { usePaged } from '@/hooks/usePaged'
 import Pagination from '@/components/Pagination'
 import { PageLoader } from '@/components/PageLoader'
+import { EditAction, DeleteAction } from '@/components/admin/RowActions'
 import type { Product } from '@/lib/types'
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL
@@ -120,8 +121,10 @@ export default function SellerProductsPage() {
             onChange={(e) => setQuery(e.target.value)}
             style={{ width: 260 }}
           />
-          <button className="btn btn-ghost" onClick={() => { setSelectedAuthIds([]); setAuthError(''); setAuthModalOpen(true) }}>Enviar a autenticación</button>
-          <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
+          <div className="seller-toolbar-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button className="btn btn-ghost" onClick={() => { setSelectedAuthIds([]); setAuthError(''); setAuthModalOpen(true) }}>Enviar a autenticación</button>
+            <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
+          </div>
         </div>
       </div>
 
@@ -162,8 +165,8 @@ export default function SellerProductsPage() {
                       <span className={`pill ${AUTH_META[p.auth].cls}`}>{AUTH_META[p.auth].label}</span>
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <Link href={`/seller/products/${p.id}/edit`} className="mono accent" style={{ fontSize: 11 }}>EDITAR</Link>
-                      <button type="button" className="mono" onClick={() => { setProductToDelete(p); setDeleteError('') }} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 16, fontSize: 11 }}>ELIMINAR</button>
+                      <EditAction href={`/seller/products/${p.id}/edit`} />
+                      <DeleteAction onClick={() => { setProductToDelete(p); setDeleteError('') }} />
                     </td>
                   </tr>
                 ))}
