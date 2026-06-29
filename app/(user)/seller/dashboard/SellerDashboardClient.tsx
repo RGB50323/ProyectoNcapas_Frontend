@@ -147,7 +147,7 @@ export default function SellerDashboardClient() {
             ◇ PANEL DE TIENDA
             <span className={`pill ${profile.verified ? 'green' : 'gray'}`}>{profile.verified ? 'VERIFICADA' : 'SIN VERIFICAR'}</span>
           </div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{profile.storeName.toUpperCase()}</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>{profile.storeName.toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Link href="/seller/products/new" className="btn">+ Nueva pieza</Link>
@@ -230,6 +230,7 @@ export default function SellerDashboardClient() {
           {myPieces.length === 0 ? (
             <div className="mono mute" style={{ padding: 28, fontSize: 13 }}>Aún no tenés productos. Creá tu primera pieza.</div>
           ) : (
+            <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead><tr><th>Pieza</th><th>SKU</th><th>Precio</th><th>Stock</th><th style={{ textAlign: 'right' }}>Acciones</th></tr></thead>
               <tbody>
@@ -263,6 +264,7 @@ export default function SellerDashboardClient() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

@@ -51,10 +51,10 @@ export default function AdminErpPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 24, marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: 24, marginBottom: 24 }}>
         <div>
           <div className="eyebrow accent">◇ ERP · RECEPCIÓN SIMULADA</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>ERP</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>ERP</h1>
           <div className="mute" style={{ fontSize: 13, marginTop: 4 }}>
             {orders.length} órdenes recibidas · ${totalReceived.toFixed(2)} acumulado
           </div>
@@ -71,6 +71,7 @@ export default function AdminErpPage() {
       </div>
 
       <div className="card" style={{ padding: 0 }}>
+        <div style={{ overflowX: 'auto' }}>
         <table className="table">
           <thead>
           <tr>
@@ -130,6 +131,7 @@ export default function AdminErpPage() {
                         </div>
                       </div>
 
+                      <div style={{ overflowX: 'auto' }}>
                       <table className="table" style={{ margin: 0 }}>
                         <thead>
                         <tr>
@@ -154,6 +156,7 @@ export default function AdminErpPage() {
                         ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -162,6 +165,7 @@ export default function AdminErpPage() {
           ))}
           </tbody>
         </table>
+        </div>
 
         {filteredOrders.length === 0 && (
           <div style={{ padding: 48, textAlign: 'center' }}>

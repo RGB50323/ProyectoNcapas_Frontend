@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
 
 export function DashHeader({ role, name }: { role: string; name: string }) {
   return (
     <div
+      className="dash-header"
       style={{
         borderBottom: "1px solid var(--border)",
         background: "var(--bg-1)",
@@ -14,6 +16,7 @@ export function DashHeader({ role, name }: { role: string; name: string }) {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        gap: 12,
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
@@ -39,12 +42,12 @@ export function DashHeader({ role, name }: { role: string; name: string }) {
             CONSOLA {role}
           </span>
         </Link>
-        <span className="mono mute" style={{ marginLeft: 24 }}>
+        <span className="mono mute dh-hide-sm" style={{ marginLeft: 24 }}>
           v2.4.1 · {name}
         </span>
       </div>
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        <span className="mono">
+        <span className="mono dh-hide-sm">
           <span className="live-dot" />
           &nbsp; OPS DEL LAB · EN LÍNEA
         </span>
@@ -74,9 +77,86 @@ function Item({
   return <a>{children}</a>;
 }
 
+function ConsoleSidebar({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        type="button"
+        className="side-mobile-toggle"
+        aria-controls={id}
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <line x1="2" y1="4" x2="14" y2="4" />
+          <line x1="2" y1="8" x2="14" y2="8" />
+          <line x1="2" y1="12" x2="14" y2="12" />
+        </svg>
+        <span>{label}</span>
+      </button>
+
+      {open && (
+        <button
+          type="button"
+          className="side-backdrop"
+          aria-label="Cerrar navegación"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      <aside
+        id={id}
+        className={`side${open ? " side-open" : ""}`}
+        aria-label={label}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("a")) setOpen(false);
+        }}
+      >
+        <div className="side-mobile-head">
+          <span>{label}</span>
+          <button type="button" className="icon-btn" aria-label="Cerrar navegación" onClick={() => setOpen(false)}>
+            <Icon.Close />
+          </button>
+        </div>
+        {children}
+      </aside>
+    </>
+  );
+}
+
 export function AdminSidebar() {
   return (
-    <aside className="side">
+    <ConsoleSidebar id="admin-navigation" label="Menú admin">
       <div className="group">Resumen</div>
       <Item href="/admin/dashboard">Panel</Item>
 
@@ -105,13 +185,13 @@ export function AdminSidebar() {
 
       <div className="group">Analytics</div>
       <Item href="/admin/conversion">Conversión</Item>
-    </aside>
+    </ConsoleSidebar>
   );
 }
 
 export function SellerSidebar() {
   return (
-    <aside className="side">
+    <ConsoleSidebar id="seller-navigation" label="Menú seller">
       <div className="group">Resumen</div>
       <Item href="/seller/dashboard">Panel</Item>
 
@@ -124,7 +204,7 @@ export function SellerSidebar() {
 
       <div className="group">Cuenta</div>
       <Item href="/seller/profile">Perfil de tienda</Item>
-    </aside>
+    </ConsoleSidebar>
   );
 }
 

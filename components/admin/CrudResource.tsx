@@ -188,10 +188,10 @@ export default function CrudResource<T>({
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 28 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
         <div>
           {eyebrow && <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>{eyebrow}</div>}
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>{title}</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>{title}</h1>
           <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>{shown.length} REGISTRO{shown.length === 1 ? '' : 'S'}</div>
           {extraHeader}
         </div>

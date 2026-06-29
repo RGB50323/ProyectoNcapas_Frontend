@@ -135,7 +135,7 @@ export default function AdminAddressesPage() {
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE DATOS
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           DIRECCIONES
         </h1>
       </div>
@@ -153,6 +153,8 @@ export default function AdminAddressesPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 10,
               background: "var(--elev)",
             }}
           >
@@ -183,6 +185,7 @@ export default function AdminAddressesPage() {
               ELIMINAR TODAS
             </button>
           </div>
+          <div style={{ overflowX: "auto" }}>
           <table className="table">
             <thead>
               <tr>
@@ -225,6 +228,7 @@ export default function AdminAddressesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ))}
 

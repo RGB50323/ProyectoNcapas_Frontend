@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Anton, Inter, JetBrains_Mono } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth'
 import { CartProvider } from '@/lib/cart'
@@ -31,6 +31,12 @@ export const metadata: Metadata = {
   title: 'K LAB by Mister K — Sneakers Curados. Piezas Verificadas.',
   description: 'Un laboratorio de autenticación. Sneakers curados, piezas verificadas, streetwear premium. Cada pieza inspeccionada a mano.',
   icons: { icon: '/logo.png' },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

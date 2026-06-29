@@ -144,7 +144,7 @@ export default function AdminSellersPage() {
         <div className="eyebrow" style={{ color: "var(--accent-2)" }}>
           ◆ GESTIÓN DE PERSONAS
         </div>
-        <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>
+        <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>
           TIENDAS
         </h1>
       </div>
@@ -160,6 +160,7 @@ export default function AdminSellersPage() {
             {sellers.length} PERFILES
           </div>
         </div>
+        <div style={{ overflowX: "auto" }}>
         <table className="table">
           <thead>
             <tr>
@@ -242,6 +243,7 @@ export default function AdminSellersPage() {
             ))}
           </tbody>
         </table>
+        </div>
         <Pagination page={page} pageCount={pageCount} onPage={setPage} />
       </div>
 

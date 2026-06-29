@@ -19,7 +19,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
   if (loading || !session || session.role !== 'SELLER') return <PageLoader />
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="dash-layout" style={{ display: 'flex', minHeight: '100vh' }}>
       <SellerSidebar />
       <div className="dash-main" style={{ flex: 1 }}>{children}</div>
     </div>

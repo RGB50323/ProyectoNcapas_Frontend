@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import type { Product, Category } from '@/lib/types'
 import { useCompare } from '@/lib/compare'
@@ -38,8 +38,14 @@ export default function CompareClient({ allProducts, categories }: { allProducts
     { label: 'Autenticación', get: (p) => (p.auth === 'AUTHENTICATED' ? '✓ Verificado' : p.auth) },
     { label: 'Tipo de drop', get: (p) => (p.privateDrop ? 'Privado' : p.limited ? 'Limitado' : 'Estándar') },
     { label: 'Stock total', get: (p) => `${p.totalStock} unidades` },
-    { label: 'Tallas disponibles', get: (p) => [...new Set(p.variants.filter((v) => v.stock > 0).map((v) => v.size))].slice(0, 4).join(' / ') + '…' },
-    { label: 'Calificación', get: (p) => `${p.rating} (${p.reviews})` },
+    {
+      label: 'Tallas disponibles',
+      get: (p) => {
+        const sizes = [...new Set(p.variants.filter((v) => v.stock > 0).map((v) => v.size))]
+        return sizes.length > 4 ? `${sizes.slice(0, 4).join(' / ')}…` : sizes.join(' / ') || '—'
+      },
+    },
+    { label: 'Calificación', get: (p) => (p.reviews > 0 && p.rating != null ? `${p.rating} (${p.reviews})` : 'Sin reseñas') },
     { label: 'SKU', get: (p) => p.sku },
   ]
 
@@ -47,13 +53,13 @@ export default function CompareClient({ allProducts, categories }: { allProducts
   const excludeIds = selected.map((p) => p.id)
 
   return (
-    <div className="container page">
+    <div className="container page compare-page">
       <div className="crumbs"><Link href="/">Inicio</Link><span className="sep">/</span><em>Comparar</em></div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 32 }}>
+      <div className="compare-page-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: 16, marginBottom: 32 }}>
         <div>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ LADO A LADO · HASTA {compare.max}</div>
-          <h1 className="display" style={{ fontSize: 56, marginTop: 12 }}>COMPARAR</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(34px, 9vw, 56px)', marginTop: 12 }}>COMPARAR</h1>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           {selected.length > 0 && (
@@ -65,14 +71,15 @@ export default function CompareClient({ allProducts, categories }: { allProducts
       {selected.length === 0 ? (
         <div style={{ padding: '64px 0', borderTop: '1px solid var(--border)' }}>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ SIN PIEZAS</div>
-          <div className="display" style={{ fontSize: 36, marginTop: 12 }}>NADA QUE COMPARAR TODAVÍA.</div>
+          <div className="display" style={{ fontSize: 'clamp(26px, 8vw, 36px)', marginTop: 12 }}>NADA QUE COMPARAR TODAVÍA.</div>
           <p style={{ color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 12, marginBottom: 24 }}>
             Elegí piezas desde el catálogo o agrégalas acá abajo.
           </p>
           <button className="btn" onClick={() => setPickerSlot(0)}>+ Elegir primera pieza</button>
         </div>
       ) : (
-        <div style={{ border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <>
+        <div className="compare-desktop" style={{ border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: cols, borderBottom: '1px solid var(--border)' }}>
             <div style={{ padding: 24, background: 'var(--bg-1)' }} />
             {slots.map((p, i) => (
@@ -141,6 +148,85 @@ export default function CompareClient({ allProducts, categories }: { allProducts
             ))}
           </div>
         </div>
+
+        <div
+          className="compare-mobile"
+          style={{ '--compare-count': slots.length } as CSSProperties}
+        >
+          <div
+            className="compare-mobile-scroll"
+            role="region"
+            aria-label="Comparación de piezas"
+            tabIndex={0}
+          >
+            <div className="compare-mobile-grid" role="table" aria-colcount={slots.length + 1}>
+              <div className="compare-mobile-row compare-mobile-product-row" role="row">
+                <div className="compare-mobile-corner" role="columnheader">Piezas</div>
+                {slots.map((p, i) => (
+                  <div className="compare-mobile-card" role="columnheader" key={p?.id ?? `mobile-empty-${i}`}>
+                    {p ? (
+                      <>
+                        <button
+                          className="compare-mobile-remove"
+                          onClick={() => compare.remove(p.id)}
+                          aria-label={`Quitar ${p.name} de la comparación`}
+                          title="Quitar"
+                        >
+                          <Icon.Close />
+                        </button>
+                        <div className="compare-mobile-image">
+                          <img src={p.images[0]} alt={p.name} />
+                        </div>
+                        <span className="compare-mobile-brand">{p.brand}</span>
+                        <strong className="compare-mobile-name">{p.name}</strong>
+                        <button className="compare-mobile-change" onClick={() => setPickerSlot(i)}>
+                          Cambiar
+                        </button>
+                      </>
+                    ) : (
+                      <button className="compare-mobile-empty" onClick={() => setPickerSlot(i)}>
+                        <Icon.Plus />
+                        <span>Elegir pieza</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {rows.map((row) => (
+                <div className="compare-mobile-row" role="row" key={`mobile-${row.label}`}>
+                  <div className="compare-mobile-label" role="rowheader">{row.label}</div>
+                  {slots.map((p, idx) => (
+                    <div
+                      className={`compare-mobile-value${p ? '' : ' is-empty'}`}
+                      role="cell"
+                      key={p?.id ?? `mobile-${row.label}-empty-${idx}`}
+                    >
+                      {p ? row.get(p) : '—'}
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <div className="compare-mobile-row compare-mobile-action-row" role="row">
+                <div className="compare-mobile-label" role="rowheader">Acción</div>
+                {slots.map((p, idx) => (
+                  <div className="compare-mobile-action" role="cell" key={p?.id ?? `mobile-action-empty-${idx}`}>
+                    {p ? (
+                      <Link href={`/product/${p.id}`} className="btn">Ver pieza</Link>
+                    ) : (
+                      <button className="btn btn-ghost" disabled>—</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {slots.length > 2 && (
+            <p className="compare-mobile-hint">Desliza para comparar todas las piezas →</p>
+          )}
+        </div>
+        </>
       )}
 
       <ComparePickerModal

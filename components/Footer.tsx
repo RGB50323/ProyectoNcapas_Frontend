@@ -5,7 +5,7 @@ export default function Footer() {
     <div className="footer">
       <div className="container">
         <div className="footer-grid">
-          <div>
+          <div className="footer-brand">
             <img
               src="/logo.png"
               alt="Mister K"

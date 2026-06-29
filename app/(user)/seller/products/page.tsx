@@ -109,7 +109,7 @@ export default function SellerProductsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ INVENTARIO</div>
-          <h1 className="display" style={{ fontSize: 40, marginTop: 8 }}>MIS PRODUCTOS</h1>
+          <h1 className="display" style={{ fontSize: 'clamp(28px, 7vw, 40px)', marginTop: 8 }}>MIS PRODUCTOS</h1>
           <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>{products.length} PIEZA{products.length === 1 ? '' : 'S'}</div>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -132,6 +132,7 @@ export default function SellerProductsPage() {
           </div>
         ) : (
           <>
+            <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead><tr><th>Pieza</th><th>SKU</th><th>Precio</th><th>Stock</th><th>Estado</th><th style={{ textAlign: 'right' }}>Acciones</th></tr></thead>
               <tbody>
@@ -168,6 +169,7 @@ export default function SellerProductsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
             <Pagination page={page} pageCount={pageCount} onPage={setPage} />
           </>
         )}

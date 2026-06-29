@@ -96,7 +96,7 @@ export default function AdminUserDetailPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◆ USUARIO</div>
-            <h1 className="display" style={{ fontSize: 36, marginTop: 8 }}>{user.firstName} {user.lastName}</h1>
+            <h1 className="display" style={{ fontSize: 'clamp(26px, 6.5vw, 36px)', marginTop: 8 }}>{user.firstName} {user.lastName}</h1>
             <div className="mono mute" style={{ marginTop: 8, fontSize: 12 }}>{user.email}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>

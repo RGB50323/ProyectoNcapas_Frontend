@@ -55,7 +55,7 @@ function CheckoutDone({ orderId }: { orderId: string }) {
             <div className="eyebrow" style={{ color: 'var(--accent-2)', marginBottom: 16 }}>
                 ◆ PEDIDO CONFIRMADO · {orderId}
             </div>
-            <h2 className="display" style={{ fontSize: 56, lineHeight: 1, marginBottom: 12 }}>
+            <h2 className="display" style={{ fontSize: 'clamp(34px, 9vw, 56px)', lineHeight: 1, marginBottom: 12 }}>
                 TU PIEZA<br />HA SIDO <span style={{ color: 'var(--accent-2)' }}>ASEGURADA.</span>
             </h2>
             <p className="mute" style={{ maxWidth: 440, margin: '16px auto 32px', lineHeight: 1.7 }}>
@@ -230,7 +230,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
     if (loading || !session) return <PageLoader />
 
     return (
-        <div className="container page">
+        <div className="container page checkout-page">
             <div className="crumbs">
                 <button
                     onClick={() => router.push('/cart')}
@@ -242,24 +242,38 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
             </div>
 
             {/* Progress bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, gap: 0, marginBottom: 48, border: '1px solid var(--border)' }}>
+            <div
+                className="checkout-progress keep-grid"
+                aria-label="Progreso del checkout"
+                style={{ display: 'grid', gridTemplateColumns: `repeat(${STEPS.length}, 1fr)`, gap: 0, marginBottom: 48, border: '1px solid var(--border)' }}
+            >
+                <div className="checkout-progress__mobile-status" style={{ display: 'none' }}>
+                    <span className="mono">PASO {String(step).padStart(2, '0')} DE {String(STEPS.length).padStart(2, '0')}</span>
+                    <strong>{STEPS[step - 1]}</strong>
+                </div>
                 {STEPS.map((s, i) => (
-                    <button key={s} onClick={() => i + 1 < step && setStep(i + 1)} style={{
-                        padding: '16px 12px',
-                        background: i + 1 === step ? 'var(--text)' : 'var(--card)',
-                        color: i + 1 === step ? 'var(--bg-0)' : i + 1 < step ? 'var(--text)' : 'var(--text-dim)',
-                        borderRight: i < STEPS.length - 1 ? '1px solid var(--border)' : 'none',
-                        border: 'none', cursor: i + 1 < step ? 'pointer' : 'default', textAlign: 'left',
+                    <button
+                        className={`checkout-progress__step${i + 1 === step ? ' is-current' : ''}${i + 1 < step ? ' is-complete' : ''}`}
+                        key={s}
+                        onClick={() => i + 1 < step && setStep(i + 1)}
+                        aria-current={i + 1 === step ? 'step' : undefined}
+                        aria-label={`Paso ${i + 1}: ${s}`}
+                        style={{
+                            padding: '16px 12px',
+                            background: i + 1 === step ? 'var(--text)' : 'var(--card)',
+                            color: i + 1 === step ? 'var(--bg-0)' : i + 1 < step ? 'var(--text)' : 'var(--text-dim)',
+                            borderRight: i < STEPS.length - 1 ? '1px solid var(--border)' : 'none',
+                            border: 'none', cursor: i + 1 < step ? 'pointer' : 'default', textAlign: 'left',
                     }}>
-                        <div className="mono" style={{ fontSize: 11, letterSpacing: '0.14em' }}>PASO {String(i + 1).padStart(2, '0')}</div>
-                        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s}</div>
+                        <div className="mono checkout-progress__number" style={{ fontSize: 11, letterSpacing: '0.14em' }}>PASO {String(i + 1).padStart(2, '0')}</div>
+                        <div className="checkout-progress__name" style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s}</div>
                     </button>
                 ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 48 }}>
+            <div className="checkout-page__layout" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 48 }}>
                 {/* Left — form */}
-                <div>
+                <div className="checkout-page__main">
                     {step === 6 && orderId ? (
                         <CheckoutDone orderId={orderId} />
                     ) : (
@@ -414,7 +428,7 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32 }}>
+                            <div className="checkout-page__actions" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 32 }}>
                                 <button className="btn btn-ghost" disabled={step === 1} onClick={() => setStep(step - 1)}>
                                     ← Atrás
                                 </button>
@@ -462,8 +476,8 @@ export default function CheckoutClient({ shipping }: { shipping: ShippingMethod[
                 </div>
 
                 {/* Right — order summary */}
-                <div>
-                    <div className="card" style={{ padding: 24, position: 'sticky', top: 120 }}>
+                <div className="checkout-page__summary-wrap">
+                    <div className="card checkout-page__summary" style={{ padding: 24, position: 'sticky', top: 120 }}>
                         {(() => {
                             const sum = step === 6 && confirmed
                                 ? confirmed

@@ -65,6 +65,7 @@ export default function CatalogClient({ products, categories, brands }: { produc
   const [filters, setFilters] = useState<Filters>(EMPTY)
   const [sort, setSort] = useState('limited')
   const [chip, setChip] = useState(CHIPS.includes(initialChip) ? initialChip : 'TODO')
+  const [mobileFilters, setMobileFilters] = useState(false)
   const { session, loading } = useAuth()
   const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([])
   const [recommendedReady, setRecommendedReady] = useState(false)
@@ -160,22 +161,22 @@ const availableColors = useMemo(() => {
   }
 
   return (
-    <div className="container page">
-      <div className="crumbs">
+    <div className="container page catalog-page">
+      <div className="crumbs catalog-crumbs">
         <Link href="/">Inicio</Link>
         <span className="sep">/</span>
         <em>Catálogo</em>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 32 }}>
-        <div>
+      <div className="catalog-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 32 }}>
+        <div className="catalog-heading">
           <div className="eyebrow" style={{ color: 'var(--accent-2)' }}>◇ LA BÓVEDA COMPLETA</div>
           <h1 className="display" style={{ fontSize: 64, marginTop: 12 }}>CATÁLOGO</h1>
           <p className="mute" style={{ marginTop: 8, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: 12 }}>
             {items.length} piezas · inventario en vivo
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="catalog-sort" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span className="mono mute">ORDENAR POR</span>
           <Select
             value={sort}
@@ -192,14 +193,19 @@ const availableColors = useMemo(() => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 24, borderBottom: '1px solid var(--border)', marginBottom: 32 }}>
+      <div className="catalog-chips" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 24, borderBottom: '1px solid var(--border)', marginBottom: 32 }}>
         {CHIPS.map((c) => (
           <button key={c} className={'tag' + (chip === c ? ' active' : '')} onClick={() => setChip(c)}>{c}</button>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '288px 1fr', gap: 40 }}>
-        <aside className="filters">
+      <button className="filters-toggle catalog-filters-toggle" onClick={() => setMobileFilters((v) => !v)}>
+        <Icon.Filter /> {mobileFilters ? 'Ocultar filtros' : 'Filtros'}
+        {active.length > 0 && <span className="filter-tally">{active.length}</span>}
+      </button>
+
+      <div className="catalog-layout" style={{ display: 'grid', gridTemplateColumns: '288px 1fr', gap: 40 }}>
+        <aside className={'filters catalog-filters' + (mobileFilters ? ' open' : '')}>
           <div className="filter-bar">
             <span className="title">
               <Icon.Filter /> FILTROS
@@ -267,7 +273,7 @@ const availableColors = useMemo(() => {
           </FilterGroup>
         </aside>
 
-        <div>
+        <div className="catalog-results">
           <div className="grid-products">
             {pageItems.map((p) => <ProductCard key={p.id} p={p} />)}
           </div>
